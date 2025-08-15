@@ -714,6 +714,13 @@ export default function CustomNode({ data, id }) {
     <div
       className="bg-[#3a3a3a] border-2 border-[#666666] hover:border-[#ff6d6d] rounded-xl shadow-lg hover:shadow-xl hover:shadow-[#ff6d6d]/10 min-w-48 cursor-pointer transition-all duration-200 transform hover:scale-[1.02] backdrop-blur-sm"
       onDoubleClick={() => setIsEditing(true)}
+      style={{
+        backgroundColor: '#3a3a3a',
+        border: '2px solid #666666',
+        borderRadius: '12px',
+        minWidth: '192px',
+        color: 'white'
+      }}
     >
       <Handle
         type="target"
@@ -723,21 +730,37 @@ export default function CustomNode({ data, id }) {
           border: "2px solid #ffffff",
           width: "12px",
           height: "12px",
+          backgroundColor: nodeInfo.color,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          top: '-6px'
         }}
       />
 
       {/* Header */}
-      <div className="p-3 bg-gradient-to-r from-[#252525] to-[#3a3a3a] border-b border-[#666666] rounded-t-xl">
+      <div 
+        className="p-3 bg-gradient-to-r from-[#252525] to-[#3a3a3a] border-b border-[#666666] rounded-t-xl"
+        style={{
+          background: 'linear-gradient(to right, #252525, #3a3a3a)',
+          borderBottom: '1px solid #666666',
+          borderTopLeftRadius: '10px',
+          borderTopRightRadius: '10px'
+        }}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div
               className={`w-6 h-6 ${nodeInfo.bgColor} rounded-lg flex items-center justify-center text-white text-xs shadow-lg`}
+              style={{
+                backgroundColor: nodeInfo.color,
+                color: 'white'
+              }}
             >
               {nodeInfo.icon}
             </div>
             <div>
-              <h3 className="font-medium text-white text-sm">{data.label}</h3>
-              <p className="text-xs text-[#999999]">{nodeInfo.category}</p>
+              <h3 className="font-medium text-white text-sm" style={{ color: 'white' }}>{data.label}</h3>
+              <p className="text-xs text-[#999999]" style={{ color: '#999999' }}>{nodeInfo.category}</p>
             </div>
           </div>
           <CogIcon className="w-4 h-4 text-[#999999] hover:text-[#ff6d6d] transition-colors" />
@@ -745,49 +768,108 @@ export default function CustomNode({ data, id }) {
       </div>
 
       {/* Content */}
-      <div className="p-3 space-y-2">
+      <div className="p-3 space-y-2" style={{ backgroundColor: 'transparent' }}>
         {data.model && (
-          <div className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded">
+          <div 
+            className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded"
+            style={{ backgroundColor: '#252525', color: '#cccccc' }}
+          >
             Model: {data.model.split("/").pop()}
           </div>
         )}
-        {data.to && <div className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded">To: {data.to}</div>}
+        {data.to && (
+          <div 
+            className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded"
+            style={{ backgroundColor: '#252525', color: '#cccccc' }}
+          >
+            To: {data.to}
+          </div>
+        )}
         {data.webhook_url && data.method && (
-          <div className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded">
+          <div 
+            className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded"
+            style={{ backgroundColor: '#252525', color: '#cccccc' }}
+          >
             🪝 {data.description || "Webhook"}
           </div>
         )}
         {data.webhook_url && data.username && !data.method && (
-          <div className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded">💬 {data.username}</div>
+          <div 
+            className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded"
+            style={{ backgroundColor: '#252525', color: '#cccccc' }}
+          >
+            💬 {data.username}
+          </div>
         )}
         {data.spreadsheet_id && (
-          <div className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded">📊 {data.range}</div>
+          <div 
+            className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded"
+            style={{ backgroundColor: '#252525', color: '#cccccc' }}
+          >
+            📊 {data.range}
+          </div>
         )}
-        {data.cron && <div className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded">⏰ {data.cron}</div>}
+        {data.cron && (
+          <div 
+            className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded"
+            style={{ backgroundColor: '#252525', color: '#cccccc' }}
+          >
+            ⏰ {data.cron}
+          </div>
+        )}
         {data.service && (
-          <div className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded">📁 {data.name || data.service}</div>
+          <div 
+            className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded"
+            style={{ backgroundColor: '#252525', color: '#cccccc' }}
+          >
+            📁 {data.name || data.service}
+          </div>
         )}
         {data.mode && (
-          <div className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded">📱 {data.mode.toUpperCase()}</div>
+          <div 
+            className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded"
+            style={{ backgroundColor: '#252525', color: '#cccccc' }}
+          >
+            📱 {data.mode.toUpperCase()}
+          </div>
         )}
         {data.prompt && (
-          <div className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded">
+          <div 
+            className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded"
+            style={{ backgroundColor: '#252525', color: '#cccccc' }}
+          >
             🎨 {data.provider}: {data.size}
           </div>
         )}
-        {data.subject && <div className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded">📧 {data.subject}</div>}
+        {data.subject && (
+          <div 
+            className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded"
+            style={{ backgroundColor: '#252525', color: '#cccccc' }}
+          >
+            📧 {data.subject}
+          </div>
+        )}
         {data.supported_types && (
-          <div className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded">
+          <div 
+            className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded"
+            style={{ backgroundColor: '#252525', color: '#cccccc' }}
+          >
             📄 {data.filename || "No file selected"}
           </div>
         )}
         {data.title && data.format && (
-          <div className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded">
+          <div 
+            className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded"
+            style={{ backgroundColor: '#252525', color: '#cccccc' }}
+          >
             📊 {data.format.toUpperCase()} Report
           </div>
         )}
         {data.platform && (
-          <div className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded">
+          <div 
+            className="text-xs text-[#cccccc] bg-[#252525] px-2 py-1 rounded"
+            style={{ backgroundColor: '#252525', color: '#cccccc' }}
+          >
             📱 {data.platform.charAt(0).toUpperCase() + data.platform.slice(1)}
           </div>
         )}
@@ -801,6 +883,10 @@ export default function CustomNode({ data, id }) {
           border: "2px solid #ffffff",
           width: "12px",
           height: "12px",
+          backgroundColor: nodeInfo.color,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          bottom: '-6px'
         }}
       />
     </div>

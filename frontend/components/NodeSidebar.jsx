@@ -75,6 +75,27 @@ export default function NodeSidebar() {
   const handleAddNode = async (nodeConfig) => {
     if (isAdding) return
     setIsAdding(true)
+    
+    // If it's a config object with predefined position, calculate better position
+    if (typeof nodeConfig === "object" && nodeConfig.position) {
+      const currentNodes = nodes
+      const gridSize = 200
+      const maxCols = 4
+      const nodeCount = currentNodes.length
+      const col = nodeCount % maxCols
+      const row = Math.floor(nodeCount / maxCols)
+      
+      const baseX = 100 + (col * gridSize)
+      const baseY = 100 + (row * gridSize)
+      const randomOffsetX = Math.random() * 50 - 25
+      const randomOffsetY = Math.random() * 50 - 25
+      
+      nodeConfig.position = {
+        x: baseX + randomOffsetX,
+        y: baseY + randomOffsetY
+      }
+    }
+    
     addNode(nodeConfig)
     setTimeout(() => setIsAdding(false), 500)
   }
@@ -111,7 +132,7 @@ export default function NodeSidebar() {
           config: {
             id: Date.now().toString(),
             type: "google_sheets",
-            position: { x: 250, y: 150 },
+            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
             data: {
               label: "Google Sheets Node",
               spreadsheet_id: "",
@@ -128,7 +149,7 @@ export default function NodeSidebar() {
           config: {
             id: Date.now().toString(),
             type: "file_upload",
-            position: { x: 250, y: 200 },
+            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
             data: {
               label: "File Upload Node",
               path: "",
@@ -153,7 +174,7 @@ export default function NodeSidebar() {
           config: {
             id: Date.now().toString(),
             type: "discord",
-            position: { x: 250, y: 400 },
+            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
             data: {
               label: "Discord Node",
               webhook_url: "",
@@ -170,7 +191,7 @@ export default function NodeSidebar() {
           config: {
             id: Date.now().toString(),
             type: "twilio",
-            position: { x: 250, y: 250 },
+            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
             data: {
               label: "Twilio Node",
               mode: "whatsapp",
@@ -187,7 +208,7 @@ export default function NodeSidebar() {
           config: {
             id: Date.now().toString(),
             type: "social_media",
-            position: { x: 250, y: 500 },
+            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
             data: {
               label: "Social Media Node",
               platform: "twitter",
@@ -211,7 +232,7 @@ export default function NodeSidebar() {
           config: {
             id: Date.now().toString(),
             type: "schedule",
-            position: { x: 250, y: 100 },
+            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
             data: {
               label: "Schedule Node",
               cron: "0 9 * * *",
@@ -226,7 +247,7 @@ export default function NodeSidebar() {
           config: {
             id: Date.now().toString(),
             type: "image_generation",
-            position: { x: 250, y: 300 },
+            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
             data: {
               label: "Image Generation Node",
               prompt: "",
@@ -244,7 +265,7 @@ export default function NodeSidebar() {
           config: {
             id: Date.now().toString(),
             type: "document_parser",
-            position: { x: 250, y: 350 },
+            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
             data: {
               label: "Document Parser Node",
               file_path: "",
@@ -260,7 +281,7 @@ export default function NodeSidebar() {
           config: {
             id: Date.now().toString(),
             type: "report_generator",
-            position: { x: 250, y: 450 },
+            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
             data: {
               label: "Report Generator Node",
               title: "AutoFlow Report",

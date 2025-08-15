@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict
@@ -13,6 +13,10 @@ from apscheduler.triggers.cron import CronTrigger
 import time
 import os
 import shutil
+from .models.user import UserCreate, UserLogin, User, UserResponse
+from .auth.auth import hash_password, verify_password, create_access_token, get_current_user
+from datetime import datetime
+import uuid
 
 load_dotenv()
 
@@ -44,6 +48,20 @@ os.makedirs(IMAGES_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 app.mount("/reports", StaticFiles(directory=REPORTS_DIR), name="reports")
 app.mount("/images", StaticFiles(directory=IMAGES_DIR), name="images")
+
+# Simple in-memory user storage (in production, use a database)
+users_db = {}
+
+# Demo user for testing
+demo_user_id = str(uuid.uuid4())
+users_db[demo_user_id] = {
+    "id": demo_user_id,
+    "name": "Demo User",
+    "email": "user@autoflow.com",
+    "password": hash_password("password123"),
+    "created_at": datetime.utcnow(),
+    "is_active": True
+}
 
 def run_scheduled_workflow(workflow_id):
     """Execute a scheduled workflow"""
@@ -215,3 +233,113 @@ async def generate_report_endpoint(report_data: dict):
         return {"message": result}
     except Exception as e:
         return {"error": f"Report generation failed: {str(e)}"}
+
+@app.post("/auth/signup")
+async def signup(user_data: UserCreate):
+    """Register a new user"""
+    try:
+        # Check if user already exists
+        for user in users_db.values():
+            if user["email"] == user_data.email:
+                return {"error": "User with this email already exists"}
+        
+        # Create new user
+        user_id = str(uuid.uuid4())
+        hashed_password = hash_password(user_data.password)
+        
+        new_user = {
+            "id": user_id,
+            "name": user_data.name,
+            "email": user_data.email,
+            "password": hashed_password,
+            "created_at": datetime.utcnow(),
+            "is_active": True
+        }
+        
+        users_db[user_id] = new_user
+        
+        # Create access token
+        access_token = create_access_token(data={"sub": user_id})
+        
+        # Return user data (without password)
+        user_response = User(
+            id=new_user["id"],
+            name=new_user["name"],
+            email=new_user["email"],
+            created_at=new_user["created_at"],
+            is_active=new_user["is_active"]
+        )
+        
+        return {
+            "user": user_response,
+            "token": access_token
+        }
+        
+    except Exception as e:
+        print(f"Signup error: {str(e)}")
+        return {"error": f"Signup failed: {str(e)}"}
+
+@app.post("/auth/login")
+async def login(user_data: UserLogin):
+    """Authenticate user and return token"""
+    try:
+        # Find user by email
+        user = None
+        for u in users_db.values():
+            if u["email"] == user_data.email:
+                user = u
+                break
+        
+        if not user:
+            return {"error": "Invalid email or password"}
+        
+        # Verify password
+        if not verify_password(user_data.password, user["password"]):
+            return {"error": "Invalid email or password"}
+        
+        # Check if user is active
+        if not user["is_active"]:
+            return {"error": "Account is disabled"}
+        
+        # Create access token
+        access_token = create_access_token(data={"sub": user["id"]})
+        
+        # Return user data (without password)
+        user_response = User(
+            id=user["id"],
+            name=user["name"],
+            email=user["email"],
+            created_at=user["created_at"],
+            is_active=user["is_active"]
+        )
+        
+        return {
+            "user": user_response,
+            "token": access_token
+        }
+        
+    except Exception as e:
+        print(f"Login error: {str(e)}")
+        return {"error": f"Login failed: {str(e)}"}
+
+@app.get("/auth/me")
+async def get_current_user_info(current_user_id: str = Depends(get_current_user)):
+    """Get current user information"""
+    try:
+        user = users_db.get(current_user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_response = User(
+            id=user["id"],
+            name=user["name"],
+            email=user["email"],
+            created_at=user["created_at"],
+            is_active=user["is_active"]
+        )
+        
+        return user_response
+        
+    except Exception as e:
+        print(f"Get user error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get user information")

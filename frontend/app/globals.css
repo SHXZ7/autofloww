@@ -79,3 +79,168 @@ body {
     }
   }
 }
+
+/* ReactFlow Dark Theme Overrides */
+.react-flow {
+  background: #1a1a1a !important;
+}
+
+.react-flow__node {
+  background: transparent !important;
+  border: none !important;
+  color: white !important;
+  font-family: inherit !important;
+}
+
+.react-flow__node-default {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  color: white !important;
+}
+
+.react-flow__node > div {
+  background: transparent !important;
+  color: white !important;
+}
+
+.react-flow__handle {
+  background: #666666 !important;
+  border: 2px solid #ffffff !important;
+  width: 12px !important;
+  height: 12px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+}
+
+.react-flow__handle-top {
+  top: -6px !important;
+}
+
+.react-flow__handle-bottom {
+  bottom: -6px !important;
+}
+
+.react-flow__handle-connecting {
+  background: #ff6d6d !important;
+}
+
+.react-flow__handle-valid {
+  background: #2ecc71 !important;
+}
+
+.react-flow__edge {
+  stroke: #ff6d6d !important;
+  stroke-width: 2px !important;
+}
+
+.react-flow__edge-path {
+  stroke: #ff6d6d !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: none !important;
+  animation: none !important;
+}
+
+.react-flow__connection-line {
+  stroke: #ff6d6d !important;
+  stroke-width: 2px !important;
+}
+
+/* Enhanced arrow marker styles */
+.react-flow__arrowhead {
+  fill: #ff6d6d !important;
+  stroke: #ff6d6d !important;
+}
+
+.react-flow__edge-textwrapper {
+  background: rgba(42, 42, 42, 0.9) !important;
+  color: white !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  border: 1px solid #666666 !important;
+}
+
+/* Custom arrow marker definitions */
+.react-flow svg defs marker {
+  overflow: visible !important;
+}
+
+.react-flow svg defs marker path {
+  fill: #ff6d6d !important;
+  stroke: #ff6d6d !important;
+  stroke-width: 1px !important;
+}
+
+.react-flow svg defs marker polygon {
+  fill: #ff6d6d !important;
+  stroke: #ff6d6d !important;
+  stroke-width: 1px !important;
+}
+
+/* Ensure arrow visibility */
+.react-flow__edge .react-flow__edge-path[marker-end] {
+  stroke: #ff6d6d !important;
+}
+
+/* Remove all edge animations */
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: none !important;
+  animation: none !important;
+}
+
+.react-flow__edge.animated {
+  animation: none !important;
+}
+
+/* Hover effects for edges */
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: #ff5252 !important;
+  stroke-width: 3px !important;
+}
+
+.react-flow__edge:hover .react-flow__arrowhead {
+  fill: #ff5252 !important;
+  stroke: #ff5252 !important;
+}
+
+/* Remove any default white backgrounds */
+* {
+  box-sizing: border-box;
+}
+
+/* Ensure text is visible in dark theme */
+.react-flow__node * {
+  color: inherit !important;
+}
+
+/* Custom scrollbar for the entire app */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #252525;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #666666;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #888888;
+}
+::-webkit-scrollbar-track {
+  background: #252525;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #666666;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #888888;
+}

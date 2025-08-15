@@ -22,7 +22,19 @@ export const useFlowStore = create((set, get) => ({
         data: node.data || {},
       })),
     }),
-  setEdges: (edges) => set({ edges }),
+  setEdges: (edges) => set({ 
+    edges: edges.map(edge => ({
+      ...edge,
+      markerEnd: {
+        type: 'arrowclosed',
+        color: '#ff6d6d',
+        width: 20,
+        height: 20
+      },
+      style: { stroke: "#ff6d6d", strokeWidth: 2 },
+      animated: false
+    }))
+  }),
 
   setModel: (model) => set({ model }),
 
@@ -35,6 +47,19 @@ export const useFlowStore = create((set, get) => ({
     const id = nanoid(6)
     const currentNodes = get().nodes
 
+    // Calculate better positioning to avoid overlaps
+    const gridSize = 200 // Spacing between nodes
+    const maxCols = 4 // Max nodes per row
+    const nodeCount = currentNodes.length
+    const col = nodeCount % maxCols
+    const row = Math.floor(nodeCount / maxCols)
+    
+    // Calculate position with some randomness but structured layout
+    const baseX = 100 + (col * gridSize)
+    const baseY = 100 + (row * gridSize)
+    const randomOffsetX = Math.random() * 50 - 25 // -25 to +25
+    const randomOffsetY = Math.random() * 50 - 25 // -25 to +25
+
     let newNode
 
     // Handle object passed directly (like Google Sheets node)
@@ -42,6 +67,10 @@ export const useFlowStore = create((set, get) => ({
       newNode = {
         ...typeOrNodeObject,
         id: typeOrNodeObject.id || id,
+        position: typeOrNodeObject.position || { 
+          x: baseX + randomOffsetX, 
+          y: baseY + randomOffsetY 
+        }
       }
     } else {
       // Handle string type
@@ -142,8 +171,8 @@ export const useFlowStore = create((set, get) => ({
         type,
         data: nodeData,
         position: {
-          x: Math.random() * 400,
-          y: Math.random() * 300,
+          x: baseX + randomOffsetX,
+          y: baseY + randomOffsetY,
         },
       }
     }

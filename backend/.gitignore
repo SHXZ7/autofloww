@@ -1,0 +1,61 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Uploads directory
+uploads/
+*.upload
+
+# Generated content
+generated_images/
+generated_reports/
+
+# Downloaded files
+downloads/
+
+# Environment and credential files
+.env
+token.json
+credentials.json
+cd2.json
+drive_token.json
+service_account.json
+client_secret*.json
+
+# Google OAuth and API files
+*_token.json
+*_credentials.json
+*_secret.json
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Logs
+*.log
+logs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Dependencies
+requirements.txt.bak

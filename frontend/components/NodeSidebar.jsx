@@ -1,10 +1,12 @@
 "use client"
 import { useFlowStore } from "../stores/flowStore"
+import { useAuthStore } from "../stores/authStore"
 import { useState } from "react"
 import { ChevronDownIcon, ChevronRightIcon, PlayIcon, ListBulletIcon, StopIcon } from "@heroicons/react/24/outline"
 
 export default function NodeSidebar() {
   const { addNode, nodes, edges, model, setModel, availableModels } = useFlowStore()
+  const { isAuthenticated } = useAuthStore()
   const [isAdding, setIsAdding] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [expandedSections, setExpandedSections] = useState({
@@ -24,9 +26,19 @@ export default function NodeSidebar() {
         return
       }
 
+      // Get auth token
+      const token = localStorage.getItem("token")
+      if (!token) {
+        alert("Authentication required. Please login again.")
+        return
+      }
+
       const response = await fetch("http://localhost:8000/run", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ nodes, edges }),
       })
 
@@ -37,7 +49,11 @@ export default function NodeSidebar() {
       if (response.ok) {
         alert("Workflow Run Successfully!\nResults: " + JSON.stringify(result.message, null, 2))
       } else {
-        alert("Workflow Failed: " + JSON.stringify(result, null, 2))
+        if (response.status === 401 || response.status === 403) {
+          alert("Authentication expired. Please login again.")
+        } else {
+          alert("Workflow Failed: " + JSON.stringify(result, null, 2))
+        }
       }
     } catch (error) {
       console.error("Workflow execution error:", error)

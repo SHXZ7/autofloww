@@ -6,6 +6,8 @@ export const useFlowStore = create((set, get) => ({
   nodes: [],
   edges: [],
   model: "openai/gpt-4o",
+  currentWorkflowId: null,
+  savedWorkflows: [],
   availableModels: [
     "openai/gpt-4o",
     "meta-llama/llama-3-8b-instruct",
@@ -178,5 +180,97 @@ export const useFlowStore = create((set, get) => ({
     }
 
     set({ nodes: [...currentNodes, newNode] })
+  },
+
+  // Save current workflow
+  saveWorkflow: async (name) => {
+    try {
+      const { nodes, edges } = get()
+      const token = localStorage.getItem("token")
+      
+      if (!token) {
+        throw new Error("Authentication required")
+      }
+      
+      const response = await fetch("http://localhost:8000/workflows/save", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: name || `Workflow_${new Date().toISOString().slice(0, 16)}`,
+          nodes,
+          edges
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (response.ok) {
+        set({ currentWorkflowId: result.workflow_id })
+        await get().loadWorkflows() // Refresh workflow list
+        return { success: true, workflowId: result.workflow_id }
+      } else {
+        return { success: false, error: result.error }
+      }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Load all user workflows
+  loadWorkflows: async () => {
+    try {
+      const token = localStorage.getItem("token")
+      
+      if (!token) {
+        return
+      }
+      
+      const response = await fetch("http://localhost:8000/workflows", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
+      
+      const result = await response.json()
+      
+      if (response.ok) {
+        set({ savedWorkflows: result.workflows })
+      }
+    } catch (error) {
+      console.error("Failed to load workflows:", error)
+    }
+  },
+
+  // Load a specific workflow
+  loadWorkflow: async (workflowId) => {
+    try {
+      const { savedWorkflows } = get()
+      const workflow = savedWorkflows.find(w => w._id === workflowId)
+      
+      if (workflow) {
+        set({
+          nodes: workflow.nodes || [],
+          edges: workflow.edges || [],
+          currentWorkflowId: workflowId
+        })
+        return { success: true }
+      } else {
+        return { success: false, error: "Workflow not found" }
+      }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Create new workflow
+  newWorkflow: () => {
+    set({
+      nodes: [],
+      edges: [],
+      currentWorkflowId: null
+    })
   },
 }))

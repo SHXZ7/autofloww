@@ -16,6 +16,7 @@ import CustomNode from "../components/CustomNode"
 import NodeSidebar from "../components/NodeSidebar"
 import ProfileBar from "../components/ProfileBar"
 import AuthPage from "../components/auth/AuthPage"
+import WorkflowControls from "../components/WorkflowControls"
 
 const nodeTypes = {
   default: CustomNode,
@@ -29,6 +30,17 @@ export default function Home() {
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
+
+  // Handle authentication errors
+  useEffect(() => {
+    const handleAuthError = () => {
+      if (!isAuthenticated && !loading) {
+        console.log("User not authenticated, redirecting to login")
+      }
+    }
+    
+    handleAuthError()
+  }, [isAuthenticated, loading])
 
   const onNodesChange = useCallback(
     (changes) => {
@@ -198,6 +210,9 @@ export default function Home() {
       
       {/* Profile Bar */}
       <ProfileBar />
+      
+      {/* Workflow Controls */}
+      <WorkflowControls />
       
       {/* Main Content */}
       <div className="flex flex-1">

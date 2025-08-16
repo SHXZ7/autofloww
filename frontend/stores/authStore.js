@@ -86,6 +86,12 @@ export const useAuthStore = create(
         })
       },
 
+      // Get authorization headers
+      getAuthHeaders: () => {
+        const token = localStorage.getItem("token")
+        return token ? { "Authorization": `Bearer ${token}` } : {}
+      },
+
       // Check if user is authenticated on app load
       checkAuth: async () => {
         const token = localStorage.getItem("token")
@@ -113,6 +119,7 @@ export const useAuthStore = create(
             })
           }
         } catch (error) {
+          console.error("Auth check error:", error)
           localStorage.removeItem("token")
           set({
             user: null,

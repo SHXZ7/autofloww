@@ -409,8 +409,13 @@ export default function CustomNode({ data, id }) {
                     const uploadFormData = new FormData();
                     uploadFormData.append('file', file);
                     
+                    // Get auth token
+                    const token = localStorage.getItem("token")
+                    const headers = token ? { "Authorization": `Bearer ${token}` } : {}
+                    
                     const response = await fetch('http://localhost:8000/upload', {
                       method: 'POST',
+                      headers: headers,
                       body: uploadFormData,
                     });
                     
@@ -500,8 +505,13 @@ export default function CustomNode({ data, id }) {
                     const uploadFormData = new FormData();
                     uploadFormData.append('file', file);
                     
+                    // Get auth token
+                    const token = localStorage.getItem("token")
+                    const headers = token ? { "Authorization": `Bearer ${token}` } : {}
+                    
                     const response = await fetch('http://localhost:8000/parse-document', {
                       method: 'POST',
+                      headers: headers,
                       body: uploadFormData,
                     });
                     

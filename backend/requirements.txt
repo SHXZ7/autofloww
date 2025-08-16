@@ -50,3 +50,7 @@ twilio==8.10.3
 
 # Image processing
 Pillow==10.1.0
+
+# MongoDB dependencies
+motor==3.3.2
+pymongo==4.6.0

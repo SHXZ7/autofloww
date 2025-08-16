@@ -15,12 +15,31 @@ import os
 import shutil
 from .models.user import UserCreate, UserLogin, User, UserResponse
 from .auth.auth import hash_password, verify_password, create_access_token, get_current_user
+from .database.connection import connect_to_mongo, close_mongo_connection, db
+from .database.user_operations import create_user, get_user_by_email, get_user_by_id, update_user_stats
+from .database.workflow_operations import save_workflow, get_user_workflows, update_workflow, delete_workflow, save_execution_history
 from datetime import datetime
 import uuid
 
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(title="AutoFlow API", description="Visual Workflow Automation Platform")
+
+# Add event handlers for database connection
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database connection on startup"""
+    try:
+        await connect_to_mongo()
+        print("✅ AutoFlow API started successfully")
+    except Exception as e:
+        print(f"❌ Failed to start AutoFlow API: {str(e)}")
+        # Don't exit, but log the error
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close database connection on shutdown"""
+    await close_mongo_connection()
 
 app.add_middleware(
     CORSMiddleware,
@@ -49,20 +68,6 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 app.mount("/reports", StaticFiles(directory=REPORTS_DIR), name="reports")
 app.mount("/images", StaticFiles(directory=IMAGES_DIR), name="images")
 
-# Simple in-memory user storage (in production, use a database)
-users_db = {}
-
-# Demo user for testing
-demo_user_id = str(uuid.uuid4())
-users_db[demo_user_id] = {
-    "id": demo_user_id,
-    "name": "Demo User",
-    "email": "user@autoflow.com",
-    "password": hash_password("password123"),
-    "created_at": datetime.utcnow(),
-    "is_active": True
-}
-
 def run_scheduled_workflow(workflow_id):
     """Execute a scheduled workflow"""
     print(f"Running scheduled workflow {workflow_id} at {time.strftime('%X')}")
@@ -71,11 +76,86 @@ def run_scheduled_workflow(workflow_id):
         workflow = stored_workflows[workflow_id]
         asyncio.run(run_workflow_engine(workflow.nodes, workflow.edges))
 
+@app.post("/workflows/save")
+async def save_user_workflow(
+    workflow_data: dict, 
+    current_user_id: str = Depends(get_current_user)
+):
+    """Save a workflow to MongoDB"""
+    try:
+        workflow_name = workflow_data.get("name", f"Workflow_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+        nodes = workflow_data.get("nodes", [])
+        edges = workflow_data.get("edges", [])
+        
+        workflow_id = await save_workflow(current_user_id, workflow_name, nodes, edges)
+        
+        return {
+            "message": "Workflow saved successfully",
+            "workflow_id": workflow_id
+        }
+        
+    except Exception as e:
+        print(f"❌ Save workflow error: {str(e)}")
+        return {"error": f"Failed to save workflow: {str(e)}"}
+
+@app.get("/workflows")
+async def get_workflows(current_user_id: str = Depends(get_current_user)):
+    """Get all workflows for the current user"""
+    try:
+        workflows = await get_user_workflows(current_user_id)
+        return {"workflows": workflows}
+        
+    except Exception as e:
+        print(f"❌ Get workflows error: {str(e)}")
+        return {"error": f"Failed to get workflows: {str(e)}"}
+
+@app.put("/workflows/{workflow_id}")
+async def update_user_workflow(
+    workflow_id: str,
+    workflow_data: dict,
+    current_user_id: str = Depends(get_current_user)
+):
+    """Update an existing workflow"""
+    try:
+        nodes = workflow_data.get("nodes", [])
+        edges = workflow_data.get("edges", [])
+        
+        success = await update_workflow(workflow_id, nodes, edges)
+        
+        if success:
+            return {"message": "Workflow updated successfully"}
+        else:
+            return {"error": "Workflow not found or update failed"}
+            
+    except Exception as e:
+        print(f"❌ Update workflow error: {str(e)}")
+        return {"error": f"Failed to update workflow: {str(e)}"}
+
+@app.delete("/workflows/{workflow_id}")
+async def delete_user_workflow(
+    workflow_id: str,
+    current_user_id: str = Depends(get_current_user)
+):
+    """Delete a workflow"""
+    try:
+        success = await delete_workflow(workflow_id, current_user_id)
+        
+        if success:
+            return {"message": "Workflow deleted successfully"}
+        else:
+            return {"error": "Workflow not found or delete failed"}
+            
+    except Exception as e:
+        print(f"❌ Delete workflow error: {str(e)}")
+        return {"error": f"Failed to delete workflow: {str(e)}"}
+
 @app.post("/run")
-async def run_workflow(flow: Workflow):
-    print(f"Received workflow with {len(flow.nodes)} nodes")  # Debug log
+async def run_workflow(flow: Workflow, current_user_id: str = Depends(get_current_user)):
+    """Execute workflow with user tracking and history saving"""
+    print(f"Received workflow with {len(flow.nodes)} nodes")
     print(f"Node types: {[node.type for node in flow.nodes]}")
     print(f"Edges: {len(flow.edges)}")
+    print(f"User: {current_user_id}")
     
     # Check for schedule nodes and register them
     for node in flow.nodes:
@@ -96,6 +176,26 @@ async def run_workflow(flow: Workflow):
     try:
         result = await run_workflow_engine(flow.nodes, flow.edges)
         print(f"Workflow execution result: {result}")
+        
+        # Save execution history
+        try:
+            nodes_dict = [{"id": node.id, "type": node.type, "data": node.data, "position": node.position} for node in flow.nodes]
+            edges_dict = [{"id": edge.id, "source": edge.source, "target": edge.target} for edge in flow.edges]
+            
+            await save_execution_history(current_user_id, None, nodes_dict, edges_dict, result)
+            print("✅ Execution history saved")
+        except Exception as e:
+            print(f"Warning: Could not save execution history: {str(e)}")
+        
+        # Update user execution count
+        try:
+            user = await get_user_by_id(current_user_id)
+            if user:
+                current_count = user.get("profile", {}).get("execution_count", 0)
+                await update_user_stats(current_user_id, execution_count=current_count + 1)
+        except Exception as e:
+            print(f"Warning: Could not update user stats: {str(e)}")
+        
         return {"message": result}
     except Exception as e:
         print(f"Workflow execution error: {str(e)}")
@@ -186,12 +286,14 @@ async def list_scheduled_workflows():
     return {"scheduled_workflows": scheduled_workflows, "count": len(scheduled_workflows)}
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), current_user_id: str = Depends(get_current_user)):
     """Upload a file to the server"""
     try:
         file_path = os.path.join(UPLOAD_DIR, file.filename)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        
+        print(f"📁 File uploaded by user {current_user_id}: {file.filename}")
         
         return {
             "filename": file.filename,
@@ -203,7 +305,7 @@ async def upload_file(file: UploadFile = File(...)):
         return {"error": f"Failed to upload file: {str(e)}"}
 
 @app.post("/parse-document")
-async def parse_document(file: UploadFile = File(...)):
+async def parse_document(file: UploadFile = File(...), current_user_id: str = Depends(get_current_user)):
     """Parse uploaded document and return structured data"""
     try:
         # Save uploaded file temporarily
@@ -215,6 +317,8 @@ async def parse_document(file: UploadFile = File(...)):
         from services.document_parser import run_document_parser_node
         
         result = await run_document_parser_node({"file_path": file_path})
+        
+        print(f"📄 Document parsed by user {current_user_id}: {file.filename}")
         
         return {
             "filename": file.filename,
@@ -238,57 +342,55 @@ async def generate_report_endpoint(report_data: dict):
 async def signup(user_data: UserCreate):
     """Register a new user"""
     try:
-        # Check if user already exists
-        for user in users_db.values():
-            if user["email"] == user_data.email:
-                return {"error": "User with this email already exists"}
-        
-        # Create new user
-        user_id = str(uuid.uuid4())
-        hashed_password = hash_password(user_data.password)
-        
-        new_user = {
-            "id": user_id,
+        # Check if database is connected
+        if db.database is None:
+            return {"error": "Database connection not available. Please try again later."}
+            
+        # Create user in MongoDB
+        user_doc = await create_user({
             "name": user_data.name,
             "email": user_data.email,
-            "password": hashed_password,
-            "created_at": datetime.utcnow(),
-            "is_active": True
-        }
-        
-        users_db[user_id] = new_user
+            "password": user_data.password
+        })
         
         # Create access token
-        access_token = create_access_token(data={"sub": user_id})
+        access_token = create_access_token(data={"sub": str(user_doc["_id"])})
         
         # Return user data (without password)
         user_response = User(
-            id=new_user["id"],
-            name=new_user["name"],
-            email=new_user["email"],
-            created_at=new_user["created_at"],
-            is_active=new_user["is_active"]
+            id=str(user_doc["_id"]),
+            name=user_doc["name"],
+            email=user_doc["email"],
+            created_at=user_doc["created_at"],
+            is_active=user_doc["is_active"]
         )
+        
+        print(f"✅ New user registered: {user_data.email}")
         
         return {
             "user": user_response,
             "token": access_token
         }
         
+    except ValueError as e:
+        return {"error": str(e)}
+    except RuntimeError as e:
+        print(f"❌ Database error during signup: {str(e)}")
+        return {"error": "Database connection error. Please try again later."}
     except Exception as e:
-        print(f"Signup error: {str(e)}")
+        print(f"❌ Signup error: {str(e)}")
         return {"error": f"Signup failed: {str(e)}"}
 
 @app.post("/auth/login")
 async def login(user_data: UserLogin):
     """Authenticate user and return token"""
     try:
-        # Find user by email
-        user = None
-        for u in users_db.values():
-            if u["email"] == user_data.email:
-                user = u
-                break
+        # Check if database is connected
+        if db.database is None:
+            return {"error": "Database connection not available. Please try again later."}
+            
+        # Find user by email in MongoDB
+        user = await get_user_by_email(user_data.email)
         
         if not user:
             return {"error": "Invalid email or password"}
@@ -298,40 +400,49 @@ async def login(user_data: UserLogin):
             return {"error": "Invalid email or password"}
         
         # Check if user is active
-        if not user["is_active"]:
+        if not user.get("is_active", True):
             return {"error": "Account is disabled"}
         
         # Create access token
-        access_token = create_access_token(data={"sub": user["id"]})
+        access_token = create_access_token(data={"sub": str(user["_id"])})
         
         # Return user data (without password)
         user_response = User(
-            id=user["id"],
+            id=str(user["_id"]),
             name=user["name"],
             email=user["email"],
             created_at=user["created_at"],
             is_active=user["is_active"]
         )
         
+        print(f"✅ User logged in: {user_data.email}")
+        
         return {
             "user": user_response,
             "token": access_token
         }
         
+    except RuntimeError as e:
+        print(f"❌ Database error during login: {str(e)}")
+        return {"error": "Database connection error. Please try again later."}
     except Exception as e:
-        print(f"Login error: {str(e)}")
+        print(f"❌ Login error: {str(e)}")
         return {"error": f"Login failed: {str(e)}"}
 
 @app.get("/auth/me")
 async def get_current_user_info(current_user_id: str = Depends(get_current_user)):
     """Get current user information"""
     try:
-        user = users_db.get(current_user_id)
+        # Check if database is connected
+        if db.database is None:
+            raise HTTPException(status_code=503, detail="Database connection not available")
+            
+        user = await get_user_by_id(current_user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
         user_response = User(
-            id=user["id"],
+            id=str(user["_id"]),
             name=user["name"],
             email=user["email"],
             created_at=user["created_at"],
@@ -340,6 +451,8 @@ async def get_current_user_info(current_user_id: str = Depends(get_current_user)
         
         return user_response
         
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Get user error: {str(e)}")
+        print(f"❌ Get user error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to get user information")

@@ -305,4 +305,60 @@ local/
 dev/
 development/
 
+# MongoDB and Database files
+**/mongodb_data/
+**/database_backups/
+**/db_dumps/
+
+# Workflow execution history and temporary data
+**/workflow_executions/
+**/execution_logs/
+**/temp_workflows/
+
+# User uploaded files and generated content (already covered but ensuring)
+backend/uploads/
+backend/generated_reports/
+backend/generated_images/
+backend/temp/
+backend/tmp/
+
+# Authentication and session data
+**/auth_sessions/
+**/jwt_tokens/
+**/user_sessions/
+
+# Workflow cache and temporary saves
+**/workflow_cache/
+**/node_cache/
+**/temp_saves/
+
+# Auto-generated workflow backups
+**/workflow_backups/
+**/auto_saves/
+
+# Development and debug files
+**/debug_logs/
+**/error_logs/
+**/performance_logs/
+debug.log
+*.debug
+
+# IDE and editor specific files for workflow development
+**/.vscode/settings.json
+**/.vscode/launch.json
+**/workflow_*.tmp
+**/flow_*.temp
+
+# Backup files from workflow editing
+*.workflow.bak
+*.flow.backup
+*_backup_*
+
+# Test data and mock files
+**/test_uploads/
+**/mock_data/
+**/test_workflows/
+test_*.json
+mock_*.json
+
 

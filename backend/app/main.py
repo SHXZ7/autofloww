@@ -138,16 +138,50 @@ async def delete_user_workflow(
 ):
     """Delete a workflow"""
     try:
+        print(f"🗑️ Attempting to delete workflow {workflow_id} for user {current_user_id}")
+        
         success = await delete_workflow(workflow_id, current_user_id)
         
         if success:
+            # Update user workflow count
+            try:
+                user = await get_user_by_id(current_user_id)
+                if user:
+                    current_count = user.get("profile", {}).get("workflow_count", 0)
+                    new_count = max(0, current_count - 1)  # Ensure it doesn't go negative
+                    await update_user_stats(current_user_id, workflow_count=new_count)
+                    print(f"📊 Updated user workflow count to {new_count}")
+            except Exception as e:
+                print(f"Warning: Could not update user workflow count: {str(e)}")
+            
             return {"message": "Workflow deleted successfully"}
         else:
-            return {"error": "Workflow not found or delete failed"}
+            return {"error": "Workflow not found or you don't have permission to delete it"}
             
     except Exception as e:
         print(f"❌ Delete workflow error: {str(e)}")
         return {"error": f"Failed to delete workflow: {str(e)}"}
+
+# Add endpoint for permanent deletion (admin only or for cleanup)
+@app.delete("/workflows/{workflow_id}/permanent")
+async def permanently_delete_workflow(
+    workflow_id: str,
+    current_user_id: str = Depends(get_current_user)
+):
+    """Permanently delete a workflow (hard delete)"""
+    try:
+        from .database.workflow_operations import hard_delete_workflow
+        
+        success = await hard_delete_workflow(workflow_id, current_user_id)
+        
+        if success:
+            return {"message": "Workflow permanently deleted"}
+        else:
+            return {"error": "Workflow not found or delete failed"}
+            
+    except Exception as e:
+        print(f"❌ Permanent delete workflow error: {str(e)}")
+        return {"error": f"Failed to permanently delete workflow: {str(e)}"}
 
 @app.post("/run")
 async def run_workflow(flow: Workflow, current_user_id: str = Depends(get_current_user)):

@@ -17,6 +17,7 @@ import NodeSidebar from "../components/NodeSidebar"
 import ProfileBar from "../components/ProfileBar"
 import AuthPage from "../components/auth/AuthPage"
 import WorkflowControls from "../components/WorkflowControls"
+import { useRouter } from 'next/navigation';
 
 const nodeTypes = {
   default: CustomNode,
@@ -25,6 +26,14 @@ const nodeTypes = {
 export default function Home() {
   const { nodes, edges, setNodes, setEdges } = useFlowStore()
   const { isAuthenticated, loading, checkAuth } = useAuthStore()
+  const router = useRouter()
+
+  // Redirect unauthenticated users to homepage
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push('/homepage')
+    }
+  }, [loading, isAuthenticated, router])
 
   // Check authentication on app load
   useEffect(() => {
@@ -92,9 +101,8 @@ export default function Home() {
     )
   }
 
-  // Show authentication page if not logged in
   if (!isAuthenticated) {
-    return <AuthPage />
+    return null // Will redirect to homepage
   }
 
   // Show main app if authenticated

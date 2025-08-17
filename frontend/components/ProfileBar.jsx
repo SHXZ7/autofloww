@@ -1,12 +1,34 @@
 "use client"
-import { useState, useRef, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { UserCircleIcon, ChevronDownIcon } from "@heroicons/react/24/outline"
 import { useAuthStore } from "../stores/authStore"
+import { useFlowStore } from "../stores/flowStore"
 
 export default function ProfileBar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const dropdownRef = useRef(null)
-  const { user, logout } = useAuthStore()
+  const { user, logout, loading } = useAuthStore()
+  const { savedWorkflows, loadWorkflows } = useFlowStore()
+  const [stats, setStats] = useState({
+    workflows: 0,
+    executions: 0,
+    scheduled: 0
+  })
+
+  // Load workflows when component mounts
+  useEffect(() => {
+    if (user) {
+      loadWorkflows()
+    }
+  }, [user, loadWorkflows])
+
+  // Update stats when savedWorkflows changes
+  useEffect(() => {
+    setStats(prev => ({
+      ...prev,
+      workflows: savedWorkflows?.length || 0
+    }))
+  }, [savedWorkflows])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -22,6 +44,17 @@ export default function ProfileBar() {
   const handleLogout = () => {
     logout()
     setIsProfileOpen(false)
+  }
+
+  if (loading || !user) {
+    return (
+      <div className="flex items-center justify-end p-4 bg-[#2a2a2a] border-b border-[#404040]">
+        <div className="animate-pulse flex items-center space-x-3">
+          <div className="w-8 h-8 bg-[#666666] rounded-full"></div>
+          <div className="w-24 h-4 bg-[#666666] rounded"></div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -104,15 +137,15 @@ export default function ProfileBar() {
             {/* Quick Stats */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-[#252525] rounded-lg p-3 text-center">
-                <div className="text-[#ff6d6d] font-semibold text-lg">12</div>
+                <div className="text-[#ff6d6d] font-semibold text-lg">{stats.workflows}</div>
                 <div className="text-[#999999] text-xs">Workflows</div>
               </div>
               <div className="bg-[#252525] rounded-lg p-3 text-center">
-                <div className="text-[#2ecc71] font-semibold text-lg">847</div>
+                <div className="text-[#2ecc71] font-semibold text-lg">{stats.executions}</div>
                 <div className="text-[#999999] text-xs">Executions</div>
               </div>
               <div className="bg-[#252525] rounded-lg p-3 text-center">
-                <div className="text-[#f39c12] font-semibold text-lg">5</div>
+                <div className="text-[#f39c12] font-semibold text-lg">{stats.scheduled}</div>
                 <div className="text-[#999999] text-xs">Scheduled</div>
               </div>
             </div>
@@ -154,6 +187,14 @@ export default function ProfileBar() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Backdrop */}
+      {isProfileOpen && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setIsProfileOpen(false)}
+        />
       )}
     </div>
   )

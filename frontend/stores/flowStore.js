@@ -265,6 +265,46 @@ export const useFlowStore = create((set, get) => ({
     }
   },
 
+  // Delete a workflow
+  deleteWorkflow: async (workflowId) => {
+    try {
+      const token = localStorage.getItem("token")
+      
+      if (!token) {
+        throw new Error("Authentication required")
+      }
+      
+      const response = await fetch(`http://localhost:8000/workflows/${workflowId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
+      
+      const result = await response.json()
+      
+      if (response.ok) {
+        // If the deleted workflow was currently loaded, clear it
+        const { currentWorkflowId } = get()
+        if (currentWorkflowId === workflowId) {
+          set({
+            nodes: [],
+            edges: [],
+            currentWorkflowId: null
+          })
+        }
+        
+        // Refresh workflow list
+        await get().loadWorkflows()
+        return { success: true }
+      } else {
+        return { success: false, error: result.error }
+      }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  },
+
   // Create new workflow
   newWorkflow: () => {
     set({

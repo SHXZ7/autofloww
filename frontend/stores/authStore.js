@@ -84,6 +84,11 @@ export const useAuthStore = create(
           loading: false,
           error: null,
         })
+        
+        // Redirect to homepage on logout
+        if (typeof window !== 'undefined') {
+          window.location.href = '/homepage'
+        }
       },
 
       // Get authorization headers

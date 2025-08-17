@@ -75,20 +75,68 @@ async def update_workflow(workflow_id: str, nodes: List[Dict], edges: List[Dict]
         return False
 
 async def delete_workflow(workflow_id: str, user_id: str) -> bool:
-    """Delete a workflow"""
+    """Delete a workflow (soft delete by setting is_active to False)"""
     try:
         db = get_database()
         workflows_collection = db.workflows
         
+        if not ObjectId.is_valid(workflow_id):
+            print(f"Invalid workflow ID format: {workflow_id}")
+            return False
+        
+        # Soft delete - set is_active to False
         result = await workflows_collection.update_one(
             {"_id": ObjectId(workflow_id), "user_id": ObjectId(user_id)},
             {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
         )
         
-        return result.modified_count > 0
+        if result.modified_count > 0:
+            print(f"✅ Workflow deleted: {workflow_id} for user {user_id}")
+            
+            # Also delete any execution history for this workflow
+            executions_collection = db.workflow_executions
+            await executions_collection.update_many(
+                {"workflow_id": ObjectId(workflow_id)},
+                {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+            )
+            
+            return True
+        else:
+            print(f"❌ No workflow found to delete: {workflow_id} for user {user_id}")
+            return False
         
     except Exception as e:
         print(f"❌ Error deleting workflow: {str(e)}")
+        return False
+
+async def hard_delete_workflow(workflow_id: str, user_id: str) -> bool:
+    """Permanently delete a workflow and its execution history"""
+    try:
+        db = get_database()
+        workflows_collection = db.workflows
+        executions_collection = db.workflow_executions
+        
+        if not ObjectId.is_valid(workflow_id):
+            return False
+        
+        # Delete workflow
+        workflow_result = await workflows_collection.delete_one(
+            {"_id": ObjectId(workflow_id), "user_id": ObjectId(user_id)}
+        )
+        
+        # Delete execution history
+        execution_result = await executions_collection.delete_many(
+            {"workflow_id": ObjectId(workflow_id)}
+        )
+        
+        if workflow_result.deleted_count > 0:
+            print(f"✅ Workflow permanently deleted: {workflow_id} (executions: {execution_result.deleted_count})")
+            return True
+        else:
+            return False
+        
+    except Exception as e:
+        print(f"❌ Error permanently deleting workflow: {str(e)}")
         return False
 
 async def save_execution_history(user_id: str, workflow_id: str, nodes: List[Dict], edges: List[Dict], result: Dict) -> str:

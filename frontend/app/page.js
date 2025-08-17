@@ -18,6 +18,12 @@ import ProfileBar from "../components/ProfileBar"
 import AuthPage from "../components/auth/AuthPage"
 import WorkflowControls from "../components/WorkflowControls"
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic'
+
+// Dynamically import particle background to avoid SSR issues
+const ParticleBackground = dynamic(() => import("../components/ParticleBackground"), {
+  ssr: false
+})
 
 const nodeTypes = {
   default: CustomNode,
@@ -73,11 +79,11 @@ export default function Home() {
         ...connection,
         id: `${connection.source}-${connection.target}`,
         type: "smoothstep",
-        style: { stroke: "#ff6d6d", strokeWidth: 2 },
-        animated: false, // Remove animation
+        style: { stroke: "#00D4FF", strokeWidth: 2 },
+        animated: false,
         markerEnd: {
           type: 'arrowclosed',
-          color: '#ff6d6d',
+          color: '#00D4FF',
           width: 20,
           height: 20
         }
@@ -90,12 +96,28 @@ export default function Home() {
   // Show loading screen while checking authentication
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-[#ff6d6d] to-[#ff9500] rounded-xl flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <style jsx>{`
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+          
+          .loading-container {
+            font-family: 'Inter', sans-serif;
+          }
+          
+          @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(0, 212, 255, 0.6); }
+          }
+          
+          .pulse-glow {
+            animation: pulse-glow 2s infinite;
+          }
+        `}</style>
+        <div className="loading-container text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] rounded-xl flex items-center justify-center mx-auto mb-4 pulse-glow">
             <span className="text-white font-bold text-2xl">AF</span>
           </div>
-          <div className="text-white text-lg">Loading AutoFlow...</div>
+          <div className="text-white text-lg font-medium">Loading AutoFlow...</div>
         </div>
       </div>
     )
@@ -107,23 +129,56 @@ export default function Home() {
 
   // Show main app if authenticated
   return (
-    <div className="flex flex-col h-screen bg-[#1a1a1a]">
+    <div className="flex flex-col h-screen bg-[#0a0a0a] font-['Inter']">
       <style jsx global>{`
-        /* Override ReactFlow default styles */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+          font-family: 'Inter', sans-serif;
+          background: #0a0a0a;
+        }
+        
+        .glow {
+          box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+        
+        .gradient-text {
+          background: linear-gradient(135deg, #00D4FF 0%, #FF6B35 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        
+        .glass {
+          background: rgba(255, 255, 255, 0.05);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .neon-border {
+          border: 1px solid transparent;
+          background: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(255, 107, 53, 0.3)) border-box;
+          -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: exclude;
+        }
+        
+        /* ReactFlow custom styling */
         .react-flow__node {
           background: transparent !important;
           border: none !important;
           color: white !important;
+          font-family: 'Inter', sans-serif !important;
         }
         
         .react-flow__node-default {
           background: transparent !important;
           border: none !important;
           color: white !important;
+          font-family: 'Inter', sans-serif !important;
         }
         
         .react-flow__handle {
-          background: #666666 !important;
+          background: rgba(0, 212, 255, 0.6) !important;
           border: 2px solid #ffffff !important;
           width: 12px !important;
           height: 12px !important;
@@ -140,7 +195,7 @@ export default function Home() {
         }
         
         .react-flow__handle-connecting {
-          background: #ff6d6d !important;
+          background: #00D4FF !important;
         }
         
         .react-flow__handle-valid {
@@ -148,73 +203,77 @@ export default function Home() {
         }
         
         .react-flow__edge {
-          stroke: #ff6d6d !important;
+          stroke: #00D4FF !important;
         }
         
         .react-flow__edge-path {
-          stroke: #ff6d6d !important;
-          stroke-dasharray: none !important; /* Remove dash animation */
+          stroke: #00D4FF !important;
+          stroke-dasharray: none !important;
+          stroke-width: 2px !important;
         }
         
         .react-flow__connection-line {
-          stroke: #ff6d6d !important;
+          stroke: #00D4FF !important;
         }
         
-        /* Arrow marker styles */
         .react-flow__arrowhead {
-          fill: #ff6d6d !important;
-          stroke: #ff6d6d !important;
+          fill: #00D4FF !important;
+          stroke: #00D4FF !important;
         }
         
         .react-flow__edge-textwrapper {
-          background: rgba(42, 42, 42, 0.9) !important;
+          background: rgba(10, 10, 10, 0.8) !important;
           color: white !important;
-          padding: 2px 6px !important;
+          padding: 4px 8px !important;
           border-radius: 4px !important;
           font-size: 12px !important;
+          border: 1px solid rgba(0, 212, 255, 0.3) !important;
         }
         
-        /* Custom arrow marker */
         .react-flow svg defs marker path {
-          fill: #ff6d6d !important;
-          stroke: #ff6d6d !important;
+          fill: #00D4FF !important;
+          stroke: #00D4FF !important;
         }
         
-        /* Remove edge animations */
         .react-flow__edge.animated .react-flow__edge-path {
           stroke-dasharray: none !important;
           animation: none !important;
         }
         
         .react-flow__controls {
-          background: #2a2a2a !important;
-          border: 1px solid #404040 !important;
+          background: rgba(20, 20, 20, 0.7) !important;
+          border: 1px solid rgba(0, 212, 255, 0.2) !important;
+          border-radius: 8px !important;
+          padding: 4px !important;
         }
         
         .react-flow__controls button {
-          background: #3a3a3a !important;
-          border: 1px solid #666666 !important;
+          background: rgba(40, 40, 40, 0.8) !important;
+          border: 1px solid rgba(0, 212, 255, 0.2) !important;
           color: #ffffff !important;
+          border-radius: 4px !important;
+          margin: 2px !important;
         }
         
         .react-flow__controls button:hover {
-          background: #4a4a4a !important;
+          background: rgba(60, 60, 60, 0.8) !important;
         }
         
         .react-flow__background {
-          background: #1a1a1a !important;
+          background: #0a0a0a !important;
         }
         
-        /* Ensure nodes don't have any white backgrounds */
         .react-flow__node > div {
           background: transparent !important;
         }
         
-        /* Remove any default node styling */
         .react-flow__node * {
           color: inherit !important;
         }
       `}</style>
+      
+      {/* Background Particles */}
+      <ParticleBackground />
       
       {/* Profile Bar */}
       <ProfileBar />
@@ -225,12 +284,12 @@ export default function Home() {
       {/* Main Content */}
       <div className="flex flex-1">
         {/* Sidebar */}
-        <div className="w-80 border-r border-[#404040]">
+        <div className="w-80 border-r border-white/10">
           <NodeSidebar />
         </div>
 
         {/* Flow Canvas */}
-        <div className="flex-1">
+        <div className="flex-1 relative">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -239,27 +298,49 @@ export default function Home() {
             onConnect={onConnect}
             nodeTypes={nodeTypes}
             fitView
-            className="bg-[#1a1a1a]"
-            style={{ background: '#1a1a1a' }}
-            connectionLineStyle={{ stroke: "#ff6d6d", strokeWidth: 2 }}
+            className="bg-[#0a0a0a]"
+            style={{ background: '#0a0a0a' }}
+            connectionLineStyle={{ stroke: "#00D4FF", strokeWidth: 2 }}
             defaultEdgeOptions={{
-              style: { stroke: "#ff6d6d", strokeWidth: 2 },
+              style: { stroke: "#00D4FF", strokeWidth: 2 },
               type: "smoothstep",
-              animated: false, // Remove animation
+              animated: false,
               markerEnd: {
                 type: 'arrowclosed',
-                color: '#ff6d6d',
+                color: '#00D4FF',
                 width: 20,
                 height: 20
               }
             }}
           >
-            <Background color="#333" gap={20} />
+            <Background 
+              color="#333" 
+              gap={20} 
+              size={1.5} 
+              variant="dots"
+            />
             <Controls 
-              className="bg-[#2a2a2a] border border-[#404040]"
-              style={{ background: '#2a2a2a', border: '1px solid #404040' }}
+              className="glass border border-[#404040]"
+              style={{ 
+                background: 'rgba(20, 20, 20, 0.7)', 
+                border: '1px solid rgba(0, 212, 255, 0.2)',
+                borderRadius: '8px',
+                boxShadow: '0 0 10px rgba(0, 212, 255, 0.1)'
+              }}
             />
           </ReactFlow>
+          
+          {/* Grid overlay with reduced opacity */}
+          <div className="absolute inset-0 pointer-events-none opacity-20">
+            <svg width="100%" height="100%">
+              <defs>
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#00D4FF" strokeWidth="0.5" opacity="0.3"/>
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)" />
+            </svg>
+          </div>
         </div>
       </div>
     </div>

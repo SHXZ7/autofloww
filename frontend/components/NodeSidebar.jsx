@@ -128,23 +128,23 @@ export default function NodeSidebar() {
       title: "AI Nodes",
       icon: "🤖",
       nodes: [
-        { type: "gpt", label: "GPT", icon: "➕", color: "bg-[#4a90e2]" },
-        { type: "llama", label: "Llama", icon: "🦙", color: "bg-[#4a90e2]" },
-        { type: "gemini", label: "Gemini", icon: "💎", color: "bg-[#4a90e2]" },
-        { type: "claude", label: "Claude", icon: "🤖", color: "bg-[#4a90e2]" },
-        { type: "mistral", label: "Mistral", icon: "🌪️", color: "bg-[#4a90e2]" },
+        { type: "gpt", label: "GPT", icon: "➕", color: "bg-[#00D4FF]" },
+        { type: "llama", label: "Llama", icon: "🦙", color: "bg-[#00D4FF]" },
+        { type: "gemini", label: "Gemini", icon: "💎", color: "bg-[#00D4FF]" },
+        { type: "claude", label: "Claude", icon: "🤖", color: "bg-[#00D4FF]" },
+        { type: "mistral", label: "Mistral", icon: "🌪️", color: "bg-[#00D4FF]" },
       ],
     },
     integrations: {
       title: "Integrations",
       icon: "🔗",
       nodes: [
-        { type: "webhook", label: "Webhook", icon: "🪝", color: "bg-[#f39c12]" },
+        { type: "webhook", label: "Webhook", icon: "🪝", color: "bg-[#FF6B35]" },
         {
           type: "google_sheets",
           label: "Google Sheets",
           icon: "📊",
-          color: "bg-[#f39c12]",
+          color: "bg-[#FF6B35]",
           config: {
             id: Date.now().toString(),
             type: "google_sheets",
@@ -161,7 +161,7 @@ export default function NodeSidebar() {
           type: "file_upload",
           label: "File Upload",
           icon: "📁",
-          color: "bg-[#f39c12]",
+          color: "bg-[#FF6B35]",
           config: {
             id: Date.now().toString(),
             type: "file_upload",
@@ -181,12 +181,12 @@ export default function NodeSidebar() {
       title: "Communication",
       icon: "💬",
       nodes: [
-        { type: "email", label: "Email", icon: "📧", color: "bg-[#2ecc71]" },
+        { type: "email", label: "Email", icon: "📧", color: "bg-[#6c5ce7]" },
         {
           type: "discord",
           label: "Discord",
           icon: "💬",
-          color: "bg-[#2ecc71]",
+          color: "bg-[#6c5ce7]",
           config: {
             id: Date.now().toString(),
             type: "discord",
@@ -203,7 +203,7 @@ export default function NodeSidebar() {
           type: "twilio",
           label: "Twilio",
           icon: "📱",
-          color: "bg-[#2ecc71]",
+          color: "bg-[#6c5ce7]",
           config: {
             id: Date.now().toString(),
             type: "twilio",
@@ -220,7 +220,7 @@ export default function NodeSidebar() {
           type: "social_media",
           label: "Social Media",
           icon: "📱",
-          color: "bg-[#2ecc71]",
+          color: "bg-[#6c5ce7]",
           config: {
             id: Date.now().toString(),
             type: "social_media",
@@ -320,27 +320,21 @@ export default function NodeSidebar() {
   }, {})
 
   return (
-    <div
-      className="h-full bg-[#2a2a2a] flex flex-col"
-      style={{
-        scrollbarWidth: "thin",
-        scrollbarColor: "#666666 #252525",
-      }}
-    >
+    <div className="h-full bg-[#0a0a0a] flex flex-col font-['Inter']">
       <style jsx>{`
         /* Custom scrollbar for webkit browsers */
         ::-webkit-scrollbar {
-          width: 8px;
+          width: 6px;
         }
         ::-webkit-scrollbar-track {
-          background: #252525;
+          background: rgba(255, 255, 255, 0.05);
         }
         ::-webkit-scrollbar-thumb {
-          background: #666666;
+          background: rgba(255, 255, 255, 0.2);
           border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-          background: #888888;
+          background: rgba(255, 255, 255, 0.3);
         }
         
         /* Glassmorphism effect */
@@ -350,19 +344,64 @@ export default function NodeSidebar() {
           border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        /* Custom pulse animation */
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
+        /* Glow effects */
+        .glow {
+          box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
         }
-        .animate-pulse-slow {
-          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        
+        /* Pulse animation for run button */
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 15px rgba(0, 212, 255, 0.3); }
+          50% { box-shadow: 0 0 25px rgba(0, 212, 255, 0.5); }
+        }
+        
+        .pulse-glow {
+          animation: pulse-glow 2s infinite;
+        }
+        
+        /* Custom hover effect for nodes */
+        .node-card {
+          border: 1px solid transparent;
+          transition: all 0.3s ease;
+          background: rgba(255, 255, 255, 0.03);
+        }
+        
+        .node-card:hover {
+          transform: translateY(-2px);
+          border-color: rgba(0, 212, 255, 0.5);
+          background: rgba(255, 255, 255, 0.08);
+        }
+        
+        /* Gradient border */
+        .gradient-border {
+          position: relative;
+          border-radius: 0.5rem;
+          background: rgba(10, 10, 10, 0.7);
+          z-index: 1;
+        }
+        
+        .gradient-border::before {
+          content: "";
+          position: absolute;
+          inset: -1px;
+          border-radius: 0.6rem;
+          padding: 1px;
+          background: linear-gradient(to right, #00D4FF, #FF6B35);
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          z-index: -1;
         }
       `}</style>
 
       {/* Header */}
-      <div className="p-4 border-b border-[#404040]">
-        <h1 className="text-xl font-bold text-white mb-4">AutoFlow Studio</h1>
+      <div className="p-4 border-b border-white/10">
+        <div className="flex items-center mb-4">
+          <h1 className="text-xl font-bold gradient-text flex-1">Workflow Nodes</h1>
+          <div className="w-8 h-8 bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">AF</span>
+          </div>
+        </div>
 
         {/* Search */}
         <div className="relative mb-4">
@@ -371,20 +410,20 @@ export default function NodeSidebar() {
             placeholder="Search nodes..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#3a3a3a] border border-[#666666] rounded-lg px-3 py-2 text-white placeholder-[#999999] focus:outline-none focus:ring-2 focus:ring-[#ff6d6d] focus:border-transparent transition-all duration-200"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00D4FF] transition-all duration-200"
           />
         </div>
 
         {/* Model Selection */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-[#cccccc] mb-2">Default AI Model</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Default AI Model</label>
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="w-full bg-[#3a3a3a] border border-[#666666] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#ff6d6d] focus:border-transparent transition-all duration-200"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] transition-all duration-200"
           >
             {availableModels.map((m) => (
-              <option key={m} value={m} className="bg-[#3a3a3a]">
+              <option key={m} value={m} className="bg-[#151515]">
                 {m}
               </option>
             ))}
@@ -399,17 +438,17 @@ export default function NodeSidebar() {
             {/* Category Header */}
             <button
               onClick={() => toggleSection(key)}
-              className="w-full flex items-center justify-between p-2 bg-[#252525] hover:bg-[#3a3a3a] rounded-lg transition-all duration-200 group"
+              className="w-full flex items-center justify-between p-2 glass rounded-lg transition-all duration-200 group"
             >
               <div className="flex items-center space-x-2">
                 <span className="text-lg">{category.icon}</span>
                 <span className="text-white font-medium">{category.title}</span>
-                <span className="text-[#999999] text-sm">({category.nodes.length})</span>
+                <span className="text-gray-400 text-sm">({category.nodes.length})</span>
               </div>
               {expandedSections[key] ? (
-                <ChevronDownIcon className="w-4 h-4 text-[#cccccc] group-hover:text-white transition-colors" />
+                <ChevronDownIcon className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
               ) : (
-                <ChevronRightIcon className="w-4 h-4 text-[#cccccc] group-hover:text-white transition-colors" />
+                <ChevronRightIcon className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
               )}
             </button>
 
@@ -421,8 +460,8 @@ export default function NodeSidebar() {
                     key={node.type}
                     onClick={() => handleAddNode(node.config || node.type)}
                     disabled={isAdding}
-                    className={`w-full flex items-center space-x-3 p-3 rounded-lg border border-[#404040] hover:border-[#ff6d6d] hover:shadow-lg hover:shadow-[#ff6d6d]/20 transition-all duration-200 transform hover:scale-[1.02] ${
-                      isAdding ? "opacity-50 cursor-not-allowed" : "hover:bg-[#3a3a3a]"
+                    className={`w-full node-card flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 ${
+                      isAdding ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                   >
                     <div
@@ -432,7 +471,7 @@ export default function NodeSidebar() {
                     </div>
                     <div className="flex-1 text-left">
                       <div className="text-white font-medium">{node.label}</div>
-                      <div className="text-[#999999] text-xs">Add {node.label.toLowerCase()} node</div>
+                      <div className="text-gray-400 text-xs">Add {node.label.toLowerCase()} node</div>
                     </div>
                   </button>
                 ))}
@@ -443,11 +482,11 @@ export default function NodeSidebar() {
       </div>
 
       {/* Bottom Actions */}
-      <div className="p-4 border-t border-[#404040] space-y-3">
+      <div className="p-4 border-t border-white/10 space-y-3">
         {/* Run Workflow Button */}
         <button
           onClick={runWorkflow}
-          className="w-full bg-gradient-to-r from-[#ff6d6d] to-[#ff9500] hover:from-[#ff5252] hover:to-[#ff8f00] text-white font-semibold px-4 py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02] hover:shadow-lg hover:shadow-[#ff6d6d]/30 flex items-center justify-center space-x-2"
+          className="w-full bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] hover:opacity-90 text-white font-semibold px-4 py-3 rounded-lg transition-all duration-300 pulse-glow flex items-center justify-center space-x-2"
         >
           <PlayIcon className="w-5 h-5" />
           <span>Run Workflow</span>
@@ -455,33 +494,35 @@ export default function NodeSidebar() {
 
         {/* Scheduled Workflows */}
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-[#cccccc]">Scheduled Workflows</h3>
+          <h3 className="text-sm font-medium text-gray-300">Scheduled Workflows</h3>
 
           <button
             onClick={listScheduledWorkflows}
-            className="w-full bg-[#3a3a3a] hover:bg-[#4a4a4a] text-white px-3 py-2 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+            className="w-full bg-white/5 hover:bg-white/10 text-white px-3 py-2 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
           >
             <ListBulletIcon className="w-4 h-4" />
             <span>List Workflows</span>
           </button>
 
           <div className="space-y-2">
-            <input
-              type="text"
-              placeholder="Workflow ID to stop"
-              id="stopWorkflowId"
-              className="w-full bg-[#3a3a3a] border border-[#666666] rounded-lg px-3 py-2 text-white placeholder-[#999999] text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d6d] focus:border-transparent transition-all duration-200"
-            />
-            <button
-              onClick={() => {
-                const workflowId = document.getElementById("stopWorkflowId").value
-                if (workflowId) stopScheduledWorkflow(workflowId)
-              }}
-              className="w-full bg-[#e74c3c] hover:bg-[#c0392b] text-white px-3 py-2 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
-            >
-              <StopIcon className="w-4 h-4" />
-              <span>Stop Workflow</span>
-            </button>
+            <div className="glass gradient-border rounded-lg p-3">
+              <input
+                type="text"
+                placeholder="Workflow ID to stop"
+                id="stopWorkflowId"
+                className="w-full bg-transparent border-0 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-0"
+              />
+              <button
+                onClick={() => {
+                  const workflowId = document.getElementById("stopWorkflowId").value
+                  if (workflowId) stopScheduledWorkflow(workflowId)
+                }}
+                className="w-full mt-2 bg-[#FF6B35]/80 hover:bg-[#FF6B35] text-white px-3 py-2 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+              >
+                <StopIcon className="w-4 h-4" />
+                <span>Stop Workflow</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

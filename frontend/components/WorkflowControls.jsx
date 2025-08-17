@@ -76,11 +76,11 @@ export default function WorkflowControls() {
   }
 
   return (
-    <div className="flex items-center space-x-2 p-2 bg-[#2a2a2a] border-b border-[#404040]">
+    <div className="flex items-center space-x-2 p-3 bg-[#0a0a0a] border-b border-white/10">
       {/* New Workflow */}
       <button
         onClick={newWorkflow}
-        className="flex items-center space-x-2 px-3 py-2 bg-[#3a3a3a] hover:bg-[#4a4a4a] text-white rounded-lg transition-all"
+        className="flex items-center space-x-2 px-3 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all"
       >
         <PlusIcon className="w-4 h-4" />
         <span>New</span>
@@ -89,7 +89,7 @@ export default function WorkflowControls() {
       {/* Save Workflow */}
       <button
         onClick={() => setShowSaveDialog(true)}
-        className="flex items-center space-x-2 px-3 py-2 bg-[#ff6d6d] hover:bg-[#ff5252] text-white rounded-lg transition-all"
+        className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] hover:opacity-90 text-white rounded-lg transition-all"
       >
         <DocumentIcon className="w-4 h-4" />
         <span>Save</span>
@@ -98,7 +98,7 @@ export default function WorkflowControls() {
       {/* Load Workflow */}
       <button
         onClick={() => setShowLoadDialog(true)}
-        className="flex items-center space-x-2 px-3 py-2 bg-[#3a3a3a] hover:bg-[#4a4a4a] text-white rounded-lg transition-all"
+        className="flex items-center space-x-2 px-3 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all"
       >
         <FolderIcon className="w-4 h-4" />
         <span>Load ({savedWorkflows.length})</span>
@@ -106,35 +106,35 @@ export default function WorkflowControls() {
 
       {/* Current workflow indicator */}
       {currentWorkflowId && (
-        <div className="text-[#999999] text-sm">
+        <div className="text-gray-400 text-sm ml-2 px-3 py-1 bg-white/5 rounded-lg">
           Current: {savedWorkflows.find(w => w._id === currentWorkflowId)?.name || "Saved Workflow"}
         </div>
       )}
 
       {/* Save Dialog */}
       {showSaveDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[#2a2a2a] p-6 rounded-xl border border-[#666666] w-96">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="glass p-6 rounded-xl border border-white/10 w-96 shadow-xl shadow-[#00D4FF]/5">
             <h3 className="text-white text-lg font-semibold mb-4">Save Workflow</h3>
             <input
               type="text"
               placeholder="Enter workflow name..."
               value={workflowName}
               onChange={(e) => setWorkflowName(e.target.value)}
-              className="w-full bg-[#3a3a3a] border border-[#666666] rounded-lg px-3 py-2 text-white placeholder-[#999999] mb-4"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-400 mb-4 focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
               autoFocus
             />
             <div className="flex space-x-3">
               <button
                 onClick={handleSave}
                 disabled={!workflowName.trim() || saving}
-                className="flex-1 bg-[#ff6d6d] hover:bg-[#ff5252] text-white py-2 rounded-lg disabled:opacity-50"
+                className="flex-1 bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] hover:opacity-90 text-white py-2 rounded-lg disabled:opacity-50 transition-opacity"
               >
                 {saving ? "Saving..." : "Save"}
               </button>
               <button
                 onClick={() => setShowSaveDialog(false)}
-                className="flex-1 bg-[#666666] hover:bg-[#777777] text-white py-2 rounded-lg"
+                className="flex-1 bg-white/10 hover:bg-white/15 text-white py-2 rounded-lg transition-all"
               >
                 Cancel
               </button>
@@ -145,27 +145,27 @@ export default function WorkflowControls() {
 
       {/* Load Dialog */}
       {showLoadDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[#2a2a2a] p-6 rounded-xl border border-[#666666] w-96 max-h-96 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="glass p-6 rounded-xl border border-white/10 w-96 max-h-[80vh] overflow-y-auto shadow-xl shadow-[#00D4FF]/5">
             <h3 className="text-white text-lg font-semibold mb-4">Load Workflow</h3>
             {savedWorkflows.length === 0 ? (
-              <p className="text-[#999999] text-center py-4">No saved workflows</p>
+              <p className="text-gray-400 text-center py-4">No saved workflows</p>
             ) : (
               <div className="space-y-2">
                 {savedWorkflows.map((workflow) => (
                   <div key={workflow._id} className="flex items-center space-x-2">
                     <button
                       onClick={() => handleLoad(workflow._id)}
-                      className="flex-1 text-left p-3 bg-[#3a3a3a] hover:bg-[#4a4a4a] rounded-lg transition-all"
+                      className="flex-1 text-left p-3 glass hover:bg-white/10 rounded-lg transition-all"
                     >
                       <div className="text-white font-medium">{workflow.name}</div>
-                      <div className="text-[#999999] text-sm">
+                      <div className="text-gray-400 text-sm">
                         {new Date(workflow.updated_at).toLocaleDateString()} • {workflow.nodes?.length || 0} nodes
                       </div>
                     </button>
                     <button
                       onClick={() => handleDeleteClick(workflow)}
-                      className="p-2 bg-[#e74c3c] hover:bg-[#c0392b] text-white rounded-lg transition-all"
+                      className="p-2 bg-[#FF6B35]/20 hover:bg-[#FF6B35]/40 text-[#FF6B35] rounded-lg transition-all"
                       title="Delete workflow"
                     >
                       <TrashIcon className="w-4 h-4" />
@@ -176,7 +176,7 @@ export default function WorkflowControls() {
             )}
             <button
               onClick={() => setShowLoadDialog(false)}
-              className="w-full mt-4 bg-[#666666] hover:bg-[#777777] text-white py-2 rounded-lg"
+              className="w-full mt-4 bg-white/10 hover:bg-white/15 text-white py-2 rounded-lg transition-all"
             >
               Close
             </button>
@@ -186,20 +186,20 @@ export default function WorkflowControls() {
 
       {/* Delete Confirmation Dialog */}
       {showDeleteDialog && workflowToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[#2a2a2a] p-6 rounded-xl border border-[#666666] w-96">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="glass p-6 rounded-xl border border-white/10 w-96 shadow-xl shadow-[#00D4FF]/5">
             <h3 className="text-white text-lg font-semibold mb-4">Delete Workflow</h3>
-            <p className="text-[#cccccc] mb-4">
+            <p className="text-gray-300 mb-4">
               Are you sure you want to delete "<span className="font-medium text-white">{workflowToDelete.name}</span>"?
             </p>
-            <p className="text-[#999999] text-sm mb-6">
+            <p className="text-gray-400 text-sm mb-6">
               This action cannot be undone. The workflow and all its execution history will be permanently removed.
             </p>
             <div className="flex space-x-3">
               <button
                 onClick={handleDeleteConfirm}
                 disabled={deleting}
-                className="flex-1 bg-[#e74c3c] hover:bg-[#c0392b] text-white py-2 rounded-lg disabled:opacity-50 transition-all"
+                className="flex-1 bg-[#FF6B35] hover:bg-[#FF6B35]/90 text-white py-2 rounded-lg disabled:opacity-50 transition-all"
               >
                 {deleting ? "Deleting..." : "Delete"}
               </button>
@@ -208,7 +208,7 @@ export default function WorkflowControls() {
                   setShowDeleteDialog(false)
                   setWorkflowToDelete(null)
                 }}
-                className="flex-1 bg-[#666666] hover:bg-[#777777] text-white py-2 rounded-lg transition-all"
+                className="flex-1 bg-white/10 hover:bg-white/15 text-white py-2 rounded-lg transition-all"
               >
                 Cancel
               </button>

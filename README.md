@@ -1,7 +1,7 @@
 # AutoFlow - Visual Workflow Automation Platform
 
 <div align="center">
-  <img src="https://via.placeholder.com/200x200/ff6d6d/ffffff?text=AF" alt="AutoFlow Logo" width="100" height="100">
+  <img src="https://via.placeholder.com/200x200/00D4FF/ffffff?text=AF" alt="AutoFlow Logo" width="100" height="100">
   
   [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
   [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
@@ -15,7 +15,7 @@ AutoFlow is a powerful visual workflow automation platform that allows you to cr
 ## ✨ Features
 
 ### 🤖 AI Integration
-- **Multiple AI Models**: GPT-4, Claude, Gemini, Llama, Mistral
+- **Multiple AI Models**: GPT-4o, Claude, Gemini, Llama 3, Mistral
 - **Customizable Prompts**: Dynamic prompt configuration with temperature control
 - **Context Awareness**: AI nodes can process content from connected document parsers
 
@@ -28,7 +28,7 @@ AutoFlow is a powerful visual workflow automation platform that allows you to cr
 ### 🔗 Integrations
 - **Webhooks**: HTTP endpoint triggers and callbacks
 - **Google Sheets**: Read/write spreadsheet data
-- **File Upload**: Google Drive integration with automatic file processing
+- **File Upload**: Google Drive, Dropbox, and OneDrive integration
 - **Document Parser**: Extract content from PDF, Word, Excel, and text files
 
 ### ⚡ Automation
@@ -48,6 +48,7 @@ AutoFlow is a powerful visual workflow automation platform that allows you to cr
 - Python 3.8+
 - Node.js 16+
 - npm or yarn
+- MongoDB
 
 ### Installation
 
@@ -64,7 +65,7 @@ AutoFlow is a powerful visual workflow automation platform that allows you to cr
    
    # Create environment file
    cp .env.example .env
-   # Edit .env with your API keys
+   # Edit .env with your API keys and MongoDB connection
    ```
 
 3. **Frontend Setup**
@@ -84,6 +85,7 @@ AutoFlow is a powerful visual workflow automation platform that allows you to cr
    EMAIL_USER=your_email@gmail.com
    EMAIL_PASSWORD=your_app_password
    SECRET_KEY=your_jwt_secret_key
+   MONGODB_URL=mongodb://localhost:27017/autoflow
    ```
 
 ### Running the Application
@@ -106,11 +108,11 @@ AutoFlow is a powerful visual workflow automation platform that allows you to cr
 
 ### Creating Your First Workflow
 
-1. **Login**: Use demo credentials `user@autoflow.com` / `password123`
+1. **Sign Up/Login**: Create an account or use demo credentials
 2. **Add Nodes**: Drag nodes from the sidebar to the canvas
 3. **Connect Nodes**: Draw connections between node handles
 4. **Configure**: Double-click nodes to configure their settings
-5. **Execute**: Click "Run Workflow" to see your automation in action
+5. **Save & Execute**: Save your workflow and click "Run Workflow" to see your automation in action
 
 ### Example Workflows
 

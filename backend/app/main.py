@@ -3,9 +3,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict
 from dotenv import load_dotenv
-from .models.workflow import Node, Edge, Workflow
-from .models.webhook import WebhookTrigger
-from .core.runner import run_workflow_engine
+from app.models.workflow import Node, Edge, Workflow
+from app.models.webhook import WebhookTrigger
+from app.core.runner import run_workflow_engine
 from fastapi.middleware.cors import CORSMiddleware
 from services.scheduler import schedule_workflow
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -13,11 +13,11 @@ from apscheduler.triggers.cron import CronTrigger
 import time
 import os
 import shutil
-from .models.user import UserCreate, UserLogin, User, UserResponse
-from .auth.auth import hash_password, verify_password, create_access_token, get_current_user
-from .database.connection import connect_to_mongo, close_mongo_connection, db
-from .database.user_operations import create_user, get_user_by_email, get_user_by_id, update_user_stats
-from .database.workflow_operations import save_workflow, get_user_workflows, update_workflow, delete_workflow, save_execution_history
+from app.models.user import UserCreate, UserLogin, User, UserResponse
+from app.auth.auth import hash_password, verify_password, create_access_token, get_current_user
+from app.database.connection import connect_to_mongo, close_mongo_connection, db
+from app.database.user_operations import create_user, get_user_by_email, get_user_by_id, update_user_stats, update_last_login, update_user
+from app.database.workflow_operations import save_workflow, get_user_workflows, update_workflow, delete_workflow, save_execution_history
 from datetime import datetime
 import uuid
 
@@ -30,16 +30,72 @@ app = FastAPI(title="AutoFlow API", description="Visual Workflow Automation Plat
 async def startup_event():
     """Initialize database connection on startup"""
     try:
-        await connect_to_mongo()
+        # Check if we should force in-memory mode
+        if os.getenv("FORCE_IN_MEMORY_DB", "").lower() == "true":
+            print("⚠️ FORCE_IN_MEMORY_DB is set to true")
+            print("⚠️ Using in-memory database instead of MongoDB")
+            from app.database.connection import use_in_memory_mode
+            await use_in_memory_mode()
+        else:
+            await connect_to_mongo()
+        
         print("✅ AutoFlow API started successfully")
+        
+        # Add test data in memory mode
+        if db.in_memory_mode:
+            await create_test_data()
+            
     except Exception as e:
-        print(f"❌ Failed to start AutoFlow API: {str(e)}")
-        # Don't exit, but log the error
+        print(f"⚠️ AutoFlow API started with warnings: {str(e)}")
+        print("🔄 The API will continue to run with limited functionality")
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Close database connection on shutdown"""
-    await close_mongo_connection()
+async def create_test_data():
+    """Create some test data when running in memory mode"""
+    from app.auth.auth import hash_password
+    
+    # Create test user
+    test_user = {
+        "_id": "1",
+        "name": "Test User",
+        "email": "test@autoflow.com",
+        "password": hash_password("password123"),
+        "created_at": datetime.utcnow(),
+        "is_active": True,
+        "profile": {
+            "workspace": "Test Workspace",
+            "plan": "Free Plan",
+            "workflow_count": 1,
+            "execution_count": 5
+        }
+    }
+    
+    # Add test user to in-memory database
+    await db.database.users.insert_one(test_user)
+    
+    # Create test workflow
+    test_workflow = {
+        "_id": "1",
+        "user_id": "1",
+        "name": "Test Workflow",
+        "nodes": [
+            {
+                "id": "1", 
+                "type": "gpt",
+                "data": {"label": "GPT Node", "model": "openai/gpt-4o"},
+                "position": {"x": 100, "y": 100}
+            }
+        ],
+        "edges": [],
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "is_active": True
+    }
+    
+    # Add test workflow to in-memory database
+    await db.database.workflows.insert_one(test_workflow)
+    
+    print("🧪 Created test data for in-memory mode")
+    print("📝 Test user: test@autoflow.com / password123")
 
 app.add_middleware(
     CORSMiddleware,
@@ -170,7 +226,7 @@ async def permanently_delete_workflow(
 ):
     """Permanently delete a workflow (hard delete)"""
     try:
-        from .database.workflow_operations import hard_delete_workflow
+        from app.database.workflow_operations import hard_delete_workflow
         
         success = await hard_delete_workflow(workflow_id, current_user_id)
         
@@ -390,13 +446,14 @@ async def signup(user_data: UserCreate):
         # Create access token
         access_token = create_access_token(data={"sub": str(user_doc["_id"])})
         
-        # Return user data (without password)
+        # Return user data (without password) with profile
         user_response = User(
             id=str(user_doc["_id"]),
             name=user_doc["name"],
             email=user_doc["email"],
             created_at=user_doc["created_at"],
-            is_active=user_doc["is_active"]
+            is_active=user_doc["is_active"],
+            profile=user_doc.get("profile")
         )
         
         print(f"✅ New user registered: {user_data.email}")
@@ -437,16 +494,23 @@ async def login(user_data: UserLogin):
         if not user.get("is_active", True):
             return {"error": "Account is disabled"}
         
+        # Update last login
+        try:
+            await update_last_login(str(user["_id"]))
+        except Exception as e:
+            print(f"Warning: Could not update last login: {str(e)}")
+        
         # Create access token
         access_token = create_access_token(data={"sub": str(user["_id"])})
         
-        # Return user data (without password)
+        # Return user data (without password) with profile
         user_response = User(
             id=str(user["_id"]),
             name=user["name"],
             email=user["email"],
             created_at=user["created_at"],
-            is_active=user["is_active"]
+            is_active=user["is_active"],
+            profile=user.get("profile")
         )
         
         print(f"✅ User logged in: {user_data.email}")
@@ -480,7 +544,8 @@ async def get_current_user_info(current_user_id: str = Depends(get_current_user)
             name=user["name"],
             email=user["email"],
             created_at=user["created_at"],
-            is_active=user["is_active"]
+            is_active=user["is_active"],
+            profile=user.get("profile")
         )
         
         return user_response
@@ -490,3 +555,80 @@ async def get_current_user_info(current_user_id: str = Depends(get_current_user)
     except Exception as e:
         print(f"❌ Get user error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to get user information")
+
+@app.put("/auth/profile")
+async def update_profile(
+    profile_data: dict,
+    current_user_id: str = Depends(get_current_user)
+):
+    """Update user profile information"""
+    try:
+        # Check if database is connected
+        if db.database is None:
+            raise HTTPException(status_code=503, detail="Database connection not available")
+        
+        # Get current user
+        user = await get_user_by_id(current_user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Prepare update data
+        update_data = {}
+        
+        # Update basic user fields
+        if "name" in profile_data:
+            update_data["name"] = profile_data["name"]
+        if "email" in profile_data:
+            # Check if email is already taken by another user
+            existing_user = await get_user_by_email(profile_data["email"])
+            if existing_user and existing_user["_id"] != current_user_id:
+                raise HTTPException(status_code=400, detail="Email already taken")
+            update_data["email"] = profile_data["email"].lower()
+        
+        # Update profile fields
+        current_profile = user.get("profile", {})
+        new_profile = current_profile.copy()
+        
+        if "workspace" in profile_data:
+            new_profile["workspace"] = profile_data["workspace"]
+        if "timezone" in profile_data:
+            new_profile["timezone"] = profile_data["timezone"]
+        if "notifications" in profile_data:
+            new_profile["notifications"] = {
+                **new_profile.get("notifications", {}),
+                **profile_data["notifications"]
+            }
+        
+        update_data["profile"] = new_profile
+        
+        # Update user in database
+        success = await update_user(current_user_id, update_data)
+        
+        if success:
+            # Get updated user data
+            updated_user = await get_user_by_id(current_user_id)
+            
+            # Return updated user data (without password)
+            user_response = User(
+                id=str(updated_user["_id"]),
+                name=updated_user["name"],
+                email=updated_user["email"],
+                created_at=updated_user["created_at"],
+                is_active=updated_user["is_active"],
+                profile=updated_user.get("profile")
+            )
+            
+            print(f"✅ Profile updated for user: {updated_user['email']}")
+            
+            return {
+                "message": "Profile updated successfully",
+                "user": user_response
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update profile")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Profile update error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")

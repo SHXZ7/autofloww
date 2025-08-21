@@ -91,6 +91,49 @@ export const useAuthStore = create(
         }
       },
 
+      // Update user profile
+      updateUserProfile: async (profileData) => {
+        set({ loading: true, error: null });
+        try {
+          const token = localStorage.getItem("token");
+          
+          if (!token) {
+            throw new Error("Authentication required");
+          }
+          
+          // Make API call to update profile
+          const response = await fetch("http://localhost:8000/auth/profile", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(profileData)
+          });
+          
+          const result = await response.json();
+          
+          if (response.ok) {
+            // Update local state with the updated user data
+            set({
+              user: result.user,
+              loading: false,
+              error: null
+            });
+            
+            return { success: true, message: result.message };
+          } else {
+            const errorMessage = result.detail || result.error || "Failed to update profile";
+            set({ loading: false, error: errorMessage });
+            return { success: false, error: errorMessage };
+          }
+        } catch (error) {
+          const errorMessage = error.message || "Network error occurred";
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
       // Get authorization headers
       getAuthHeaders: () => {
         const token = localStorage.getItem("token")

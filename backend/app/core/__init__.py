@@ -1,1 +1,1 @@
-# backend/app/core/__init__.py
+# This empty file marks the directory as a Python package

@@ -7,7 +7,8 @@ import json
 from typing import Dict, Any, Optional
 
 class Database:
-    client: AsyncIOMotorClient = None
+    # Remove explicit type annotation from class variables
+    client = None
     database = None
     in_memory_mode: bool = False
     in_memory_data: Dict[str, Dict[str, Any]] = {

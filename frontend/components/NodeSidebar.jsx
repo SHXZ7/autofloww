@@ -10,10 +10,10 @@ export default function NodeSidebar() {
   const [isAdding, setIsAdding] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [expandedSections, setExpandedSections] = useState({
-    ai: true,
-    integrations: true,
-    communication: true,
-    automation: true,
+    ai: false,
+    integrations: false,
+    communication: false,
+    automation: false,
   })
 
   const runWorkflow = async () => {

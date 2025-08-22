@@ -1,36 +1,36 @@
 "use client"
 import { useState } from "react"
+import ParticleBackground from "../ParticleBackground"
 import LoginForm from "./LoginForm"
 import SignupForm from "./SignupForm"
 
-export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true)
+export default function AuthPage({ mode = "login" }) {
+  const [currentMode, setCurrentMode] = useState(mode)
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 25px 25px, #ff6d6d 2px, transparent 0),
-                           radial-gradient(circle at 75px 75px, #ff9500 2px, transparent 0)`,
-          backgroundSize: '100px 100px'
-        }}></div>
-      </div>
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <ParticleBackground />
+      
+      <div className="mx-auto w-full max-w-md p-8 glass rounded-2xl shadow-xl border border-white/10">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] rounded-xl flex items-center justify-center mx-auto mb-4 glow">
+            <span className="text-white font-bold text-2xl">AF</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white">
+            {currentMode === "login" ? "Sign In to AutoFlow" : "Create Your Account"}
+          </h1>
+          <p className="mt-2 text-gray-400">
+            {currentMode === "login" 
+              ? "Access your workflows and automation" 
+              : "Start building powerful workflows without code"}
+          </p>
+        </div>
 
-      {/* Auth Form */}
-      <div className="relative z-10 w-full max-w-md">
-        {isLogin ? (
-          <LoginForm onSwitchToSignup={() => setIsLogin(false)} />
+        {currentMode === "login" ? (
+          <LoginForm onSwitchToSignup={() => setCurrentMode("signup")} />
         ) : (
-          <SignupForm onSwitchToLogin={() => setIsLogin(true)} />
+          <SignupForm onSwitchToLogin={() => setCurrentMode("login")} />
         )}
-      </div>
-
-      {/* Footer */}
-      <div className="absolute bottom-4 left-0 right-0 text-center">
-        <p className="text-[#666666] text-sm">
-          © 2024 AutoFlow. All rights reserved.
-        </p>
       </div>
     </div>
   )

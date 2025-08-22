@@ -34,28 +34,19 @@ export default function Home() {
   const { isAuthenticated, loading, checkAuth } = useAuthStore()
   const router = useRouter()
 
-  // Redirect unauthenticated users to homepage
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push('/homepage')
-    }
-  }, [loading, isAuthenticated, router])
-
   // Check authentication on app load
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
 
-  // Handle authentication errors
+  // Redirect unauthenticated users to homepage ONLY WHEN we're sure they're not authenticated
+  // (Don't redirect when still loading)
   useEffect(() => {
-    const handleAuthError = () => {
-      if (!isAuthenticated && !loading) {
-        console.log("User not authenticated, redirecting to login")
-      }
+    // Only redirect if we've finished checking authentication and user is not authenticated
+    if (!loading && isAuthenticated === false) {
+      router.push('/homepage')
     }
-    
-    handleAuthError()
-  }, [isAuthenticated, loading])
+  }, [loading, isAuthenticated, router])
 
   const onNodesChange = useCallback(
     (changes) => {
@@ -123,11 +114,13 @@ export default function Home() {
     )
   }
 
-  if (!isAuthenticated) {
-    return null // Will redirect to homepage
+  // Only redirect if we're explicitly not authenticated
+  // This prevents redirection when refreshing
+  if (isAuthenticated === false) {
+    return null // Will redirect to homepage via the useEffect
   }
 
-  // Show main app if authenticated
+  // Show main app - either authenticated or still determining auth status
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0a] font-['Inter']">
       <style jsx global>{`

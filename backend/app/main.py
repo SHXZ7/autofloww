@@ -18,6 +18,7 @@ from app.auth.auth import hash_password, verify_password, create_access_token, g
 from app.database.connection import connect_to_mongo, close_mongo_connection, db
 from app.database.user_operations import create_user, get_user_by_email, get_user_by_id, update_user_stats, update_last_login, update_user
 from app.database.workflow_operations import save_workflow, get_user_workflows, update_workflow, delete_workflow, save_execution_history
+from app.auth.two_factor import generate_totp_secret, generate_totp_uri, verify_totp
 from datetime import datetime
 import uuid
 
@@ -478,8 +479,8 @@ async def login(user_data: UserLogin):
     try:
         # Check if database is connected
         if db.database is None:
-            return {"error": "Database connection not available. Please try again later."}
-            
+            raise HTTPException(status_code=503, detail="Database connection not available")
+        
         # Find user by email in MongoDB
         user = await get_user_by_email(user_data.email)
         
@@ -493,7 +494,16 @@ async def login(user_data: UserLogin):
         # Check if user is active
         if not user.get("is_active", True):
             return {"error": "Account is disabled"}
-        
+            
+        # Check if 2FA is enabled
+        two_factor = user.get("two_factor", {})
+        if two_factor.get("enabled", False):
+            return {
+                "requires_2fa": True,
+                "email": user["email"],
+                "message": "Two-factor authentication required"
+            }
+
         # Update last login
         try:
             await update_last_login(str(user["_id"]))
@@ -632,3 +642,282 @@ async def update_profile(
     except Exception as e:
         print(f"❌ Profile update error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
+
+@app.put("/auth/password")
+async def change_password(
+    password_data: dict,
+    current_user_id: str = Depends(get_current_user)
+):
+    """Change user password"""
+    try:
+        # Check if database is connected
+        if db.database is None:
+            raise HTTPException(status_code=503, detail="Database connection not available")
+        
+        # Get current user
+        user = await get_user_by_id(current_user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Verify current password
+        current_password = password_data.get("current_password")
+        if not current_password:
+            raise HTTPException(status_code=400, detail="Current password is required")
+            
+        if not verify_password(current_password, user["password"]):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+        
+        # Check new password
+        new_password = password_data.get("new_password")
+        if not new_password or len(new_password) < 6:
+            raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+            
+        # Hash new password
+        hashed_password = hash_password(new_password)
+        
+        # Update user password
+        success = await update_user(current_user_id, {"password": hashed_password})
+        
+        if success:
+            print(f"✅ Password updated for user: {user['email']}")
+            return {"message": "Password updated successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update password")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Password update error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update password: {str(e)}")
+
+@app.post("/auth/2fa/setup")
+async def setup_two_factor(current_user_id: str = Depends(get_current_user)):
+    """Set up two-factor authentication for a user"""
+    try:
+        # Check if database is connected
+        if db.database is None:
+            raise HTTPException(status_code=503, detail="Database connection not available")
+        
+        # Get current user
+        user = await get_user_by_id(current_user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if 2FA is already enabled
+        if user.get("two_factor", {}).get("enabled", False):
+            raise HTTPException(status_code=400, detail="Two-factor authentication is already enabled")
+        
+        # Generate new secret for TOTP
+        secret = generate_totp_secret()
+        
+        # Create URI for QR code generation
+        uri = generate_totp_uri(secret, user["email"], "AutoFlow")
+        
+        # Save secret to user but don't enable 2FA yet (will be enabled after verification)
+        await update_user(current_user_id, {
+            "two_factor": {
+                "secret": secret,
+                "enabled": False,
+                "verified": False,
+                "backup_codes": []
+            }
+        })
+        
+        return {
+            "secret": secret,
+            "uri": uri
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 2FA setup error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to set up two-factor authentication: {str(e)}")
+
+@app.post("/auth/2fa/verify")
+async def verify_two_factor(
+    verification_data: dict,
+    current_user_id: str = Depends(get_current_user)
+):
+    """Verify and enable two-factor authentication"""
+    try:
+        # Check if database is connected
+        if db.database is None:
+            raise HTTPException(status_code=503, detail="Database connection not available")
+        
+        # Get current user
+        user = await get_user_by_id(current_user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        # Get user's 2FA settings
+        two_factor = user.get("two_factor", {})
+        secret = two_factor.get("secret")
+        
+        if not secret:
+            raise HTTPException(status_code=400, detail="Two-factor authentication not set up")
+            
+        if two_factor.get("enabled", False):
+            raise HTTPException(status_code=400, detail="Two-factor authentication is already enabled")
+            
+        # Verify TOTP code
+        code = verification_data.get("code")
+        if not code:
+            raise HTTPException(status_code=400, detail="Verification code is required")
+            
+        if not verify_totp(secret, code):
+            raise HTTPException(status_code=400, detail="Invalid verification code")
+            
+        # Generate backup codes
+        backup_codes = [str(uuid.uuid4())[:8] for _ in range(10)]
+        
+        # Enable 2FA
+        await update_user(current_user_id, {
+            "two_factor": {
+                "secret": secret,
+                "enabled": True,
+                "verified": True,
+                "backup_codes": backup_codes,
+                "enabled_at": datetime.utcnow()
+            }
+        })
+        
+        return {
+            "enabled": True,
+            "backup_codes": backup_codes
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 2FA verification error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to verify two-factor authentication: {str(e)}")
+
+@app.post("/auth/2fa/validate")
+async def validate_two_factor(validation_data: dict):
+    """Validate a 2FA code during login"""
+    try:
+        email = validation_data.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Email is required")
+            
+        # Get user by email
+        user = await get_user_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        # Check if 2FA is enabled
+        two_factor = user.get("two_factor", {})
+        if not two_factor.get("enabled", False):
+            raise HTTPException(status_code=400, detail="Two-factor authentication is not enabled for this user")
+            
+        # Get 2FA code
+        code = validation_data.get("code")
+        if not code:
+            raise HTTPException(status_code=400, detail="Verification code is required")
+            
+        # Check if it's a backup code
+        if code in two_factor.get("backup_codes", []):
+            # Remove the used backup code
+            backup_codes = [c for c in two_factor["backup_codes"] if c != code]
+            
+            await update_user(str(user["_id"]), {
+                "two_factor": {
+                    **two_factor,
+                    "backup_codes": backup_codes
+                }
+            })
+            
+            # Create access token
+            access_token = create_access_token(data={"sub": str(user["_id"])})
+            
+            # Update last login
+            await update_last_login(str(user["_id"]))
+            
+            return {
+                "verified": True,
+                "user": {
+                    "id": str(user["_id"]),
+                    "name": user["name"],
+                    "email": user["email"],
+                    "created_at": user["created_at"],
+                    "is_active": user.get("is_active", True),
+                    "profile": user.get("profile", {}),
+                    "two_factor_enabled": True
+                },
+                "token": access_token
+            }
+            
+        # Verify TOTP code
+        if verify_totp(two_factor["secret"], code):
+            # Create access token
+            access_token = create_access_token(data={"sub": str(user["_id"])})
+            
+            # Update last login
+            await update_last_login(str(user["_id"]))
+            
+            return {
+                "verified": True,
+                "user": {
+                    "id": str(user["_id"]),
+                    "name": user["name"],
+                    "email": user["email"],
+                    "created_at": user["created_at"],
+                    "is_active": user.get("is_active", True),
+                    "profile": user.get("profile", {}),
+                    "two_factor_enabled": True
+                },
+                "token": access_token
+            }
+        else:
+            return {
+                "verified": False,
+                "error": "Invalid verification code"
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 2FA validation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to validate two-factor authentication: {str(e)}")
+
+@app.post("/auth/2fa/disable")
+async def disable_two_factor(
+    disable_data: dict,
+    current_user_id: str = Depends(get_current_user)
+):
+    """Disable two-factor authentication"""
+    try:
+        # Get current user
+        user = await get_user_by_id(current_user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        # Check if 2FA is enabled
+        two_factor = user.get("two_factor", {})
+        if not two_factor.get("enabled", False):
+            raise HTTPException(status_code=400, detail="Two-factor authentication is not enabled")
+            
+        # Verify password
+        password = disable_data.get("password")
+        if not password:
+            raise HTTPException(status_code=400, detail="Password is required to disable 2FA")
+            
+        if not verify_password(password, user["password"]):
+            raise HTTPException(status_code=400, detail="Invalid password")
+            
+        # Disable 2FA
+        await update_user(current_user_id, {
+            "two_factor": {
+                "enabled": False,
+                "disabled_at": datetime.utcnow()
+            }
+        })
+        
+        return {"message": "Two-factor authentication has been disabled"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 2FA disable error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to disable two-factor authentication: {str(e)}")

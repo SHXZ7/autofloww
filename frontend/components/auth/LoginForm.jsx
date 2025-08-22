@@ -2,12 +2,19 @@
 import { useState, useEffect } from "react"
 import { useAuthStore } from "../../stores/authStore"
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"
+import { useRouter } from 'next/navigation'
+import TwoFactorLogin from "./TwoFactorLogin"
 
 export default function LoginForm({ onSwitchToSignup }) {
   const [formData, setFormData] = useState({ email: "", password: "" })
   const [showPassword, setShowPassword] = useState(false)
   const [isDemoMode, setIsDemoMode] = useState(false)
+  const [loginError, setLoginError] = useState("")
+  const [needs2FA, setNeeds2FA] = useState(false)
+  const [pendingEmail, setPendingEmail] = useState("")
+  
   const { login, loading, error, clearError } = useAuthStore()
+  const router = useRouter()
 
   useEffect(() => {
     // Check if demo mode is enabled via URL params
@@ -24,14 +31,26 @@ export default function LoginForm({ onSwitchToSignup }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     clearError()
+    setLoginError("")
     
     if (!formData.email || !formData.password) {
       return
     }
 
-    const result = await login(formData.email, formData.password)
-    if (!result.success) {
-      console.error("Login failed:", result.error)
+    try {
+      const result = await login(formData.email, formData.password)
+      
+      if (result.requires2FA) {
+        // Show 2FA verification screen
+        setNeeds2FA(true)
+        setPendingEmail(result.email)
+      } else if (result.success) {
+        router.push('/')
+      } else {
+        setLoginError(result.error || "Login failed")
+      }
+    } catch (error) {
+      setLoginError("An unexpected error occurred")
     }
   }
 
@@ -39,24 +58,37 @@ export default function LoginForm({ onSwitchToSignup }) {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
+  const handle2FASuccess = () => {
+    router.push('/')
+  }
+
+  const handleCancel2FA = () => {
+    setNeeds2FA(false)
+    setPendingEmail("")
+  }
+
+  // Show 2FA verification screen if needed
+  if (needs2FA) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <TwoFactorLogin 
+          email={pendingEmail}
+          onSuccess={handle2FASuccess}
+          onCancel={handleCancel2FA}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="w-full">
-      {/* Error Message */}
-      {error && (
+      {/* Error Messages - show both store error and component error */}
+      {(error || loginError) && (
         <div className="mb-6 p-4 bg-[#e74c3c]/10 border border-[#e74c3c]/20 rounded-xl">
-          <p className="text-[#e74c3c] text-sm">{error}</p>
+          <p className="text-[#e74c3c] text-sm">{error || loginError}</p>
         </div>
       )}
 
-      {/* Demo Mode Alert */}
-      {isDemoMode && (
-        <div className="mb-6 p-4 glass rounded-xl">
-          <p className="text-blue-400 text-sm flex items-center space-x-2">
-            <span className="text-lg">🎯</span>
-            <span>Demo mode: Credentials have been pre-filled for you!</span>
-          </p>
-        </div>
-      )}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -136,16 +168,6 @@ export default function LoginForm({ onSwitchToSignup }) {
           </button>
         </p>
       </div>
-
-      {/* Demo Credentials - only show if not in demo mode */}
-      {!isDemoMode && (
-        <div className="mt-8 p-4 glass rounded-lg">
-          <p className="text-xs text-gray-400 text-center">
-            <span className="block mb-1 text-sm">Try demo credentials:</span>
-            <span className="font-mono">user@autoflow.com / password123</span>
-          </p>
-        </div>
-      )}
     </div>
   )
 }

@@ -1,11 +1,12 @@
 "use client"
 import { useState, useEffect } from "react"
-import { XMarkIcon, UserCircleIcon, KeyIcon, CreditCardIcon } from "@heroicons/react/24/outline"
+import { XMarkIcon, UserCircleIcon, KeyIcon, CreditCardIcon, ShieldCheckIcon, ShieldExclamationIcon } from "@heroicons/react/24/outline"
 import { useAuthStore } from "../stores/authStore"
+import TwoFactorSetup from "./auth/TwoFactorSetup"
 
 export default function ProfileSettings({ isOpen, onClose, activeTab = "profile" }) {
   const [currentTab, setCurrentTab] = useState(activeTab)
-  const { user, updateUserProfile, loading } = useAuthStore()
+  const { user, updateUserProfile, changePassword, loading } = useAuthStore()
   
   const [profile, setProfile] = useState({
     name: "",
@@ -26,10 +27,25 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
     github: { key: "", isActive: false }
   })
   
+  // Password state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  })
+  
+  // Add states for 2FA
+  const [show2FASetup, setShow2FASetup] = useState(false)
+  const [disabling2FA, setDisabling2FA] = useState(false)
+  const [disablePassword, setDisablePassword] = useState("")
+  const [passwordErrors, setPasswordErrors] = useState({})
+  
   const [hasChanges, setHasChanges] = useState(false)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
+  const [changingPassword, setChangingPassword] = useState(false)
   
+  // Always define ALL useEffect hooks in the same order, regardless of conditions
   // Update profile when user data changes
   useEffect(() => {
     if (user) {
@@ -60,6 +76,14 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
       setHasChanges(false)
       setErrors({})
       setSaving(false)
+      // Reset password form when modal closes
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      })
+      setPasswordErrors({})
+      setChangingPassword(false)
     }
   }, [isOpen])
 
@@ -84,6 +108,29 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
     
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
+  }
+  
+  const validatePasswordForm = () => {
+    const errors = {}
+    
+    if (!passwordData.currentPassword) {
+      errors.currentPassword = "Current password is required"
+    }
+    
+    if (!passwordData.newPassword) {
+      errors.newPassword = "New password is required"
+    } else if (passwordData.newPassword.length < 6) {
+      errors.newPassword = "New password must be at least 6 characters"
+    }
+    
+    if (!passwordData.confirmPassword) {
+      errors.confirmPassword = "Please confirm your new password"
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      errors.confirmPassword = "Passwords do not match"
+    }
+    
+    setPasswordErrors(errors)
+    return Object.keys(errors).length === 0
   }
   
   const handleInputChange = (field, value) => {
@@ -125,6 +172,21 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
     setHasChanges(true)
   }
   
+  const handlePasswordChange = (field, value) => {
+    setPasswordData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+    
+    // Clear error for this field
+    if (passwordErrors[field]) {
+      setPasswordErrors(prev => ({
+        ...prev,
+        [field]: ""
+      }))
+    }
+  }
+  
   const saveChanges = async () => {
     if (!validateForm()) {
       return
@@ -162,6 +224,105 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
       console.error("Failed to save profile:", error)
     } finally {
       setSaving(false)
+    }
+  }
+  
+  const handleChangePassword = async () => {
+    if (!validatePasswordForm()) {
+      return
+    }
+    
+    setChangingPassword(true)
+    
+    try {
+      const result = await changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword
+      )
+      
+      if (result.success) {
+        // Reset form
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: ""
+        })
+        
+        // Show success message
+        const successNotification = document.createElement('div')
+        successNotification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50'
+        successNotification.textContent = 'Password changed successfully!'
+        document.body.appendChild(successNotification)
+        
+        setTimeout(() => {
+          document.body.removeChild(successNotification)
+        }, 3000)
+      } else {
+        // Show error message
+        setPasswordErrors({
+          ...passwordErrors,
+          general: result.error
+        })
+      }
+    } catch (error) {
+      console.error("Failed to change password:", error)
+      setPasswordErrors({
+        ...passwordErrors,
+        general: "An unexpected error occurred"
+      })
+    } finally {
+      setChangingPassword(false)
+    }
+  }
+  
+  const handle2FASetup = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    console.log("Setting up 2FA, opening setup dialog");
+    setShow2FASetup(true)
+  }
+  
+  const handleDisable2FA = async () => {
+    if (!disablePassword) {
+      setPasswordErrors({
+        ...passwordErrors,
+        disable2fa: "Password is required to disable 2FA"
+      })
+      return
+    }
+    
+    setDisabling2FA(true)
+    
+    try {
+      const result = await useAuthStore.getState().disable2FA(disablePassword)
+      
+      if (result.success) {
+        // Reset form
+        setDisablePassword("")
+        
+        // Show success message
+        const successNotification = document.createElement('div')
+        successNotification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50'
+        successNotification.textContent = 'Two-factor authentication disabled successfully!'
+        document.body.appendChild(successNotification)
+        
+        setTimeout(() => {
+          document.body.removeChild(successNotification)
+        }, 3000)
+      } else {
+        setPasswordErrors({
+          ...passwordErrors,
+          disable2fa: result.error
+        })
+      }
+    } catch (error) {
+      console.error("Failed to disable 2FA:", error)
+      setPasswordErrors({
+        ...passwordErrors,
+        disable2fa: "An unexpected error occurred"
+      })
+    } finally {
+      setDisabling2FA(false)
     }
   }
 
@@ -502,44 +663,138 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                   <p className="text-[#999999] mb-6">Manage your account security</p>
                   
                   <div className="space-y-6">
+                    {/* Two-Factor Authentication Card */}
+                    <div className="p-4 bg-[#2a2a2a] rounded-lg">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          {user?.two_factor_enabled ? (
+                            <ShieldCheckIcon className="w-6 h-6 text-[#00D4FF]" />
+                          ) : (
+                            <ShieldExclamationIcon className="w-6 h-6 text-[#FF6B35]" />
+                          )}
+                          <h4 className="text-white font-medium">Two-Factor Authentication</h4>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          user?.two_factor_enabled 
+                            ? "bg-[#00D4FF]/20 text-[#00D4FF]" 
+                            : "bg-[#666666]/20 text-[#999999]"
+                        }`}>
+                          {user?.two_factor_enabled ? "Enabled" : "Disabled"}
+                        </span>
+                      </div>
+                      
+                      <p className="text-[#999999] text-sm mb-4">
+                        Two-factor authentication adds an extra layer of security to your account by requiring a verification code in addition to your password when you sign in.
+                      </p>
+                      
+                      {user?.two_factor_enabled ? (
+                        <div className="space-y-3">
+                          <p className="text-sm text-[#00D4FF]">
+                            Your account is protected with two-factor authentication.
+                          </p>
+                          
+                          <div className="mt-2">
+                            <label className="block text-sm font-medium text-[#cccccc] mb-2">
+                              Enter your password to disable 2FA
+                            </label>
+                            <div className="flex space-x-3">
+                              <input
+                                type="password"
+                                value={disablePassword}
+                                onChange={(e) => setDisablePassword(e.target.value)}
+                                className={`flex-1 bg-[#1a1a1a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent ${
+                                  passwordErrors.disable2fa ? 'border-red-500' : 'border-[#444444]'
+                                }`}
+                                placeholder="Your current password"
+                              />
+                              <button
+                                onClick={handleDisable2FA}
+                                disabled={disabling2FA}
+                                className="px-4 py-2 bg-[#FF6B35] hover:bg-[#FF6B35]/80 text-white rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                {disabling2FA ? "Disabling..." : "Disable 2FA"}
+                              </button>
+                            </div>
+                            {passwordErrors.disable2fa && (
+                              <p className="text-red-400 text-sm mt-1">{passwordErrors.disable2fa}</p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handle2FASetup}
+                          className="px-4 py-2 bg-[#00D4FF] hover:bg-[#00C4EF] text-white rounded-lg transition-colors"
+                        >
+                          Enable 2FA
+                        </button>
+                      )}
+                    </div>
+                    
                     <div className="p-4 bg-[#2a2a2a] rounded-lg">
                       <h4 className="text-white font-medium mb-4">Change Password</h4>
                       <div className="space-y-4">
+                        {passwordErrors.general && (
+                          <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-2 rounded-lg text-sm">
+                            {passwordErrors.general}
+                          </div>
+                        )}
+                        
                         <div>
                           <label className="block text-sm font-medium text-[#cccccc] mb-2">Current Password</label>
                           <input
                             type="password"
-                            className="w-full bg-[#1a1a1a] border border-[#444444] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            value={passwordData.currentPassword}
+                            onChange={(e) => handlePasswordChange("currentPassword", e.target.value)}
+                            className={`w-full bg-[#1a1a1a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent ${
+                              passwordErrors.currentPassword ? 'border-red-500' : 'border-[#444444]'
+                            }`}
                           />
+                          {passwordErrors.currentPassword && (
+                            <p className="text-red-400 text-sm mt-1">{passwordErrors.currentPassword}</p>
+                          )}
                         </div>
+                        
                         <div>
                           <label className="block text-sm font-medium text-[#cccccc] mb-2">New Password</label>
                           <input
                             type="password"
-                            className="w-full bg-[#1a1a1a] border border-[#444444] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            value={passwordData.newPassword}
+                            onChange={(e) => handlePasswordChange("newPassword", e.target.value)}
+                            className={`w-full bg-[#1a1a1a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent ${
+                              passwordErrors.newPassword ? 'border-red-500' : 'border-[#444444]'
+                            }`}
                           />
+                          {passwordErrors.newPassword && (
+                            <p className="text-red-400 text-sm mt-1">{passwordErrors.newPassword}</p>
+                          )}
                         </div>
+                        
                         <div>
                           <label className="block text-sm font-medium text-[#cccccc] mb-2">Confirm New Password</label>
                           <input
                             type="password"
-                            className="w-full bg-[#1a1a1a] border border-[#444444] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            value={passwordData.confirmPassword}
+                            onChange={(e) => handlePasswordChange("confirmPassword", e.target.value)}
+                            className={`w-full bg-[#1a1a1a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent ${
+                              passwordErrors.confirmPassword ? 'border-red-500' : 'border-[#444444]'
+                            }`}
                           />
+                          {passwordErrors.confirmPassword && (
+                            <p className="text-red-400 text-sm mt-1">{passwordErrors.confirmPassword}</p>
+                          )}
                         </div>
+                        
                         <div>
-                          <button className="bg-[#00D4FF] hover:bg-[#00C4EF] text-white px-4 py-2 rounded-lg transition-colors">
-                            Update Password
+                          <button 
+                            onClick={handleChangePassword}
+                            disabled={changingPassword}
+                            className="bg-[#00D4FF] hover:bg-[#00C4EF] text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {changingPassword ? "Updating Password..." : "Update Password"}
                           </button>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="p-4 bg-[#2a2a2a] rounded-lg">
-                      <h4 className="text-white font-medium mb-2">Two-Factor Authentication</h4>
-                      <p className="text-[#999999] text-sm mb-4">Add an extra layer of security to your account</p>
-                      <button className="bg-[#00D4FF] hover:bg-[#00C4EF] text-white px-4 py-2 rounded-lg transition-colors">
-                        Enable 2FA
-                      </button>
                     </div>
                     
                     <div className="p-4 bg-[#2a2a2a] rounded-lg">
@@ -688,6 +943,12 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
           </button>
         </div>
       </div>
+
+      {/* Add 2FA Setup Modal - Move outside of conditional rendering */}
+      <TwoFactorSetup 
+        isOpen={show2FASetup}
+        onClose={() => setShow2FASetup(false)}
+      />
     </div>
   )
 }

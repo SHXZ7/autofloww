@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { PlayIcon, StarIcon, ChevronRightIcon, CheckIcon } from "@heroicons/react/24/outline"
 import dynamic from "next/dynamic"
+import { useAuthStore } from "../../stores/authStore"
 
 // Dynamically import components that use random values to avoid hydration mismatch
 const WorkflowAnimation = dynamic(() => import("../../components/WorkflowAnimation"), {
@@ -17,6 +18,12 @@ const ParticleBackground = dynamic(() => import("../../components/ParticleBackgr
 export default function Homepage() {
   const router = useRouter()
   const [isScrolled, setIsScrolled] = useState(false)
+  const { isAuthenticated, loading, checkAuth } = useAuthStore()
+
+  // Check auth on component mount
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,6 +32,49 @@ export default function Homepage() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  // If user is already authenticated, redirect to the app
+  useEffect(() => {
+    if (isAuthenticated === true) { // Strict comparison to true
+      router.push('/')
+    }
+  }, [isAuthenticated, router])
+
+  // If still loading, show loading spinner, but add a timeout to prevent infinite loading
+  const [showTimeout, setShowTimeout] = useState(false)
+  
+  useEffect(() => {
+    // If loading takes more than 3 seconds, show a timeout message
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        setShowTimeout(true)
+      }
+    }, 3000)
+    
+    return () => clearTimeout(timeoutId)
+  }, [loading])
+
+  // Show loading, but with a timeout mechanism
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] rounded-xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-white font-bold text-2xl">AF</span>
+          </div>
+          <div className="text-white text-lg font-medium">Loading...</div>
+          
+          {showTimeout && (
+            <div className="mt-8 max-w-md">
+              <p className="text-gray-400 text-sm">
+                Taking longer than expected? <button onClick={() => window.location.reload()} className="text-[#00D4FF] underline">Refresh the page</button> or continue to the <button onClick={() => router.push('/auth/login')} className="text-[#00D4FF] underline">login page</button>.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   const handleSignup = () => {
     router.push("/auth/signup")
@@ -119,7 +169,7 @@ export default function Homepage() {
               <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a>
               <a href="#usecases" className="text-gray-300 hover:text-white transition-colors">Use Cases</a>
               <a href="#integrations" className="text-gray-300 hover:text-white transition-colors">Integrations</a>
-              <a href="https://github.com/yourusername/autoflow" className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors">
+              <a href="https://github.com/SHXZ7/autofloww.git" className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors">
                 <StarIcon className="w-4 h-4" />
                 <span>GitHub</span>
               </a>
@@ -402,7 +452,7 @@ export default function Homepage() {
               <span className="text-xl font-bold gradient-text">AutoFlow</span>
             </div>
             <div className="flex items-center space-x-6">
-              <a href="https://github.com/yourusername/autoflow" className="text-gray-400 hover:text-white transition-colors">
+              <a href="https://github.com/SHXZ7/autofloww.git" className="text-gray-400 hover:text-white transition-colors">
                 GitHub
               </a>
               <a href="#" className="text-gray-400 hover:text-white transition-colors">
@@ -414,7 +464,7 @@ export default function Homepage() {
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-white/10 text-center text-gray-400">
-            <p>&copy; 2024 AutoFlow. Built with ❤️ for the automation community.</p>
+            <p>&copy; AutoFlow. Built with ❤️ By Mohammed Shaaz</p>
           </div>
         </div>
       </footer>

@@ -1,8 +1,8 @@
 # AutoFlow - Visual Workflow Automation Platform
 
 <div align="center">
-  <img src="c:\Users\HP\Downloads\ChatGPT Image Aug 22, 2025, 03_02_19 PM.png" alt="AutoFlow Logo" width="100" height="100">
-  
+  <img width="100" height="100" alt="ChatGPT Image Aug 22, 2025, 03_02_19 PM" src="https://github.com/user-attachments/assets/7df6f149-cb82-4cfc-a4fb-54058c4999b3" />
+
   [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
   [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
   [![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org/)

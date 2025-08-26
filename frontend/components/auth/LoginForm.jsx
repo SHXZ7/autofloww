@@ -4,8 +4,10 @@ import { useAuthStore } from "../../stores/authStore"
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"
 import { useRouter } from 'next/navigation'
 import TwoFactorLogin from "./TwoFactorLogin"
+import ForgotPassword from "./ForgotPassword"
 
 export default function LoginForm({ onSwitchToSignup }) {
+  const [currentView, setCurrentView] = useState("login") // login, forgot-password, 2fa
   const [formData, setFormData] = useState({ email: "", password: "" })
   const [showPassword, setShowPassword] = useState(false)
   const [isDemoMode, setIsDemoMode] = useState(false)
@@ -44,6 +46,7 @@ export default function LoginForm({ onSwitchToSignup }) {
         // Show 2FA verification screen
         setNeeds2FA(true)
         setPendingEmail(result.email)
+        setCurrentView("2fa")
       } else if (result.success) {
         router.push('/')
       } else {
@@ -65,10 +68,26 @@ export default function LoginForm({ onSwitchToSignup }) {
   const handleCancel2FA = () => {
     setNeeds2FA(false)
     setPendingEmail("")
+    setCurrentView("login")
+  }
+
+  const handleForgotPassword = () => {
+    setCurrentView("forgot-password")
+  }
+
+  const handleBackToLogin = () => {
+    setCurrentView("login")
+    setLoginError("")
+    clearError()
+  }
+
+  // Show Forgot Password component
+  if (currentView === "forgot-password") {
+    return <ForgotPassword onBack={handleBackToLogin} />
   }
 
   // Show 2FA verification screen if needed
-  if (needs2FA) {
+  if (currentView === "2fa" && needs2FA) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <TwoFactorLogin 
@@ -89,6 +108,15 @@ export default function LoginForm({ onSwitchToSignup }) {
         </div>
       )}
 
+      {/* Demo Mode Alert */}
+      {isDemoMode && (
+        <div className="mb-6 p-4 glass rounded-xl">
+          <p className="text-blue-400 text-sm flex items-center space-x-2">
+            <span className="text-lg">🎯</span>
+            <span>Demo mode: Credentials have been pre-filled for you!</span>
+          </p>
+        </div>
+      )}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -138,11 +166,21 @@ export default function LoginForm({ onSwitchToSignup }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] hover:opacity-90 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed pulse-glow"
+          className="w-full bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] hover:opacity-90 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
+
+      {/* Forgot Password Link */}
+      <div className="text-center mt-4">
+        <button
+          onClick={handleForgotPassword}
+          className="text-[#00D4FF] hover:text-white text-sm transition-colors"
+        >
+          Forgot your password?
+        </button>
+      </div>
 
       {/* Divider */}
       <div className="my-6">
@@ -168,6 +206,16 @@ export default function LoginForm({ onSwitchToSignup }) {
           </button>
         </p>
       </div>
+
+      {/* Demo Credentials - only show if not in demo mode */}
+      {!isDemoMode && (
+        <div className="mt-8 p-4 glass rounded-lg">
+          <p className="text-xs text-gray-400 text-center">
+            <span className="block mb-1 text-sm">Try demo credentials:</span>
+            <span className="font-mono">user@autoflow.com / password123</span>
+          </p>
+        </div>
+      )}
     </div>
   )
 }

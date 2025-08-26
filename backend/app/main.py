@@ -19,8 +19,9 @@ from app.database.connection import connect_to_mongo, close_mongo_connection, db
 from app.database.user_operations import create_user, get_user_by_email, get_user_by_id, update_user_stats, update_last_login, update_user
 from app.database.workflow_operations import save_workflow, get_user_workflows, update_workflow, delete_workflow, save_execution_history
 from app.auth.two_factor import generate_totp_secret, generate_totp_uri, verify_totp
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
+from app.auth.email_service import send_password_reset_email
 
 load_dotenv()
 
@@ -921,3 +922,151 @@ async def disable_two_factor(
     except Exception as e:
         print(f"❌ 2FA disable error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to disable two-factor authentication: {str(e)}")
+
+@app.post("/auth/forgot-password")
+async def forgot_password(request_data: dict):
+    """Send password reset email"""
+    try:
+        email = request_data.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Email is required")
+        
+        # Check if user exists
+        user = await get_user_by_email(email)
+        if not user:
+            # Don't reveal if user exists or not for security
+            return {"message": "If an account with that email exists, we've sent a password reset link"}
+        
+        # Generate reset token
+        reset_token = str(uuid.uuid4())
+        expires_at = datetime.utcnow() + timedelta(hours=1)  # Token expires in 1 hour
+        
+        # Store reset token in user document
+        await update_user(str(user["_id"]), {
+            "password_reset": {
+                "token": reset_token,
+                "expires_at": expires_at,
+                "created_at": datetime.utcnow()
+            }
+        })
+        
+        # Send reset email
+        email_sent = await send_password_reset_email(
+            email=email,
+            reset_token=reset_token,
+            user_name=user.get("name", "User")
+        )
+        
+        if not email_sent:
+            raise HTTPException(status_code=500, detail="Failed to send reset email")
+        
+        return {"message": "If an account with that email exists, we've sent a password reset link"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Forgot password error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to process password reset request")
+        
+
+@app.get("/auth/validate-reset-token/{token}")
+async def validate_reset_token(token: str):
+    """Validate if reset token is valid and not expired"""
+    try:
+        # Find user with this reset token
+        if db.in_memory_mode:
+            # In-memory search
+            for user_data in db.database.collections.get("users", {}).data.values():
+                reset_data = user_data.get("password_reset", {})
+                if reset_data.get("token") == token:
+                    user = user_data
+                    break
+            else:
+                raise HTTPException(status_code=400, detail="Invalid reset token")
+        else:
+            # MongoDB search
+            user = await db.database.users.find_one({
+                "password_reset.token": token
+            })
+            
+        if not user:
+            raise HTTPException(status_code=400, detail="Invalid reset token")
+        
+        # Check if token is expired
+        reset_data = user.get("password_reset", {})
+        expires_at = reset_data.get("expires_at")
+        
+        if not expires_at or datetime.utcnow() > expires_at:
+            raise HTTPException(status_code=400, detail="Reset token has expired")
+        
+        return {"valid": True, "message": "Token is valid"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Token validation error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to validate reset token")
+
+@app.post("/auth/reset-password")
+async def reset_password(reset_data: dict):
+    """Reset user password using reset token"""
+    try:
+        token = reset_data.get("token")
+        new_password = reset_data.get("new_password")
+        
+        if not token or not new_password:
+            raise HTTPException(status_code=400, detail="Token and new password are required")
+        
+        if len(new_password) < 6:
+            raise HTTPException(status_code=400, detail="Password must be at least 6 characters long")
+        
+        # Find user with this reset token
+        if db.in_memory_mode:
+            # In-memory search
+            user = None
+            user_id = None
+            for uid, user_data in db.database.collections.get("users", {}).data.items():
+                reset_data_stored = user_data.get("password_reset", {})
+                if reset_data_stored.get("token") == token:
+                    user = user_data
+                    user_id = uid
+                    break
+        else:
+            # MongoDB search
+            user = await db.database.users.find_one({
+                "password_reset.token": token
+            })
+            user_id = str(user["_id"]) if user else None
+            
+        if not user:
+            raise HTTPException(status_code=400, detail="Invalid reset token")
+        
+        # Check if token is expired
+        reset_data_stored = user.get("password_reset", {})
+        expires_at = reset_data_stored.get("expires_at")
+        
+        if not expires_at or datetime.utcnow() > expires_at:
+            raise HTTPException(status_code=400, detail="Reset token has expired")
+        
+        # Hash new password
+        hashed_password = hash_password(new_password)
+        
+        # Update user password and remove reset token
+        update_data = {
+            "password": hashed_password,
+            "password_reset": None,  # Remove reset token
+            "updated_at": datetime.utcnow()
+        }
+        
+        success = await update_user(user_id, update_data)
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update password")
+        
+        return {"message": "Password has been reset successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Password reset error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to reset password")

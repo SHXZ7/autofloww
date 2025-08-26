@@ -47,6 +47,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
   
   // Always define ALL useEffect hooks in the same order, regardless of conditions
   // Update profile when user data changes
+  
   useEffect(() => {
     if (user) {
       setProfile({
@@ -290,6 +291,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
       })
       return
     }
+    
     
     setDisabling2FA(true)
     
@@ -721,15 +723,23 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           </div>
                         </div>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={handle2FASetup}
-                          className="px-4 py-2 bg-[#00D4FF] hover:bg-[#00C4EF] text-white rounded-lg transition-colors"
-                        >
+                      <button
+                        type="button"
+   
+                        onClick={(e) => handle2FASetup(e)}
+                        className="px-4 py-2 bg-[#00D4FF] hover:bg-[#00C4EF] text-white rounded-lg transition-colors"
+                          >
                           Enable 2FA
-                        </button>
+                       </button>
                       )}
                     </div>
+    {/* ✅ Place 2FA modal OUTSIDE tab content */}
+    {show2FASetup && (
+      <TwoFactorSetup 
+        isOpen={show2FASetup}
+        onClose={() => setShow2FASetup(false)}
+      />
+    )}                    
                     
                     <div className="p-4 bg-[#2a2a2a] rounded-lg">
                       <h4 className="text-white font-medium mb-4">Change Password</h4>
@@ -933,22 +943,16 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
           </div>
         </div>
 
-        {/* Footer - Remove general save button since we have specific ones */}
-        <div className="border-t border-[#333333] p-6 flex justify-end space-x-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-[#444444] hover:bg-[#555555] text-white rounded-lg transition-colors"
-          >
-            Close
-          </button>
-        </div>
-      </div>
 
-      {/* Add 2FA Setup Modal - Move outside of conditional rendering */}
-      <TwoFactorSetup 
-        isOpen={show2FASetup}
-        onClose={() => setShow2FASetup(false)}
-      />
+      {/* Footer */}
+      <div className="border-t border-[#333333] p-6 flex justify-end space-x-3">
+        <button
+          onClick={onClose}
+          className="px-4 py-2 bg-[#444444] hover:bg-[#555555] text-white rounded-lg transition-colors"
+        >
+          Close
+        </button>
+      </div>
     </div>
-  )
-}
+  </div>
+)}

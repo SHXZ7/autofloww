@@ -1,22 +1,28 @@
 "use client"
 import { useState } from "react"
+import { ShieldCheckIcon, ArrowLeftIcon } from "@heroicons/react/24/outline"
 import { useAuthStore } from "../../stores/authStore"
-import { ShieldCheckIcon } from "@heroicons/react/24/outline"
 
 export default function TwoFactorLogin({ email, onSuccess, onCancel }) {
-  const { verify2FALogin, loading } = useAuthStore()
   const [code, setCode] = useState("")
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const { verify2FALogin } = useAuthStore()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!code.trim()) {
-      setError("Please enter the verification code")
+    
+    if (!code || code.length !== 6) {
+      setError("Please enter a valid 6-digit code")
       return
     }
 
+    setLoading(true)
+    setError("")
+
     try {
       const result = await verify2FALogin(email, code)
+      
       if (result.success) {
         onSuccess()
       } else {
@@ -24,62 +30,89 @@ export default function TwoFactorLogin({ email, onSuccess, onCancel }) {
       }
     } catch (error) {
       setError("An unexpected error occurred")
+    } finally {
+      setLoading(false)
     }
   }
 
+  const handleCodeInput = (e) => {
+    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 6)
+    setCode(value)
+    setError('')
+  }
+
   return (
-    <div className="bg-[#1a1a1a] rounded-xl p-8 max-w-md w-full shadow-xl">
-      <div className="text-center mb-6">
-        <ShieldCheckIcon className="w-12 h-12 mx-auto text-[#00D4FF] mb-4" />
+    <div className="bg-[#1a1a1a] border border-[#333333] rounded-xl w-full max-w-md p-8">
+      <div className="text-center mb-8">
+        <div className="w-16 h-16 bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] rounded-xl flex items-center justify-center mx-auto mb-4">
+          <ShieldCheckIcon className="w-8 h-8 text-white" />
+        </div>
         <h2 className="text-2xl font-bold text-white mb-2">Two-Factor Authentication</h2>
         <p className="text-gray-400">
-          Enter the verification code from your authenticator app
+          Enter the 6-digit code from your authenticator app
+        </p>
+        <p className="text-gray-500 text-sm mt-2">
+          Signing in as: <span className="text-[#00D4FF]">{email}</span>
         </p>
       </div>
 
       {error && (
-        <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-2 rounded-lg text-sm mb-4">
-          {error}
+        <div className="mb-6 p-4 bg-[#e74c3c]/10 border border-[#e74c3c]/20 rounded-xl">
+          <p className="text-[#e74c3c] text-sm">{error}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-[#cccccc] mb-2">
+          <label className="block text-sm font-medium text-gray-300 mb-3 text-center">
             Verification Code
           </label>
           <input
             type="text"
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ""))}
-            maxLength={6}
-            className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+            onChange={handleCodeInput}
+            className="w-full bg-[#0a0a0a] border border-[#444] rounded-xl px-4 py-4 text-center text-white text-xl font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent transition-all duration-200"
             placeholder="000000"
-            autoComplete="one-time-code"
+            maxLength={6}
+            autoFocus
           />
-          <p className="text-xs text-gray-500 mt-1">
-            You can also use a backup code from your list
+          <p className="text-xs text-gray-400 mt-2 text-center">
+            Enter the code from your authenticator app
           </p>
         </div>
 
-        <div className="flex space-x-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 px-4 py-2 bg-[#333333] hover:bg-[#444444] text-white rounded-lg transition-colors"
-            disabled={loading}
-          >
-            Back
-          </button>
-          <button
-            type="submit"
-            className="flex-1 px-4 py-2 bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] hover:opacity-90 text-white rounded-lg transition-colors"
-            disabled={loading}
-          >
-            {loading ? "Verifying..." : "Verify"}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={code.length !== 6 || loading}
+          className="w-full bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300"
+        >
+          {loading ? (
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Verifying...</span>
+            </div>
+          ) : (
+            "Verify & Sign In"
+          )}
+        </button>
       </form>
+
+      <div className="mt-6 text-center">
+        <button
+          onClick={onCancel}
+          className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors mx-auto"
+        >
+          <ArrowLeftIcon className="w-4 h-4" />
+          <span>Back to Sign In</span>
+        </button>
+      </div>
+
+      <div className="mt-6 p-4 bg-[#1a1a1a] rounded-xl">
+        <p className="text-gray-400 text-xs text-center">
+          <span className="font-medium text-white">Can't access your authenticator?</span><br/>
+          You can use one of your backup codes instead of the 6-digit code.
+        </p>
+      </div>
     </div>
   )
 }

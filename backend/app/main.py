@@ -22,7 +22,6 @@ from app.auth.two_factor import generate_totp_secret, generate_totp_uri, verify_
 from datetime import datetime, timedelta
 import uuid
 from app.auth.email_service import send_password_reset_email
-from app.auth.pin_2fa import generate_pin, hash_pin, verify_pin, validate_pin_format
 
 load_dotenv()
 
@@ -694,7 +693,7 @@ async def change_password(
 
 @app.post("/auth/2fa/setup")
 async def setup_two_factor(current_user_id: str = Depends(get_current_user)):
-    """Set up PIN-based two-factor authentication for a user"""
+    """Set up two-factor authentication for a user"""
     try:
         # Check if database is connected
         if db.database is None:
@@ -709,23 +708,25 @@ async def setup_two_factor(current_user_id: str = Depends(get_current_user)):
         if user.get("two_factor", {}).get("enabled", False):
             raise HTTPException(status_code=400, detail="Two-factor authentication is already enabled")
         
-        # Generate new PIN
-        pin = generate_pin()
-        hashed_pin = hash_pin(pin)
+        # Generate new secret for TOTP
+        secret = generate_totp_secret()
         
-        # Save PIN to user and enable 2FA immediately
+        # Create URI for QR code generation
+        uri = generate_totp_uri(secret, user["email"], "AutoFlow")
+        
+        # Save secret to user but don't enable 2FA yet (will be enabled after verification)
         await update_user(current_user_id, {
             "two_factor": {
-                "pin_hash": hashed_pin,
-                "enabled": True,
-                "setup_at": datetime.utcnow()
+                "secret": secret,
+                "enabled": False,
+                "verified": False,
+                "backup_codes": []
             }
         })
         
         return {
-            "pin": pin,
-            "enabled": True,
-            "message": "PIN-based 2FA has been enabled successfully"
+            "secret": secret,
+            "uri": uri
         }
         
     except HTTPException:
@@ -735,18 +736,72 @@ async def setup_two_factor(current_user_id: str = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"Failed to set up two-factor authentication: {str(e)}")
 
 @app.post("/auth/2fa/verify")
-async def validate_pin_login(validation_data: dict):
-    """Validate PIN during login"""
+async def verify_two_factor(
+    verification_data: dict,
+    current_user_id: str = Depends(get_current_user)
+):
+    """Verify and enable two-factor authentication"""
+    try:
+        # Check if database is connected
+        if db.database is None:
+            raise HTTPException(status_code=503, detail="Database connection not available")
+        
+        # Get current user
+        user = await get_user_by_id(current_user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        # Get user's 2FA settings
+        two_factor = user.get("two_factor", {})
+        secret = two_factor.get("secret")
+        
+        if not secret:
+            raise HTTPException(status_code=400, detail="Two-factor authentication not set up")
+            
+        if two_factor.get("enabled", False):
+            raise HTTPException(status_code=400, detail="Two-factor authentication is already enabled")
+            
+        # Verify TOTP code
+        code = verification_data.get("code")
+        if not code:
+            raise HTTPException(status_code=400, detail="Verification code is required")
+            
+        if not verify_totp(secret, code):
+            raise HTTPException(status_code=400, detail="Invalid verification code")
+            
+        # Generate backup codes
+        backup_codes = [str(uuid.uuid4())[:8] for _ in range(10)]
+        
+        # Enable 2FA
+        await update_user(current_user_id, {
+            "two_factor": {
+                "secret": secret,
+                "enabled": True,
+                "verified": True,
+                "backup_codes": backup_codes,
+                "enabled_at": datetime.utcnow()
+            }
+        })
+        
+        return {
+            "enabled": True,
+            "backup_codes": backup_codes
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 2FA verification error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to verify two-factor authentication: {str(e)}")
+
+@app.post("/auth/2fa/validate")
+async def validate_two_factor(validation_data: dict):
+    """Validate a 2FA code during login"""
     try:
         email = validation_data.get("email")
-        pin = validation_data.get("pin")
-        
         if not email:
             raise HTTPException(status_code=400, detail="Email is required")
             
-        if not pin:
-            raise HTTPException(status_code=400, detail="PIN is required")
-        
         # Get user by email
         user = await get_user_by_email(email)
         if not user:
@@ -757,47 +812,82 @@ async def validate_pin_login(validation_data: dict):
         if not two_factor.get("enabled", False):
             raise HTTPException(status_code=400, detail="Two-factor authentication is not enabled for this user")
             
-        # Validate PIN format
-        if not validate_pin_format(pin):
-            raise HTTPException(status_code=400, detail="PIN must be 4-6 digits")
+        # Get 2FA code
+        code = validation_data.get("code")
+        if not code:
+            raise HTTPException(status_code=400, detail="Verification code is required")
             
-        # Verify PIN
-        pin_hash = two_factor.get("pin_hash")
-        if not pin_hash or not verify_pin(pin, pin_hash):
-            raise HTTPException(status_code=400, detail="Invalid PIN")
+        # Check if it's a backup code
+        if code in two_factor.get("backup_codes", []):
+            # Remove the used backup code
+            backup_codes = [c for c in two_factor["backup_codes"] if c != code]
             
-        # Create access token
-        access_token = create_access_token(data={"sub": str(user["_id"])})
-        
-        # Update last login
-        await update_last_login(str(user["_id"]))
-        
-        return {
-            "verified": True,
-            "user": {
-                "id": str(user["_id"]),
-                "name": user["name"],
-                "email": user["email"],
-                "created_at": user["created_at"],
-                "is_active": user.get("is_active", True),
-                "profile": user.get("profile", {}),
-                "two_factor_enabled": True
-            },
-            "token": access_token
-        }
-        
+            await update_user(str(user["_id"]), {
+                "two_factor": {
+                    **two_factor,
+                    "backup_codes": backup_codes
+                }
+            })
+            
+            # Create access token
+            access_token = create_access_token(data={"sub": str(user["_id"])})
+            
+            # Update last login
+            await update_last_login(str(user["_id"]))
+            
+            return {
+                "verified": True,
+                "user": {
+                    "id": str(user["_id"]),
+                    "name": user["name"],
+                    "email": user["email"],
+                    "created_at": user["created_at"],
+                    "is_active": user.get("is_active", True),
+                    "profile": user.get("profile", {}),
+                    "two_factor_enabled": True
+                },
+                "token": access_token
+            }
+            
+        # Verify TOTP code
+        if verify_totp(two_factor["secret"], code):
+            # Create access token
+            access_token = create_access_token(data={"sub": str(user["_id"])})
+            
+            # Update last login
+            await update_last_login(str(user["_id"]))
+            
+            return {
+                "verified": True,
+                "user": {
+                    "id": str(user["_id"]),
+                    "name": user["name"],
+                    "email": user["email"],
+                    "created_at": user["created_at"],
+                    "is_active": user.get("is_active", True),
+                    "profile": user.get("profile", {}),
+                    "two_factor_enabled": True
+                },
+                "token": access_token
+            }
+        else:
+            return {
+                "verified": False,
+                "error": "Invalid verification code"
+            }
+            
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ PIN validation error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to validate PIN: {str(e)}")
+        print(f"❌ 2FA validation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to validate two-factor authentication: {str(e)}")
 
 @app.post("/auth/2fa/disable")
 async def disable_two_factor(
     disable_data: dict,
     current_user_id: str = Depends(get_current_user)
 ):
-    """Disable PIN-based two-factor authentication"""
+    """Disable two-factor authentication"""
     try:
         # Get current user
         user = await get_user_by_id(current_user_id)
@@ -826,105 +916,12 @@ async def disable_two_factor(
         })
         
         return {"message": "Two-factor authentication has been disabled"}
-            
+        
     except HTTPException:
         raise
     except Exception as e:
         print(f"❌ 2FA disable error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to disable two-factor authentication: {str(e)}")
-
-@app.post("/auth/2fa/regenerate-pin")
-async def regenerate_pin(
-    current_user_id: str = Depends(get_current_user)
-):
-    """Regenerate a new PIN for 2FA"""
-    try:
-        # Get current user
-        user = await get_user_by_id(current_user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-            
-        # Check if 2FA is enabled
-        two_factor = user.get("two_factor", {})
-        if not two_factor.get("enabled", False):
-            raise HTTPException(status_code=400, detail="Two-factor authentication is not enabled. Enable it first.")
-            
-        # Generate new PIN
-        new_pin = generate_pin()
-        hashed_pin = hash_pin(new_pin)
-        
-        # Update user with new PIN
-        await update_user(current_user_id, {
-            "two_factor": {
-                **two_factor,
-                "pin_hash": hashed_pin,
-                "regenerated_at": datetime.utcnow()
-            }
-        })
-        
-        return {
-            "pin": new_pin,
-            "message": "New PIN generated successfully"
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ PIN regeneration error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to regenerate PIN: {str(e)}")
-
-@app.post("/auth/2fa/change-pin")
-async def change_pin(
-    pin_data: dict,
-    current_user_id: str = Depends(get_current_user)
-):
-    """Change the 2FA PIN"""
-    try:
-        # Get current user
-        user = await get_user_by_id(current_user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-            
-        # Check if 2FA is enabled
-        two_factor = user.get("two_factor", {})
-        if not two_factor.get("enabled", False):
-            raise HTTPException(status_code=400, detail="Two-factor authentication is not enabled")
-            
-        # Verify current PIN
-        current_pin = pin_data.get("current_pin")
-        new_pin = pin_data.get("new_pin")
-        
-        if not current_pin:
-            raise HTTPException(status_code=400, detail="Current PIN is required")
-            
-        if not new_pin:
-            raise HTTPException(status_code=400, detail="New PIN is required")
-            
-        if not validate_pin_format(new_pin):
-            raise HTTPException(status_code=400, detail="New PIN must be 4-6 digits")
-            
-        # Verify current PIN
-        current_pin_hash = two_factor.get("pin_hash")
-        if not current_pin_hash or not verify_pin(current_pin, current_pin_hash):
-            raise HTTPException(status_code=400, detail="Current PIN is incorrect")
-            
-        # Hash new PIN and update
-        new_pin_hash = hash_pin(new_pin)
-        await update_user(current_user_id, {
-            "two_factor": {
-                **two_factor,
-                "pin_hash": new_pin_hash,
-                "changed_at": datetime.utcnow()
-            }
-        })
-        
-        return {"message": "PIN changed successfully"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ PIN change error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to change PIN: {str(e)}")
 
 @app.post("/auth/forgot-password")
 async def forgot_password(request_data: dict):

@@ -93,12 +93,12 @@ export const useAuthStore = create(
       },
 
       // Set up 2FA for a user
-      setupPin2FA: async () => {
+      setup2FA: async () => {
         const { loading, error } = get()
         
         // Prevent multiple simultaneous calls
         if (loading) {
-          console.log("PIN 2FA setup already in progress, skipping");
+          console.log("2FA setup already in progress, skipping");
           return { success: false, error: "Setup already in progress" }
         }
         
@@ -110,7 +110,7 @@ export const useAuthStore = create(
             throw new Error("Authentication required")
           }
 
-          console.log("Calling PIN 2FA setup endpoint...");
+          console.log("Calling 2FA setup endpoint...");
           
           const response = await fetch("http://localhost:8000/auth/2fa/setup", {
             method: "POST",
@@ -120,78 +120,76 @@ export const useAuthStore = create(
             }
           })
 
-          console.log("PIN 2FA setup response status:", response.status);
+          console.log("2FA setup response status:", response.status);
           
           if (!response.ok) {
             const errorData = await response.json()
-            console.error("PIN 2FA setup failed:", errorData);
+            console.error("2FA setup failed:", errorData);
             throw new Error(errorData.detail || `HTTP ${response.status}`)
           }
           
           const data = await response.json()
-          console.log("PIN 2FA setup response data:", data);
+          console.log("2FA setup response data:", data);
 
-          // Update user state to reflect 2FA is enabled
-          const currentUser = get().user
-          if (currentUser) {
-            set({ 
-              user: { 
-                ...currentUser, 
-                two_factor_enabled: true 
-              }
-            })
-          }
           set({ loading: false })
           return { 
             success: true, 
-            pin: data.pin,
-            enabled: data.enabled,
-            message: data.message
+            secret: data.secret, 
+            uri: data.uri 
           }
         } catch (error) {
-          console.error("PIN 2FA setup error:", error);
-          const errorMessage = error.message || "Network error during PIN 2FA setup"
+          console.error("2FA setup error:", error);
+          const errorMessage = error.message || "Network error during 2FA setup"
           set({ loading: false, error: errorMessage })
           return { success: false, error: errorMessage }
         }
       },
 
-      // Verify PIN during login
-      verifyPinLogin: async (email, pin) => {
+      // Verify and enable 2FA
+      verify2FASetup: async (code) => {
         set({ loading: true, error: null })
         try {
+          const token = localStorage.getItem("token")
+          if (!token) {
+            throw new Error("Authentication required")
+          }
 
           const response = await fetch("http://localhost:8000/auth/2fa/verify", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
             },
-            body: JSON.stringify({ email, pin })
+            body: JSON.stringify({ code })
           })
 
           const data = await response.json()
 
-          if (response.ok && data.verified) {
-            set({
-              user: data.user,
-              isAuthenticated: true,
-              loading: false,
-              error: null,
-              requires2FA: false,
-              pending2FAEmail: null
-            })
-            localStorage.setItem("token", data.token)
+          if (response.ok) {
+            // Update the user object to reflect 2FA is enabled
+            const currentUser = get().user
+            if (currentUser) {
+              set({ 
+                user: { 
+                  ...currentUser, 
+                  two_factor_enabled: true 
+                }
+              })
+            }
+            
             set({ loading: false })
             return { 
-              success: true
+              success: true, 
+              enabled: true, 
+              backup_codes: data.backup_codes 
             }
           } else {
-            const errorMessage = data.error || "Invalid PIN"
+            const errorMessage = data.detail || "Failed to verify 2FA code"
             set({ loading: false, error: errorMessage })
             return { success: false, error: errorMessage }
           }
         } catch (error) {
-          const errorMessage = error.message || "Network error during PIN verification"
+          const errorMessage = error.message || "Network error during 2FA verification"
           set({ loading: false, error: errorMessage })
           return { success: false, error: errorMessage }
         }

@@ -1,27 +1,38 @@
 # backend/app/core/runner.py
 
 import networkx as nx
-from typing import List, Dict, Any
-from ..models.workflow import Node, Edge
 import sys
 import os
+import json
+import atexit
+import asyncio
+import time
+from urllib.parse import urlparse
+from typing import List, Dict, Any, Optional, Union
+
+from datetime import datetime
+from dataclasses import dataclass
+from abc import ABC, abstractmethod
+
 # Add the backend directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
+from apscheduler.schedulers.background import BackgroundScheduler
+
+# Import models
+from ..models.workflow import Node, Edge, Workflow
+
+# Import services
 from services.gpt import run_gpt_node
 from services.email import run_email_node
 from services.webhook import run_webhook_node
 from services.twilio_node import run_twilio_node
 from services.googlesheets import write_to_sheet
-from services.file_upload import upload_to_drive
+from services.file_upload import upload_to_drive, download_from_drive
 from services.image_generation import run_image_generation_node
 from services.discord import run_discord_node
 from services.report_generator import run_report_generator_node
 from services.social_media import run_social_media_node
-from apscheduler.schedulers.background import BackgroundScheduler
-import atexit
-import json
-from datetime import datetime
 from services.api_key_manager import get_user_api_manager
 
 # Import database operations
@@ -29,975 +40,1288 @@ from app.database.user_operations import get_user_by_id, update_user_stats
 from app.database.workflow_operations import save_execution_history
 
 
-scheduler = BackgroundScheduler()
-scheduler.start()
-atexit.register(lambda: scheduler.shutdown())
+@dataclass
+class NodeExecutionContext:
+    """Context for node execution containing all necessary data."""
+    node: Node
+    input_data: Dict[str, Any]
+    api_manager: Optional[Any]
+    user_id: Optional[str] = None
 
-def schedule_task(cron_expr, workflow):
-    scheduler.add_job(
-        lambda: run_workflow_sync(workflow),
-        trigger="cron",
-        **parse_cron_expr(cron_expr)
-    )
 
-def parse_cron_expr(expr):
-    # "*/1 * * * *" → { "minute": "*/1" }
-    fields = expr.split()
-    return {
-        "minute": fields[0],
-        "hour": fields[1],
-        "day": fields[2],
-        "month": fields[3],
-        "day_of_week": fields[4],
-    }
+@dataclass
+class ExecutionResult:
+    """Result of node execution."""
+    success: bool
+    data: Any
+    error_message: Optional[str] = None
 
-def run_workflow_sync(workflow):
-    # Synchronous version for scheduler
-    import asyncio
-    return asyncio.run(run_workflow_engine(workflow["nodes"], workflow["edges"]))
 
-async def run_workflow_engine(nodes: List[Node], edges: List[Edge], user_id: str = None) -> Dict[str, Any]:
+class WorkflowScheduler:
+    """Handles workflow scheduling operations."""
     
-    G = nx.DiGraph()
-
-    # Build the graph
-    for node in nodes:
-        G.add_node(node.id, data=node)
-    for edge in edges:
-        G.add_edge(edge.source, edge.target)
-        print(f"Added edge: {edge.source} -> {edge.target}")  # Debug log
-
-    # Auto-register webhook workflows
-    from ..main import stored_workflows
-    from ..models.workflow import Workflow
+    def __init__(self):
+        self.scheduler = BackgroundScheduler()
+        self.scheduler.start()
+        atexit.register(lambda: self.scheduler.shutdown())
     
-    webhook_nodes = [node for node in nodes if node.type == "webhook"]
-    if webhook_nodes:
-        for webhook_node in webhook_nodes:
-            workflow_id = webhook_node.id
-            workflow = Workflow(nodes=nodes, edges=edges)
-            stored_workflows[workflow_id] = workflow
-            print(f"Auto-registered webhook workflow: {workflow_id}")
-
-    try:
-        execution_order = list(nx.topological_sort(G))
-        print(f"Execution order: {execution_order}")  # Debug log
+    def schedule_task(self, cron_expr: str, workflow: Dict[str, Any]) -> None:
+        """Schedule a workflow task with cron expression."""
+        self.scheduler.add_job(
+            lambda: self._run_workflow_sync(workflow),
+            trigger="cron",
+            **self._parse_cron_expr(cron_expr)
+        )
+    
+    def _parse_cron_expr(self, expr: str) -> Dict[str, str]:
+        """Parse cron expression into scheduler parameters."""
+        fields = expr.split()
+        if len(fields) != 5:
+            raise ValueError(f"Invalid cron expression: {expr}")
         
-        # Print node types in execution order
-        for node_id in execution_order:
-            node_type = G.nodes[node_id]["data"].type
-            print(f"Node {node_id} ({node_type}) will execute")
-            
-    except nx.NetworkXUnfeasible:
-        print("Cycle detected - printing graph structure:")
-        print(f"Nodes: {list(G.nodes())}")
-        print(f"Edges: {list(G.edges())}")
-        return {"error": "Cycle detected in workflow"}
-
-    # Create API key manager for this user if user_id is provided
-    api_manager = None
-    if user_id:
-        api_manager = await get_user_api_manager(user_id)
-    
-    results = {}
-
-    for node_id in execution_order:
-        node: Node = G.nodes[node_id]["data"]
-        input_data = {
-            pred: results.get(pred)
-            for pred in G.predecessors(node_id)
+        return {
+            "minute": fields[0],
+            "hour": fields[1],
+            "day": fields[2],
+            "month": fields[3],
+            "day_of_week": fields[4],
         }
+    
+    def _run_workflow_sync(self, workflow: Dict[str, Any]) -> Any:
+        """Synchronous wrapper for workflow execution."""
+        import asyncio
+        return asyncio.run(run_workflow_engine(workflow["nodes"], workflow["edges"]))
+
+
+class ContentProcessor:
+    """Handles processing of content between workflow nodes."""
+    
+    @staticmethod
+    def extract_file_attachments(input_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Extract file attachments from input data."""
+        attachments = []
         
-        print(f"Executing node {node_id} ({node.type})")
-        print(f"Input data for {node_id}: {input_data}")
-
-        # Pass API manager to node execution
-        output = await execute_node(node, input_data, api_manager)
-        results[node_id] = output
-        print(f"Node {node_id} result: {output}")
-
-    return results
-
-async def execute_node(node: Node, input_data: Dict[str, Any] = None, api_manager = None) -> str:
-    """Execute a single node based on its type"""
-    if input_data is None:
-        input_data = {}
-    
-    print(f"🔧 Executing {node.type} node: {node.id}")
-    
-    try:
-        if node.type in ["gpt", "llama", "gemini", "claude", "mistral"]:
-            # Get API key for the model
-            if api_manager:
-                if node.type == "gpt" or node.data.get("model", "").startswith("openai"):
-                    api_key = await api_manager.get_openai_key()
-                    if api_key:
-                        os.environ["OPENAI_API_KEY"] = api_key
-                else:
-                    # Use OpenRouter for other models
-                    api_key = await api_manager.get_openrouter_key()
-                    if api_key:
-                        os.environ["OPENROUTER_API_KEY"] = api_key
-            
-            # Use 'prompt' field first, then fall back to 'label'
-            prompt = node.data.get("prompt") or node.data.get("label", "")
-            model = node.data.get("model", "meta-llama/llama-3-8b-instruct")
-            
-            if not prompt:
-                return f"Error: No prompt provided for {node.type} node"
-            
-            # Check if there's parsed document content to use as input
-            for pred_id, pred_result in input_data.items():
-                if "Document parsed:" in str(pred_result):
-                    json_path = str(pred_result).split("Document parsed: ")[-1]
-                    try:
-                        with open(json_path, 'r', encoding='utf-8') as f:
-                            parsed_data = json.load(f)
-                        
-                        # Use document content as context for AI
-                        document_content = parsed_data.get('content', '')
-                        if document_content:
-                            # Combine user prompt with document content
-                            enhanced_prompt = f"{prompt}\n\nDocument content to analyze:\n{document_content}"
-                            prompt = enhanced_prompt
-                            print(f"Enhanced AI prompt with document content")
-                            break
-                    except Exception as e:
-                        print(f"Error reading parsed document for AI: {str(e)}")
-            
-            return await run_gpt_node(prompt, model)
-        elif node.type == "email":
-            # Check if there's file data from connected nodes
-            attachments = []
-            email_body = node.data.get("body", "")
-            
-            print(f"Email node input_data: {input_data}")
-            
-            # Enhanced AI content integration
-            ai_content_added = False
-            
-            for pred_id, pred_result in input_data.items():
-                print(f"Checking predecessor {pred_id}: {pred_result}")
+        for pred_id, pred_result in input_data.items():
+            if not pred_result or not isinstance(pred_result, str):
+                continue
                 
-                # Handle document parsing results FIRST (before AI content check)
-                if "Document parsed:" in str(pred_result):
-                    json_path = str(pred_result).split("Document parsed: ")[-1]
-                    try:
-                        with open(json_path, 'r', encoding='utf-8') as f:
-                            parsed_data = json.load(f)
-                        
-                        # Add document content to email body
-                        email_body += f"\n\n--- Parsed Document Content ---\n"
-                        email_body += f"📄 Document: {parsed_data.get('metadata', {}).get('file_name', 'Unknown')}\n"
-                        email_body += f"📋 Type: {parsed_data.get('type', 'Unknown').upper()}\n"
-                        email_body += f"📖 Pages: {parsed_data.get('total_pages', 'Unknown')}\n"
-                        email_body += f"📏 Content Length: {parsed_data.get('metadata', {}).get('character_count', 0)} characters\n\n"
-                        
-                        # Add the main content
-                        if 'content' in parsed_data and parsed_data['content'].strip():
-                            content = parsed_data['content']
-                            # Limit content length for email but provide more than before
-                            if len(content) > 5000:
-                                content = content[:5000] + "\n\n... (content truncated for email)"
-                            email_body += f"**Document Content:**\n{content}"
-                        else:
-                            email_body += "**Note:** No text content could be extracted from this document. This may be an image-based PDF or contain non-text elements."
-                        
-                        # Attach the JSON file
-                        attachments.append({
-                            "path": json_path,
-                            "name": "parsed_document.json",
-                            "type": "file"
-                        })
-                        
-                        print(f"Added parsed document content to email")
-                    except Exception as e:
-                        email_body += f"\n\nError reading parsed document: {str(e)}"
-                
-                # Handle AI-generated content from any AI model (but not document parsing results)
-                elif isinstance(pred_result, str) and len(pred_result.strip()) > 10:
-                    # Check if this is AI-generated content (not error messages or system responses)
-                    # EXCLUDE document parsing results from being treated as AI content
-                    if not any(error_word in pred_result.lower() for error_word in 
-                              ["failed", "error", "not implemented", "sent successfully", 
-                               "uploaded", "generated:", "deleted", "saved", "webhook", "document parsed:"]):
-                        
-                        # This appears to be AI-generated content
-                        if not ai_content_added:
-                            email_body += "\n\n--- AI Generated Content ---\n"
-                            ai_content_added = True
-                        
-                        # Determine AI model type for better formatting
-                        ai_model = "AI Assistant"
-                        if "gpt" in str(pred_id).lower() or "openai" in str(pred_result).lower():
-                            ai_model = "GPT"
-                        elif "claude" in str(pred_id).lower():
-                            ai_model = "Claude"
-                        elif "gemini" in str(pred_id).lower():
-                            ai_model = "Gemini"
-                        elif "llama" in str(pred_id).lower():
-                            ai_model = "Llama"
-                        elif "mistral" in str(pred_id).lower():
-                            ai_model = "Mistral"
-                        
-                        email_body += f"\n**{ai_model} Response:**\n"
-                        email_body += f"{pred_result}\n"
-                        email_body += f"\n{'-' * 50}\n"
-                        
-                        print(f"✉️ Added {ai_model} content to email")
-                
-                # Handle report generation results
-                elif "Report generated:" in str(pred_result):
-                    report_path = str(pred_result).split("Report generated: ")[-1]
-                    if os.path.exists(report_path):
-                        attachments.append({
-                            "path": report_path,
-                            "name": os.path.basename(report_path),
-                            "type": "file"
-                        })
-                        email_body += f"\n\n📊 Generated report attached: {os.path.basename(report_path)}"
-                        print(f"Added report attachment: {report_path}")
-                
-                # Handle file upload results
-                elif "File uploaded:" in str(pred_result):
-                    file_url = str(pred_result).split("File uploaded: ")[-1]
+            # Handle different types of file results
+            if "Document parsed:" in pred_result:
+                json_path = pred_result.split("Document parsed: ")[-1]
+                if os.path.exists(json_path):
                     attachments.append({
-                        "url": file_url,
-                        "name": "uploaded_file",
-                        "type": "url"
-                    })
-                    email_body += f"\n\n📁 Attached file: {file_url}"
-                    print(f"Added file attachment: {file_url}")
-                
-                # Handle image generation results
-                elif "Image generated:" in str(pred_result):
-                    image_path = str(pred_result).split("Image generated: ")[-1]
-                    attachments.append({
-                        "path": image_path,
-                        "name": "generated_image",
+                        "path": json_path,
+                        "name": "parsed_document.json",
                         "type": "file"
                     })
-                    email_body += f"\n\n🎨 Generated image attached"
-                    print(f"Added image attachment: {image_path}")
-                
-            # If AI content was added, add a footer
-            if ai_content_added:
-                email_body += f"\n\n🤖 This email contains AI-generated content from your AutoFlow workflow.\n"
-                email_body += f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             
-            print(f"Final email body length: {len(email_body)} characters")
-            print(f"Final attachments: {len(attachments)} items")
+            elif "Report generated:" in pred_result:
+                report_path = pred_result.split("Report generated: ")[-1]
+                if os.path.exists(report_path):
+                    attachments.append({
+                        "path": report_path,
+                        "name": os.path.basename(report_path),
+                        "type": "file"
+                    })
             
-            # Update email data with enhanced content
-            email_data = {**node.data, "body": email_body, "attachments": attachments}
-            return await run_email_node(email_data)
-        elif node.type == "webhook":
-            print(f"🪝 Processing webhook node with data: {node.data}")
-            result = await run_webhook_node(node.data)
-            print(f"🪝 Webhook node completed: {result}")
-            return result
-        elif node.type in ["sms", "whatsapp", "twilio"]:
-            # Get message and phone number from node data
-            message = node.data.get("message", "")
-            phone_number = node.data.get("to", "")
-            mode = node.data.get("mode", "whatsapp")
+            elif "Image generated:" in pred_result:
+                image_path = ContentProcessor._find_image_path(pred_result)
+                if image_path:
+                    attachments.append({
+                        "path": image_path,
+                        "name": os.path.basename(image_path),
+                        "type": "file"
+                    })
             
-            # Validate required fields
-            if not phone_number:
-                return "Error: Phone number is required for SMS/WhatsApp"
-            if not message:
-                return "Error: Message content is required for SMS/WhatsApp"
+            elif "File uploaded:" in pred_result:
+                file_url = pred_result.split("File uploaded: ")[-1]
+                attachments.append({
+                    "url": file_url,
+                    "name": "uploaded_file",
+                    "type": "url"
+                })
+        
+        return attachments
+    
+    @staticmethod
+    def _find_image_path(pred_result: str) -> Optional[str]:
+        """Find and validate image path from generation result."""
+        image_path = pred_result.split("Image generated: ")[-1].strip()
+        
+        image_path = os.path.normpath(image_path)
+        if os.path.exists(image_path):
+            return os.path.abspath(image_path)
+        
+        alternative_paths = [
+        os.path.abspath(image_path),
+        os.path.join(os.getcwd(), image_path),
+        os.path.join(os.getcwd(), os.path.basename(image_path)),
+        ]
+
+        for alt_path in alternative_paths:
+            normalized_path = os.path.normpath(alt_path)
+            if os.path.exists(normalized_path):
+                return normalized_path
+        
+            print(f"Image path not found: {image_path}")
+            print(f"Tried paths: {alternative_paths}")
+            return None
+        
+    @staticmethod
+    def extract_ai_content(input_data: Dict[str, Any]) -> List[Dict[str, str]]:
+        """Extract AI-generated content from input data."""
+        ai_content = []
+        
+        for pred_id, pred_result in input_data.items():
+            if not ContentProcessor._is_ai_content(pred_result):
+                continue
             
-            # Check if there's parsed document content for messaging
-            for pred_id, pred_result in input_data.items():
-                if "Document parsed:" in str(pred_result):
-                    json_path = str(pred_result).split("Document parsed: ")[-1]
-                    try:
-                        with open(json_path, 'r', encoding='utf-8') as f:
-                            parsed_data = json.load(f)
-                        
-                        # Add document summary to message
-                        doc_name = parsed_data.get('metadata', {}).get('file_name', 'Document')
-                        content = parsed_data.get('content', '')
-                        
-                        # Create a summary for messaging (limit length)
-                        summary = content[:500] + "..." if len(content) > 500 else content
-                        enhanced_message = f"{message}\n\nDocument: {doc_name}\nSummary: {summary}"
-                        
-                        # Update node data with enhanced message
-                        updated_data = {**node.data, "message": enhanced_message}
-                        return await run_twilio_node(updated_data)
-                    except Exception as e:
-                        print(f"Error reading parsed document for messaging: {str(e)}")
-                # Check for AI-generated content to include in message
-                elif isinstance(pred_result, str) and len(pred_result.strip()) > 10:
-                    if not any(error_word in pred_result.lower() for error_word in 
-                              ["failed", "error", "not implemented", "sent successfully", "uploaded", "generated:"]):
-                        # Add AI content to message
-                        ai_summary = pred_result[:300] + "..." if len(pred_result) > 300 else pred_result
-                        enhanced_message = f"{message}\n\nAI Analysis: {ai_summary}"
-                        updated_data = {**node.data, "message": enhanced_message, "to": phone_number}
-                        return await run_twilio_node(updated_data)
+            ai_model = ContentProcessor._determine_ai_model(pred_id)
+            ai_content.append({
+                "model": ai_model,
+                "content": pred_result,
+                "source_id": pred_id
+            })
+        
+        return ai_content
+    
+    @staticmethod
+    def _is_ai_content(pred_result: Any) -> bool:
+        """Check if result is AI-generated content."""
+        if not isinstance(pred_result, str) or len(pred_result.strip()) <= 10:
+            return False
+        
+        excluded_terms = [
+            "failed", "error", "not implemented", "sent successfully", 
+            "uploaded", "generated:", "deleted", "saved", "webhook", 
+            "document parsed:"
+        ]
+        
+        return not any(term in pred_result.lower() for term in excluded_terms)
+    
+    @staticmethod
+    def _determine_ai_model(pred_id: str) -> str:
+        """Determine AI model type from predecessor ID."""
+        pred_id_lower = str(pred_id).lower()
+        
+        if "gpt" in pred_id_lower:
+            return "GPT"
+        elif "claude" in pred_id_lower:
+            return "Claude"
+        elif "gemini" in pred_id_lower:
+            return "Gemini"
+        elif "llama" in pred_id_lower:
+            return "Llama"
+        elif "mistral" in pred_id_lower:
+            return "Mistral"
+        
+        return "AI Assistant"
+
+
+class BaseNodeExecutor(ABC):
+    """Base class for node executors."""
+    
+    @abstractmethod
+    async def execute(self, context: NodeExecutionContext) -> ExecutionResult:
+        """Execute the node with given context."""
+        pass
+    
+    def _setup_api_keys(self, context: NodeExecutionContext, required_keys: List[str]) -> None:
+        """Setup API keys from the API manager."""
+        if not context.api_manager:
+            return
+        
+        # Implementation would depend on specific API key requirements
+        pass
+
+
+class AINodeExecutor(BaseNodeExecutor):
+    """Executor for AI nodes (GPT, Claude, Gemini, etc.)."""
+    
+    async def execute(self, context: NodeExecutionContext) -> ExecutionResult:
+        try:
+            await self._setup_ai_api_keys(context)
             
-            # No connected content, use original data
-            return await run_twilio_node(node.data)
-        elif node.type == "discord":
-            # Enhanced Discord integration with multiple node types
-            message = node.data.get("message", "")
-            username = node.data.get("username", "AutoFlow Bot")
-            webhook_url = node.data.get("webhook_url", "")
+            prompt = self._build_prompt(context)
+            if not prompt:
+                return ExecutionResult(False, None, f"No prompt provided for {context.node.type} node")
             
-            # Get Discord webhook from user settings
-            if api_manager:
-                webhook_url = await api_manager.get_discord_webhook()
-                if webhook_url:
-                    node.data["webhook_url"] = webhook_url
+            model = context.node.data.get("model", "meta-llama/llama-3-8b-instruct")
+            result = await run_gpt_node(prompt, model)
             
-            if not webhook_url:
-                return "Error: Discord webhook URL is required"
+            return ExecutionResult(True, result)
             
-            # Collect content from all connected nodes
-            discord_content = []
+        except Exception as e:
+            return ExecutionResult(False, None, f"Error executing {context.node.type} node: {str(e)}")
+    
+    async def _setup_ai_api_keys(self, context: NodeExecutionContext) -> None:
+        """Setup API keys for AI models."""
+        if not context.api_manager:
+            return
+        
+        node_type = context.node.type
+        model = context.node.data.get("model", "")
+        
+        if node_type == "gpt" or model.startswith("openai"):
+            api_key = await context.api_manager.get_openai_key()
+            if api_key:
+                os.environ["OPENAI_API_KEY"] = api_key
+        else:
+            api_key = await context.api_manager.get_openrouter_key()
+            if api_key:
+                os.environ["OPENROUTER_API_KEY"] = api_key
+    
+    def _build_prompt(self, context: NodeExecutionContext) -> str:
+        """Build prompt from node data and input context."""
+        prompt = context.node.data.get("prompt") or context.node.data.get("label", "")
+        
+        # Check for parsed document content
+        for pred_id, pred_result in context.input_data.items():
+            if "Document parsed:" in str(pred_result):
+                enhanced_prompt = self._enhance_prompt_with_document(prompt, pred_result)
+                if enhanced_prompt:
+                    return enhanced_prompt
+        
+        return prompt
+    
+    def _enhance_prompt_with_document(self, prompt: str, pred_result: str) -> Optional[str]:
+        """Enhance prompt with document content."""
+        try:
+            json_path = str(pred_result).split("Document parsed: ")[-1]
+            with open(json_path, 'r', encoding='utf-8') as f:
+                parsed_data = json.load(f)
             
-            for pred_id, pred_result in input_data.items():
-                if pred_result and isinstance(pred_result, str):
-                    # Handle Report generation results
-                    if "Report generated:" in pred_result:
-                        report_path = pred_result.split("Report generated: ")[-1]
-                        report_filename = os.path.basename(report_path)
-                        discord_content.append({
-                            "type": "report",
-                            "title": "📊 Report Generated",
-                            "content": f"Report created: {report_filename}\nPath: {report_path}",
-                            "color": 3066993  # Green
-                        })
-                    
-                    # Handle Document parsing results
-                    elif "Document parsed:" in pred_result:
-                        json_path = pred_result.split("Document parsed: ")[-1]
-                        try:
-                            with open(json_path, 'r', encoding='utf-8') as f:
-                                parsed_data = json.load(f)
-                            
-                            doc_name = parsed_data.get('metadata', {}).get('file_name', 'Document')
-                            doc_type = parsed_data.get('type', 'Unknown')
-                            content = parsed_data.get('content', '')
-                            
-                            # Create a formatted summary for Discord
-                            summary = content[:800] + "..." if len(content) > 800 else content;
-                            
-                            discord_content.append({
-                                "type": "document",
-                                "title": f"📄 Document: {doc_name}",
-                                "content": f"**Type:** {doc_type}\n**Summary:**\n{summary}",
-                                "color": 3447003  # Blue
-                            })
-                            
-                        except Exception as e:
-                            discord_content.append({
-                                "type": "error",
-                                "title": "⚠️ Document Error",
-                                "content": f"Error reading parsed document: {str(e)}",
-                                "color": 15158332  # Red
-                            })
-                    
-                    # Handle Image generation results
-                    elif "Image generated:" in pred_result:
-                        image_path = pred_result.split("Image generated: ")[-1]
-                        if os.path.exists(image_path):
-                            # Convert local path to URL if possible
-                            image_filename = os.path.basename(image_path)
-                            discord_content.append({
-                                "type": "image",
-                                "title": "🎨 Generated Image",
-                                "content": f"Image created: {image_filename}",
-                                "image_path": image_path,
-                                "color": 10181046  # Purple
-                            })
-                    
-                    # Handle File upload results
-                    elif "File uploaded:" in pred_result:
-                        file_url = pred_result.split("File uploaded: ")[-1]
-                        discord_content.append({
-                            "type": "file",
-                            "title": "📁 File Uploaded",
-                            "content": f"[View File]({file_url})",
-                            "color": 3066993  # Green
-                        })
-                    
-                    # Handle AI responses (GPT, Claude, etc.)
-                    elif not any(error_word in pred_result.lower() for error_word in 
-                                ["failed", "error", "not implemented", "sent successfully", "uploaded", "generated:"]) and \
-                         len(pred_result.strip()) > 10:
-                    
-                        # Determine AI model from predecessor nodes
-                        ai_model = "AI"
-                        if "gpt" in str(pred_id).lower():
-                            ai_model = "🤖 GPT"
-                        elif "claude" in str(pred_id).lower():
-                            ai_model = "🧠 Claude"
-                        elif "gemini" in str(pred_id).lower():
-                            ai_model = "💎 Gemini"
-                        elif "llama" in str(pred_id).lower():
-                            ai_model = "🦙 Llama"
-                        
-                        # Limit AI response length for Discord
-                        ai_response = pred_result[:1500] + "..." if len(pred_result) > 1500 else pred_result
-                        
-                        discord_content.append({
-                            "type": "ai",
-                            "title": f"{ai_model} Response",
-                            "content": ai_response,
-                            "color": 5814783  # Blue
-                        })
-                    
-                    # Handle Email results
-                    elif "email sent" in pred_result.lower():
-                        discord_content.append({
-                            "type": "notification",
-                            "title": "📧 Email Sent",
-                            "content": pred_result,
-                            "color": 3066993  # Green
-                        })
-                    
-                    # Handle SMS/WhatsApp results
-                    elif any(service in pred_result.lower() for service in ["sms", "whatsapp"]):
-                        discord_content.append({
-                            "type": "notification",
-                            "title": "📱 Message Sent",
-                            "content": pred_result,
-                            "color": 3066993  # Green
-                        })
+            document_content = parsed_data.get('content', '')
+            if document_content:
+                return f"{prompt}\n\nDocument content to analyze:\n{document_content}"
+        except Exception as e:
+            print(f"Error reading parsed document for AI: {str(e)}")
+        
+        return None
+
+
+class EmailNodeExecutor(BaseNodeExecutor):
+    """Executor for email nodes."""
+    
+    async def execute(self, context: NodeExecutionContext) -> ExecutionResult:
+        try:
+            email_data = self._build_email_data(context)
+            result = await run_email_node(email_data)
+            return ExecutionResult(True, result)
             
-            # Build Discord message
-            if discord_content:
-                # Create rich embeds for multiple content pieces
-                embeds = []
-                
-                # Add main message if provided
-                if message:
-                    main_embed = {
-                        "title": "🔗 AutoFlow Workflow Results",
-                        "description": message,
-                        "color": 5814783,
-                        "footer": {"text": "Sent via AutoFlow"}
-                    }
-                    embeds.append(main_embed)
-                
-                # Add content embeds (Discord allows up to 10 embeds)
-                for i, content in enumerate(discord_content[:9]):  # Leave room for main embed
-                    embed = {
-                        "title": content["title"],
-                        "description": content["content"],
-                        "color": content["color"]
-                    }
-                    
-                    # Add image if available
-                    if content.get("image_path") and os.path.exists(content["image_path"]):
-                        # For now, just mention the image file
-                        embed["description"] += f"\n\nImage file: {os.path.basename(content['image_path'])}"
-                    
-                    embeds.append(embed)
-                
-                # Send to Discord with embeds
-                updated_data = {
-                    **node.data,
-                    "message": "",  # Use embeds instead
-                    "embeds": embeds,
-                    "username": username
-                }
-                
-            else:
-                # No connected content, send original message
-                updated_data = {
-                    **node.data,
-                    "message": message or "AutoFlow workflow completed!",
-                    "username": username
-                }
+        except Exception as e:
+            return ExecutionResult(False, None, f"Error executing email node: {str(e)}")
+    
+    def _build_email_data(self, context: NodeExecutionContext) -> Dict[str, Any]:
+        """Build email data with attachments and enhanced content."""
+        email_body = context.node.data.get("body", "")
+        attachments = ContentProcessor.extract_file_attachments(context.input_data)
+        
+        # Add AI content to email body
+        ai_content = ContentProcessor.extract_ai_content(context.input_data)
+        if ai_content:
+            email_body += "\n\n--- AI Generated Content ---\n"
+            for ai_item in ai_content:
+                email_body += f"\n**{ai_item['model']} Response:**\n"
+                email_body += f"{ai_item['content']}\n"
+                email_body += f"\n{'-' * 50}\n"
             
-            return await run_discord_node(updated_data)
-        elif node.type == "google_sheets":
-            spreadsheet_id = node.data.get("spreadsheet_id")
-            range_name = node.data.get("range")
-            values = node.data.get("values", [])
-            
-            # Check if there's parsed document data to add to sheets
-            for pred_id, pred_result in input_data.items():
-                if "Document parsed:" in str(pred_result):
-                    json_path = str(pred_result).split("Document parsed: ")[-1]
-                    try:
-                        with open(json_path, 'r', encoding='utf-8') as f:
-                            parsed_data = json.load(f)
-                        
-                        # Extract data for Google Sheets
-                        if parsed_data.get('type') == 'excel':
-                            # If it's Excel data, use the first sheet
-                            sheets = parsed_data.get('sheets', {})
-                            if sheets:
-                                first_sheet = list(sheets.values())[0]
-                                # Convert to values format for Google Sheets
-                                sheet_values = [first_sheet['columns']]  # Header row
-                                for row_data in first_sheet['data']:
-                                    row = [str(row_data.get(col, '')) for col in first_sheet['columns']]
-                                    sheet_values.append(row)
-                                values = sheet_values
-                        else:
-                            # For other document types, create a simple structure
-                            metadata = parsed_data.get('metadata', {})
-                            values = [
-                                ["Document Info", "Value"],
-                                ["File Name", metadata.get('file_name', '')],
-                                ["Type", parsed_data.get('type', '')],
-                                ["Content", parsed_data.get('content', '')[:1000]]  # Limit content
-                            ]
-                        break
-                    except Exception as e:
-                        print(f"Error reading parsed document for sheets: {str(e)}")
-            
-            result = write_to_sheet(spreadsheet_id, range_name, [values] if isinstance(values[0], str) else values)
-            return result
-        elif node.type == "schedule":
-            cron_expr = node.data.get("cron", "*/1 * * * *")
-            return f"Schedule set: {cron_expr}"
-        elif node.type == "file_upload":
-            file_info = node.data
-            
-            # Check if there's a file path configured
-            file_path = file_info.get("path", "")
-            file_name = file_info.get("name", "")
-            mime_type = file_info.get("mime_type", "")
-            
-            if not file_path:
-                return "Error: No file selected for upload. Please configure the file upload node with a file."
-            
-            # Check if there's an image from a connected image generation node
-            for pred_id, pred_result in input_data.items():
-                if "Image generated:" in str(pred_result):
-                    # Extract the image file path
-                    image_path = str(pred_result).split("Image generated: ")[-1]
-                    if os.path.exists(image_path):
-                        # Update file info with the generated image
-                        file_path = image_path
-                        file_name = file_name or os.path.basename(image_path)
-                        mime_type = mime_type or "image/png"
-                        print(f"📸 Using generated image: {image_path}")
-                        break
-                elif "Report generated:" in str(pred_result):
-                    # Handle report files
-                    report_path = str(pred_result).split("Report generated: ")[-1]
-                    if os.path.exists(report_path):
-                        file_path = report_path
-                        file_name = file_name or os.path.basename(report_path)
-                        # Detect MIME type for reports
-                        if report_path.endswith('.pdf'):
-                            mime_type = "application/pdf"
-                        elif report_path.endswith('.docx'):
-                            mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        print(f"📊 Using generated report: {report_path}")
-                        break
-                elif "Document parsed:" in str(pred_result):
-                    # Handle parsed document JSON files
-                    json_path = str(pred_result).split("Document parsed: ")[-1]
-                    if os.path.exists(json_path):
-                        file_path = json_path
-                        file_name = file_name or os.path.basename(json_path)
-                        mime_type = "application/json"
-                        print(f"📄 Using parsed document JSON: {json_path}")
-                        break
-            
-            # Validate file exists before upload
-            if not file_path or not os.path.exists(file_path):
-                return f"Error: File not found at path: {file_path}. Please upload a file first or connect to a node that generates files."
-            
-            # Auto-generate file name if not provided
-            if not file_name:
-                file_name = os.path.basename(file_path)
-            
-            # Auto-detect MIME type if not provided
-            if not mime_type:
-                import mimetypes
-                mime_type, _ = mimetypes.guess_type(file_path)
-                if not mime_type:
-                    mime_type = 'application/octet-stream'
+            email_body += f"\n\nThis email contains AI-generated content from your AutoFlow workflow.\n"
+            email_body += f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        # Add document content
+        email_body = self._add_document_content(email_body, context.input_data)
+        
+        return {
+            **context.node.data,
+            "body": email_body,
+            "attachments": attachments
+        }
+    
+    def _add_document_content(self, email_body: str, input_data: Dict[str, Any]) -> str:
+        """Add parsed document content to email body."""
+        for pred_id, pred_result in input_data.items():
+            if "Document parsed:" not in str(pred_result):
+                continue
             
             try:
-                print(f"🚀 Starting file upload:")
-                print(f"   📁 File: {file_path}")
-                print(f"   📝 Name: {file_name}")
-                print(f"   🏷️ Type: {mime_type}")
+                json_path = str(pred_result).split("Document parsed: ")[-1]
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    parsed_data = json.load(f)
                 
-                result = await upload_to_drive(file_path, file_name, mime_type)
+                email_body += f"\n\n--- Parsed Document Content ---\n"
+                email_body += f"Document: {parsed_data.get('metadata', {}).get('file_name', 'Unknown')}\n"
+                email_body += f"Type: {parsed_data.get('type', 'Unknown').upper()}\n"
+                email_body += f"Pages: {parsed_data.get('total_pages', 'Unknown')}\n"
                 
-                if result.get("success"):
-                    file_size_kb = int(result.get("file_size", 0)) / 1024 if result.get("file_size") else 0
-                    success_msg = f"File uploaded successfully: {file_name}"
-                    if file_size_kb > 0:
-                        success_msg += f" ({file_size_kb:.1f} KB)"
-                    
-                    print(f"✅ {success_msg}")
-                    return f"File uploaded: {result['file_url']}"
+                content = parsed_data.get('content', '')
+                if content.strip():
+                    if len(content) > 5000:
+                        content = content[:5000] + "\n\n... (content truncated for email)"
+                    email_body += f"**Document Content:**\n{content}"
                 else:
-                    return "File upload failed: Unknown error"
-                    
+                    email_body += "**Note:** No text content could be extracted from this document."
+                
             except Exception as e:
-                error_msg = f"File upload failed: {str(e)}"
-                print(f"❌ {error_msg}")
-                return error_msg
-        elif node.type == "image_generation":
-            # Get prompt from node data
-            prompt = node.data.get("prompt", "")
+                email_body += f"\n\nError reading parsed document: {str(e)}"
+        
+        return email_body
+
+
+class DiscordNodeExecutor(BaseNodeExecutor):
+    """Executor for Discord nodes."""
+    
+    async def execute(self, context: NodeExecutionContext) -> ExecutionResult:
+        try:
+            discord_data = await self._build_discord_data(context)
+            result = await run_discord_node(discord_data)
+            return ExecutionResult(True, result)
+        except Exception as e:
+            return ExecutionResult(False, None, f"Error executing Discord node: {str(e)}")
+    
+    async def _build_discord_data(self, context: NodeExecutionContext) -> Dict[str, Any]:
+        """Build Discord message data with embeds."""
+        message = context.node.data.get("message", "")
+        username = context.node.data.get("username", "AutoFlow Bot")
+        webhook_url = context.node.data.get("webhook_url", "")
+        
+        # Get Discord webhook from user settings
+        if context.api_manager:
+            webhook_url = await context.api_manager.get_discord_webhook()
+            if webhook_url:
+                context.node.data["webhook_url"] = webhook_url
+        
+        if not webhook_url:
+            raise ValueError("Discord webhook URL is required")
+        
+        # Build embeds from connected content
+        embeds = self._build_discord_embeds(context)
+        
+        return {
+            **context.node.data,
+            "message": message,
+            "embeds": embeds,
+            "username": username,
+            "webhook_url": webhook_url
+        }
+    
+    def _build_discord_embeds(self, context: NodeExecutionContext) -> List[Dict[str, Any]]:
+        """Build Discord embeds from input data."""
+        embeds = []
+        
+        # Add main message embed if provided
+        if context.node.data.get("message"):
+            main_embed = {
+                "title": "AutoFlow Workflow Results",
+                "description": context.node.data.get("message"),
+                "color": 5814783,
+                "footer": {"text": "Sent via AutoFlow"}
+            }
+            embeds.append(main_embed)
+        
+        # Process input data for additional embeds
+        for pred_id, pred_result in context.input_data.items():
+            if not pred_result or not isinstance(pred_result, str):
+                continue
+                
+            embed = self._create_embed_from_result(pred_id, pred_result)
+            if embed:
+                embeds.append(embed)
+        
+        return embeds[:10]  # Discord limit
+    
+    def _create_embed_from_result(self, pred_id: str, pred_result: str) -> Optional[Dict[str, Any]]:
+        """Create Discord embed from node result."""
+        if "Report generated:" in pred_result:
+            report_path = pred_result.split("Report generated: ")[-1]
+            return {
+                "title": "Report Generated",
+                "content": f"Report created: {os.path.basename(report_path)}",
+                "color": 3066993
+            }
+        elif "Document parsed:" in pred_result:
+            return {
+                "title": "Document Processed",
+                "content": "Document has been parsed and analyzed",
+                "color": 3447003
+            }
+        elif "Image generated:" in pred_result:
+            return {
+                "title": "Generated Image",
+                "content": f"Image created: {os.path.basename(pred_result.split('Image generated: ')[-1])}",
+                "color": 10181046
+            }
+        elif ContentProcessor._is_ai_content(pred_result):
+            ai_model = ContentProcessor._determine_ai_model(pred_id)
+            return {
+                "title": f"{ai_model} Response",
+                "content": pred_result[:1500] + "..." if len(pred_result) > 1500 else pred_result,
+                "color": 5814783
+            }
+        
+        return None
+
+
+class FileUploadNodeExecutor(BaseNodeExecutor):
+    """Executor for file upload nodes."""
+    
+    async def execute(self, context: NodeExecutionContext) -> ExecutionResult:
+        try:
+            file_path = self._determine_file_path(context)
+            if not file_path or not os.path.exists(file_path):
+                return ExecutionResult(False, None, f"File not found at path: {file_path}")
             
-            # If no prompt in node data, check if there's text input from connected AI nodes
+            file_name = context.node.data.get("name") or os.path.basename(file_path)
+            mime_type = self._get_mime_type(file_path, context.node.data.get("mime_type"))
+            
+            result = await upload_to_drive(file_path, file_name, mime_type)
+            
+            if result.get("success"):
+                return ExecutionResult(True, f"File uploaded: {result['file_url']}")
+            else:
+                return ExecutionResult(False, None, "File upload failed: Unknown error")
+                
+        except Exception as e:
+            return ExecutionResult(False, None, f"File upload failed: {str(e)}")
+    
+    def _determine_file_path(self, context: NodeExecutionContext) -> str:
+        """Determine file path from node data or connected nodes."""
+        file_path = context.node.data.get("path", "")
+        
+        # Check for files from connected nodes
+        for pred_id, pred_result in context.input_data.items():
+            if "Image generated:" in str(pred_result):
+                image_path = str(pred_result).split("Image generated: ")[-1]
+                if os.path.exists(image_path):
+                    return image_path
+            elif "Report generated:" in str(pred_result):
+                report_path = str(pred_result).split("Report generated: ")[-1]
+                if os.path.exists(report_path):
+                    return report_path
+            elif "Document parsed:" in str(pred_result):
+                json_path = str(pred_result).split("Document parsed: ")[-1]
+                if os.path.exists(json_path):
+                    return json_path
+        
+        return file_path
+    
+    def _get_mime_type(self, file_path: str, provided_mime_type: str = None) -> str:
+        """Get MIME type for file."""
+        if provided_mime_type:
+            return provided_mime_type
+        
+        import mimetypes
+        mime_type, _ = mimetypes.guess_type(file_path)
+        return mime_type or 'application/octet-stream'
+
+
+class ImageGenerationNodeExecutor(BaseNodeExecutor):
+    """Executor for image generation nodes."""
+    
+    async def execute(self, context: NodeExecutionContext) -> ExecutionResult:
+        try:
+            prompt = self._get_prompt(context)
             if not prompt:
+                return ExecutionResult(False, None, "Image prompt is required")
+            
+            await self._setup_image_api_keys(context)
+            
+            updated_data = {**context.node.data, "prompt": prompt}
+            result = await run_image_generation_node(updated_data)
+            
+            return ExecutionResult(True, result)
+            
+        except Exception as e:
+            return ExecutionResult(False, None, f"Error generating image: {str(e)}")
+    
+    def _get_prompt(self, context: NodeExecutionContext) -> str:
+        """Get image generation prompt."""
+        prompt = context.node.data.get("prompt", "")
+        
+        # If no prompt, check AI-generated content
+        if not prompt:
+            for pred_id, pred_result in context.input_data.items():
+                if ContentProcessor._is_ai_content(pred_result):
+                    return pred_result.strip()[:500]
+        
+        return prompt
+    
+    async def _setup_image_api_keys(self, context: NodeExecutionContext) -> None:
+        """Setup API keys for image generation."""
+        if not context.api_manager:
+            return
+        
+        provider = context.node.data.get("provider", "openai")
+        if provider == "openai":
+            api_key = await context.api_manager.get_openai_key()
+            if api_key:
+                os.environ["OPENAI_API_KEY"] = api_key
+        elif provider == "stability":
+            api_key = await context.api_manager.get_stability_key()
+            if api_key:
+                os.environ["STABILITY_API_KEY"] = api_key
+
+
+class NodeExecutorFactory:
+    """Factory for creating node executors."""
+    
+    _executors = {
+        "gpt": AINodeExecutor,
+        "llama": AINodeExecutor,
+        "gemini": AINodeExecutor,
+        "claude": AINodeExecutor,
+        "mistral": AINodeExecutor,
+        "email": EmailNodeExecutor,
+        "discord": DiscordNodeExecutor,
+        "file_upload": FileUploadNodeExecutor,
+        "image_generation": ImageGenerationNodeExecutor,
+    }
+    
+    @classmethod
+    def create_executor(cls, node_type: str) -> Optional[BaseNodeExecutor]:
+        """Create appropriate executor for node type."""
+        executor_class = cls._executors.get(node_type)
+        if executor_class:
+            return executor_class()
+        return None
+
+
+class WorkflowEngine:
+    """Main workflow execution engine."""
+    
+    def __init__(self):
+        self.scheduler = WorkflowScheduler()
+    
+    async def run_workflow(self, nodes: List[Node], edges: List[Edge], user_id: Optional[str] = None) -> Dict[str, Any]:
+        """Run a complete workflow."""
+        try:
+            # Build execution graph
+            graph = self._build_graph(nodes, edges)
+            
+            # Handle webhook auto-registration
+            self._register_webhook_workflows(nodes, edges)
+            
+            # Get execution order
+            execution_order = self._get_execution_order(graph)
+            if not execution_order:
+                return {"error": "Cycle detected in workflow"}
+            
+            # Setup API manager
+            api_manager = await get_user_api_manager(user_id) if user_id else None
+            
+            # Execute nodes
+            results = await self._execute_nodes(graph, execution_order, api_manager, user_id)
+            
+            return results
+            
+        except Exception as e:
+            return {"error": f"Workflow execution failed: {str(e)}"}
+    
+    def _build_graph(self, nodes: List[Node], edges: List[Edge]) -> nx.DiGraph:
+        """Build NetworkX graph from nodes and edges."""
+        graph = nx.DiGraph()
+        
+        for node in nodes:
+            graph.add_node(node.id, data=node)
+        
+        for edge in edges:
+            graph.add_edge(edge.source, edge.target)
+            print(f"Added edge: {edge.source} -> {edge.target}")
+        
+        return graph
+    
+    def _register_webhook_workflows(self, nodes: List[Node], edges: List[Edge]) -> None:
+        """Register webhook workflows for auto-triggering."""
+        from ..main import stored_workflows
+        
+        webhook_nodes = [node for node in nodes if node.type == "webhook"]
+        if webhook_nodes:
+            for webhook_node in webhook_nodes:
+                workflow_id = webhook_node.id
+                workflow = Workflow(nodes=nodes, edges=edges)
+                stored_workflows[workflow_id] = workflow
+                print(f"Auto-registered webhook workflow: {workflow_id}")
+    
+    def _get_execution_order(self, graph: nx.DiGraph) -> Optional[List[str]]:
+        """Get topological execution order."""
+        try:
+            execution_order = list(nx.topological_sort(graph))
+            print(f"Execution order: {execution_order}")
+            
+            for node_id in execution_order:
+                node_type = graph.nodes[node_id]["data"].type
+                print(f"Node {node_id} ({node_type}) will execute")
+            
+            return execution_order
+            
+        except nx.NetworkXUnfeasible:
+            print("Cycle detected - printing graph structure:")
+            print(f"Nodes: {list(graph.nodes())}")
+            print(f"Edges: {list(graph.edges())}")
+            return None
+    
+    async def _execute_nodes(self, graph: nx.DiGraph, execution_order: List[str], 
+                           api_manager: Any, user_id: Optional[str]) -> Dict[str, Any]:
+        """Execute nodes in topological order."""
+        results = {}
+        
+        for node_id in execution_order:
+            node: Node = graph.nodes[node_id]["data"]
+            input_data = {
+                pred: results.get(pred)
+                for pred in graph.predecessors(node_id)
+            }
+            
+            print(f"Executing node {node_id} ({node.type})")
+            print(f"Input data for {node_id}: {input_data}")
+            
+            # Execute node
+            context = NodeExecutionContext(node, input_data, api_manager, user_id)
+            result = await self._execute_single_node(context)
+            
+            results[node_id] = result
+            print(f"Node {node_id} result: {result}")
+        
+        return results
+    
+    async def _execute_single_node(self, context: NodeExecutionContext) -> str:
+        """Execute a single node."""
+        print(f"Executing {context.node.type} node: {context.node.id}")
+        
+        # Try to use specific executor
+        executor = NodeExecutorFactory.create_executor(context.node.type)
+        if executor:
+            result = await executor.execute(context)
+            if result.success:
+                return result.data
+            else:
+                return result.error_message or f"Error executing {context.node.type} node"
+        
+        # Fallback to legacy execution for non-refactored nodes
+        return await self._execute_legacy_node(context)
+    
+    async def _execute_legacy_node(self, context: NodeExecutionContext) -> str:
+        """Execute node using legacy method (for nodes not yet refactored)."""
+        node = context.node
+        input_data = context.input_data or {}
+        api_manager = context.api_manager
+        
+        try:
+            if node.type == "webhook":
+                print(f"Processing webhook node with data: {node.data}")
+                result = await run_webhook_node(node.data)
+                print(f"Webhook node completed: {result}")
+                return result
+                
+            elif node.type in ["sms", "whatsapp", "twilio"]:
+                return await self._execute_messaging_node(context)
+                
+            elif node.type == "google_sheets":
+                spreadsheet_id = node.data.get("spreadsheet_id")
+                range_name = node.data.get("range")
+                values = node.data.get("values", [])
+                
+                # Check for parsed document data
                 for pred_id, pred_result in input_data.items():
-                    if isinstance(pred_result, str) and len(pred_result.strip()) > 0:
-                        # Filter out error messages and system responses
-                        if not any(error_word in pred_result.lower() for error_word in 
-                                  ["failed", "error", "not implemented", "sent successfully", "uploaded"]):
-                            # Use AI-generated text as the image prompt
-                            prompt = pred_result.strip()[:500]  # Limit prompt length
-                            print(f"Using AI-generated prompt: {prompt[:100]}...")
+                    if "Document parsed:" in str(pred_result):
+                        values = self._extract_sheet_values_from_document(pred_result)
+                        if values:
                             break
+                
+                result = write_to_sheet(spreadsheet_id, range_name, [values] if isinstance(values[0], str) else values)
+                return result
+                
+            elif node.type == "schedule":
+                cron_expr = node.data.get("cron", "*/1 * * * *")
+                return f"Schedule set: {cron_expr}"
+                
+            elif node.type == "document_parser":
+                file_path = self._get_document_parser_file_path(node, input_data)
+                updated_data = {**node.data, "file_path": file_path}
+                return await self._execute_document_parser(updated_data)
+                
+            elif node.type == "report_generator":
+                return await self._execute_report_generator(node, input_data)
+                
+            elif node.type == "social_media":
+                return await self._execute_social_media_node(node, input_data, api_manager)
             
-            # Still no prompt found
-            if not prompt:
-                return "Error: Image prompt is required"
+            return f"{node.type} node not implemented"
             
-            # Update node data with the prompt
-            updated_node_data = {**node.data, "prompt": prompt}
+        except Exception as e:
+            return f"Error executing {node.type} node {node.id}: {str(e)}"
+    
+    def _extract_sheet_values_from_document(self, pred_result: str) -> Optional[List[List[str]]]:
+        """Extract sheet values from parsed document."""
+        try:
+            json_path = pred_result.split("Document parsed: ")[-1]
+            with open(json_path, 'r', encoding='utf-8') as f:
+                parsed_data = json.load(f)
             
-            # Get API keys based on provider
-            if api_manager:
-                provider = node.data.get("provider", "openai")
-                if provider == "openai":
-                    api_key = await api_manager.get_openai_key()
-                    if api_key:
-                        os.environ["OPENAI_API_KEY"] = api_key
-                elif provider == "stability":
-                    api_key = await api_manager.get_stability_key()
-                    if api_key:
-                        os.environ["STABILITY_API_KEY"] = api_key
+            if parsed_data.get('type') == 'excel':
+                sheets = parsed_data.get('sheets', {})
+                if sheets:
+                    first_sheet = list(sheets.values())[0]
+                    sheet_values = [first_sheet['columns']]
+                    for row_data in first_sheet['data']:
+                        row = [str(row_data.get(col, '')) for col in first_sheet['columns']]
+                        sheet_values.append(row)
+                    return sheet_values
+            else:
+                metadata = parsed_data.get('metadata', {})
+                return [
+                    ["Document Info", "Value"],
+                    ["File Name", metadata.get('file_name', '')],
+                    ["Type", parsed_data.get('type', '')],
+                    ["Content", parsed_data.get('content', '')[:1000]]
+                ]
+        except Exception as e:
+            print(f"Error reading parsed document for sheets: {str(e)}")
+        return None
+    
+    def _get_document_parser_file_path(self, node: Node, input_data: Dict[str, Any]) -> str:
+        """Get file path for document parser with enhanced download capability."""
+        file_path = node.data.get("file_path", "")
+        
+        for pred_id, pred_result in input_data.items():
+            if "File uploaded:" in str(pred_result):
+                drive_url = str(pred_result).split("File uploaded: ")[-1].strip()
+                print(f"📥 Attempting to download file for parsing: {drive_url}")
+                
+                # Since this is a sync method called from async context,
+                # we need to handle the async download differently
+                return drive_url  # Return the URL directly, handle download in async method
+        
+        return file_path
+
+    async def _execute_document_parser(self, node_data: Dict[str, Any]) -> str:
+        """Execute document parser with enhanced file handling and cleanup."""
+        print(f"🔧 Attempting to import document parser...")
+        
+        # Get the file path (potentially a URL that needs downloading)
+        file_path_or_url = node_data.get("file_path", "")
+        
+        # Check if we need to download the file first
+        if file_path_or_url.startswith("http"):
+            print(f"📥 Need to download file from: {file_path_or_url}")
+            try:
+                # Download the file asynchronously
+                local_path = await self._download_file_for_parsing(file_path_or_url)
+                if local_path:
+                    print(f"✅ Successfully downloaded file to: {local_path}")
+                    # Update node data with local path
+                    node_data = {**node_data, "file_path": local_path}
+                    file_path = local_path
+                    is_temp_file = local_path.startswith("temp_downloads")
+                else:
+                    return "Error: Failed to download file for parsing"
+            except Exception as e:
+                return f"Error: Failed to download file: {str(e)}"
+        else:
+            file_path = file_path_or_url
+            is_temp_file = file_path.startswith("temp_downloads") if file_path else False
+        
+        # Validate that we have a file path
+        if not file_path:
+            return "Error: No file path provided"
+        
+        if not os.path.exists(file_path):
+            return f"Error: File not found at path: {file_path}"
+        
+        try:
+            # Try multiple import methods
+            methods = [
+                lambda: self._import_document_parser_method1(),
+                lambda: self._import_document_parser_method2(),
+                lambda: self._import_document_parser_method3(),
+                lambda: self._import_document_parser_method4(),
+            ]
             
-            return await run_image_generation_node(updated_node_data)
-        elif node.type == "document_parser":
-            # Check if there's a file from connected file upload nodes
-            file_path = node.data.get("file_path", "")
-            
-            # Use file from connected upload node if available
-            for pred_id, pred_result in input_data.items():
-                if "File uploaded:" in str(pred_result):
-                    # For Google Drive URLs, we need to download the file first
-                    drive_url = str(pred_result).split("File uploaded: ")[-1]
-                    print(f"Document parser received Google Drive URL: {drive_url}")
+            for i, method in enumerate(methods, 1):
+                try:
+                    run_document_parser_node = method()
+                    print(f"✅ Method {i}: Successfully imported document parser")
                     
-                    # Extract file ID from Google Drive URL
-                    if "drive.google.com" in drive_url and "/d/" in drive_url:
-                        try:
-                            file_id = drive_url.split("/d/")[1].split("/")[0]
-                            
-                            # Download file from Google Drive
-                            from services.file_upload import download_from_drive
-                            downloaded_path = await download_from_drive(file_id)
-                            if downloaded_path:
-                                file_path = downloaded_path
-                                print(f"Downloaded file from Drive to: {file_path}")
-                            else:
-                                return "Error: Failed to download file from Google Drive"
-                        except Exception as e:
-                            return f"Error: Failed to process Google Drive URL: {str(e)}"
-                    else:
-                        # If it's a local file path
-                        file_path = drive_url
-                    break
+                    # Execute document parsing
+                    result = await run_document_parser_node(node_data)
+                    
+                    # Clean up temporary file if needed
+                    if is_temp_file:
+                        await self._cleanup_temp_files(file_path)
+                    
+                    return result
+                    
+                except Exception as e:
+                    print(f"❌ Method {i} failed: {str(e)}")
+                    continue
             
-            updated_node_data = {**node.data, "file_path": file_path}
-            
-            # Try multiple import methods to fix the import issue
-            print(f"🔧 Attempting to import document parser...")
-            
-            # Method 1: Direct import from services
-            try:
-                from services.document_parser import run_document_parser_node
-                print(f"✅ Method 1: Successfully imported document parser")
-                result = await run_document_parser_node(updated_node_data)
-                return result
-            except Exception as e1:
-                print(f"❌ Method 1 failed: {str(e1)}")
-            
-            # Method 2: Absolute import
-            try:
-                import services.document_parser as doc_parser
-                print(f"✅ Method 2: Successfully imported document parser module")
-                result = await doc_parser.run_document_parser_node(updated_node_data)
-                return result
-            except Exception as e2:
-                print(f"❌ Method 2 failed: {str(e2)}")
-            
-            # Method 3: Dynamic import
-            try:
-                import importlib
-                doc_parser_module = importlib.import_module('services.document_parser')
-                run_document_parser_node = getattr(doc_parser_module, 'run_document_parser_node')
-                print(f"✅ Method 3: Successfully imported via importlib")
-                result = await run_document_parser_node(updated_node_data)
-                return result
-            except Exception as e3:
-                print(f"❌ Method 3 failed: {str(e3)}")
-            
-            # Method 4: Add to path and import
-            try:
-                
-                services_path = os.path.join(os.path.dirname(__file__), '..', '..', 'services')
-                abs_services_path = os.path.abspath(services_path)
-                
-                if abs_services_path not in sys.path:
-                    sys.path.insert(0, abs_services_path)
-                    print(f"📁 Added to path: {abs_services_path}")
-                
-                from services import run_document_parser_node
-                print(f"✅ Method 4: Successfully imported after path addition")
-                result = await run_document_parser_node(updated_node_data)
-                return result
-            except Exception as e4:
-                print(f"❌ Method 4 failed: {str(e4)}")
-            
-            # If all methods fail, return error with diagnostic info
+            # If all methods fail
             error_msg = (
                 f"Error: Could not import document parser service. "
-                f"Tried 4 different methods. "
-                f"Current working directory: {os.getcwd()}. "
-                f"Services path exists: {os.path.exists(services_path)}. "
-                f"Document parser file exists: {os.path.exists(os.path.join(services_path, 'document_parser.py'))}"
+                f"Tried {len(methods)} different methods. "
+                f"File path: {file_path}"
             )
             print(f"❌ {error_msg}")
+            
+            # Clean up temporary file even on failure
+            if is_temp_file:
+                await self._cleanup_temp_files(file_path)
+            
             return error_msg
-        elif node.type == "report_generator":
-            # Enhanced report generation with workflow data integration
-            title = node.data.get("title", "AutoFlow Report")
-            content = node.data.get("content", "")
-            format_type = node.data.get("format", "pdf")
             
-            # Collect content from connected nodes for report generation
-            report_content = content if content else "# AutoFlow Workflow Report\n\n"
-            report_data = {}
+        except Exception as e:
+            # Clean up temporary file on any error
+            if is_temp_file:
+                await self._cleanup_temp_files(file_path)
             
-            for pred_id, pred_result in input_data.items():
-                if pred_result and isinstance(pred_result, str):
-                    # Handle File Upload results - download and process uploaded files
-                    if "File uploaded:" in pred_result:
-                        file_url = pred_result.split("File uploaded: ")[-1]
-                        
-                        # Extract file ID from Google Drive URL and download for report processing
-                        if "drive.google.com" in file_url and "/d/" in file_url:
-                            try:
-                                file_id = file_url.split("/d/")[1].split("/")[0]
-                                
-                                # Download file from Google Drive for report processing
-                                from services.file_upload import download_from_drive
-                                downloaded_path = await download_from_drive(file_id)
-                                
-                                if downloaded_path:
-                                    # Parse the downloaded file to include in report
-                                    from services.document_parser import run_document_parser_node
-                                    parse_result = await run_document_parser_node({"file_path": downloaded_path})
-                                    
-                                    if "Document parsed:" in parse_result:
-                                        json_path = parse_result.split("Document parsed: ")[-1]
-                                        try:
-                                            with open(json_path, 'r', encoding='utf-8') as f:
-                                                parsed_data = json.load(f)
-                                            
-                                            file_name = parsed_data.get('metadata', {}).get('file_name', 'Uploaded File')
-                                            file_type = parsed_data.get('type', 'Unknown')
-                                            file_content = parsed_data.get('content', '')
-                                            
-                                            report_content += f"## Uploaded File Analysis: {file_name}\n\n"
-                                            report_content += f"**File Type:** {file_type}\n"
-                                            report_content += f"**Source:** {file_url}\n\n"
-                                            report_content += f"**Content:**\n{file_content[:2000]}...\n\n"
-                                            
-                                            report_data[f"uploaded_file_{file_name}"] = {
-                                                "type": file_type,
-                                                "url": file_url,
-                                                "size": parsed_data.get('metadata', {}).get('file_size', 'Unknown')
-                                            }
-                                            
-                                            print(f"📄 Added uploaded file analysis to report: {file_name}")
-                                            
-                                        except Exception as e:
-                                            report_content += f"## Uploaded File Error\n\nError processing uploaded file: {str(e)}\n\n"
-                                    else:
-                                        # File uploaded but couldn't be parsed - still mention it
-                                        report_content += f"## Uploaded File\n\n"
-                                        report_content += f"**File URL:** {file_url}\n"
-                                        report_content += f"Note: File uploaded successfully but content could not be analyzed.\n\n"
-                                        
-                                        report_data["uploaded_file"] = file_url
-                                else:
-                                    report_content += f"## File Upload Error\n\nFailed to download file from: {file_url}\n\n"
-                            except Exception as e:
-                                report_content += f"## File Processing Error\n\nError processing uploaded file: {str(e)}\n\n"
-                        else:
-                            # Local file path or other URL format
-                            report_content += f"## Uploaded File\n\n"
-                            report_content += f"**File URL:** {file_url}\n\n"
-                            report_data["uploaded_file"] = file_url
-                    
-                    # Handle Document parsing results (direct document upload to document parser)
-                    elif "Document parsed:" in pred_result:
-                        json_path = pred_result.split("Document parsed: ")[-1]
-                        try:
-                            with open(json_path, 'r', encoding='utf-8') as f:
-                                parsed_data = json.load(f)
-                        
-                            doc_name = parsed_data.get('metadata', {}).get('file_name', 'Document')
-                            doc_type = parsed_data.get('type', 'Unknown')
-                            doc_content = parsed_data.get('content', '')
-                            
-                            report_content += f"## Document Analysis: {doc_name}\n\n"
-                            report_content += f"**Type:** {doc_type}\n\n"
-                            report_content += f"**Content Summary:**\n{doc_content[:1500]}...\n\n"
-                            
-                            report_data[f"document_{doc_name}"] = {
-                                "type": doc_type,
-                                "size": parsed_data.get('metadata', {}).get('file_size', 'Unknown')
-                            }
-                            
-                        except Exception as e:
-                            report_content += f"## Document Analysis Error\n\nError reading document: {str(e)}\n\n"
-                    
-                    # Handle AI responses
-                    elif not any(error_word in pred_result.lower() for error_word in 
-                                ["failed", "error", "not implemented", "sent successfully", "uploaded", "generated:"]) and \
-                         len(pred_result.strip()) > 10:
-                        
-                        # Determine AI model
-                        ai_model = "AI Analysis"
-                        if "gpt" in str(pred_id).lower():
-                            ai_model = "GPT Analysis"
-                        elif "claude" in str(pred_id).lower():
-                            ai_model = "Claude Analysis"
-                        elif "gemini" in str(pred_id).lower():
-                            ai_model = "Gemini Analysis"
-                        
-                        report_content += f"## {ai_model}\n\n"
-                        report_content += f"{pred_result}\n\n"
-                        
-                        report_data[f"ai_response_{pred_id}"] = pred_result[:100] + "..." if len(pred_result) > 100 else pred_result
-                    
-                    # Handle Image generation results
-                    elif "Image generated:" in pred_result:
-                        image_path = pred_result.split("Image generated: ")[-1]
-                        image_filename = os.path.basename(image_path)
-                        
-                        report_content += f"## Generated Image\n\n"
-                        report_content += f"Image created: {image_filename}\n"
-                        report_content += f"Path: {image_path}\n\n"
-                        
-                        report_data["generated_image"] = image_filename
-            
-            # Add workflow metadata
-            report_data["workflow_execution_time"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            report_data["total_nodes_processed"] = len(input_data)
-            
-            # Update node data with enhanced content
-            updated_data = {
-                **node.data,
-                "title": title,
-                "content": report_content,
-                "format": format_type,
-                "data": report_data
-            }
-            
-            return await run_report_generator_node(updated_data)
-        elif node.type == "social_media":
-            # Enhanced social media posting with content from connected nodes
-            platform = node.data.get("platform", "twitter")
-            content = node.data.get("content", "")
-            image_path = node.data.get("image_path", "")
-            webhook_url = node.data.get("webhook_url", "")
-            
-            # Get social media credentials
-            if api_manager:
-                platform = node.data.get("platform", "twitter")
+            error_msg = f"Document parsing failed: {str(e)}"
+            print(f"❌ {error_msg}")
+            return error_msg
+    
+    def _import_document_parser_method1(self):
+        from services.document_parser import run_document_parser_node
+        return run_document_parser_node
+    
+    def _import_document_parser_method2(self):
+        import services.document_parser as doc_parser
+        return doc_parser.run_document_parser_node
+    
+    def _import_document_parser_method3(self):
+        import importlib
+        doc_parser_module = importlib.import_module('services.document_parser')
+        return getattr(doc_parser_module, 'run_document_parser_node')
+    
+    def _import_document_parser_method4(self):
+        services_path = os.path.join(os.path.dirname(__file__), '..', '..', 'services')
+        abs_services_path = os.path.abspath(services_path)
+        
+        if abs_services_path not in sys.path:
+            sys.path.insert(0, abs_services_path)
+            print(f"Added to path: {abs_services_path}")
+        
+        from services import run_document_parser_node
+        return run_document_parser_node
+    
+    async def _execute_report_generator(self, node: Node, input_data: Dict[str, Any]) -> str:
+        """Execute report generator with enhanced content from all connected nodes."""
+        title = node.data.get("title", "AutoFlow Report")
+        content = node.data.get("content", "")
+        format_type = node.data.get("format", "pdf")
+        
+        report_content = content if content else "# AutoFlow Workflow Report\n\n"
+        report_data = {}
+        
+        # Enhanced processing of input data for report content
+        for pred_id, pred_result in input_data.items():
+            if pred_result and isinstance(pred_result, str):
+                print(f"📊 Processing input from node {pred_id}: {pred_result[:100]}...")
                 
-                if platform == "twitter":
-                    twitter_creds = await api_manager.get_twitter_credentials()
-                    if twitter_creds["api_key"]:
-                        os.environ["TWITTER_API_KEY"] = twitter_creds["api_key"]
-                    if twitter_creds["api_secret"]:
-                        os.environ["TWITTER_API_SECRET"] = twitter_creds["api_secret"]
-                    if twitter_creds["access_token"]:
-                        os.environ["TWITTER_ACCESS_TOKEN"] = twitter_creds["access_token"]
-                    if twitter_creds["access_secret"]:
-                        os.environ["TWITTER_ACCESS_TOKEN_SECRET"] = twitter_creds["access_secret"]
+                if "File uploaded:" in pred_result:
+                    report_content, report_data = await self._add_file_upload_content_to_report(
+                        report_content, report_data, pred_result, pred_id)
+                elif "Document parsed:" in pred_result:
+                    report_content, report_data = self._add_document_content_to_report(
+                        report_content, report_data, pred_result)
+                elif ContentProcessor._is_ai_content(pred_result):
+                    ai_model = ContentProcessor._determine_ai_model(pred_id)
+                    report_content += f"## {ai_model} Analysis\n\n{pred_result}\n\n"
+                    report_data[f"ai_response_{pred_id}"] = pred_result[:200] + "..." if len(pred_result) > 200 else pred_result
+                elif "Image generated:" in pred_result:
+                    image_path = pred_result.split("Image generated: ")[-1]
+                    image_filename = os.path.basename(image_path)
+                    report_content += f"## Generated Image\n\nImage created: {image_filename}\n\n"
+                    report_data["generated_image"] = image_filename
+                elif "Email sent successfully" in pred_result:
+                    report_content += f"## Email Notification\n\n{pred_result}\n\n"
+                    report_data[f"email_result_{pred_id}"] = pred_result
+                elif "Webhook" in pred_result and "executed successfully" in pred_result:
+                    report_content += f"## Webhook Execution\n\n{pred_result}\n\n"
+                    report_data[f"webhook_result_{pred_id}"] = pred_result
+                else:
+                    # Generic result processing
+                    report_content += f"## Node {pred_id} Result\n\n{pred_result}\n\n"
+                    report_data[f"node_result_{pred_id}"] = pred_result[:100] + "..." if len(pred_result) > 100 else pred_result
+        
+        # Add workflow metadata
+        report_data.update({
+            "workflow_execution_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "total_nodes_processed": len(input_data),
+            "report_generated_by": "AutoFlow Report Generator",
+            "input_node_count": len([pred_id for pred_id, result in input_data.items() if result])
+        })
+        
+        updated_data = {
+            **node.data,
+            "title": title,
+            "content": report_content,
+            "format": format_type,
+            "data": report_data
+        }
+        
+        print(f"📊 Generated report with {len(report_content)} characters of content")
+        print(f"📈 Report data keys: {list(report_data.keys())}")
+        
+        return await run_report_generator_node(updated_data)
+
+    async def _add_file_upload_content_to_report(self, content: str, data: Dict[str, Any], pred_result: str, pred_id: str) -> tuple:
+        """Enhanced file upload content processing for reports."""
+        try:
+            file_url = pred_result.split("File uploaded: ")[-1].strip()
+            print(f"📁 Processing uploaded file for report: {file_url}")
+            
+            # Extract file ID from Google Drive URL and get file info
+            if "drive.google.com" in file_url and "/d/" in file_url:
+                file_id = file_url.split("/d/")[1].split("/")[0]
+                print(f"📋 Extracted file ID: {file_id}")
                 
-                elif platform == "linkedin":
-                    linkedin_token = await api_manager.get_linkedin_token()
-                    if linkedin_token:
-                        os.environ["LINKEDIN_ACCESS_TOKEN"] = linkedin_token
-                
-                elif platform == "instagram":
-                    instagram_token = await api_manager.get_instagram_token()
-                    if instagram_token:
-                        os.environ["INSTAGRAM_ACCESS_TOKEN"] = instagram_token
-            
-            # Collect content from connected nodes
-            enhanced_content = content
-            final_image_path = image_path
-            
-            for pred_id, pred_result in input_data.items():
-                if pred_result and isinstance(pred_result, str):
-                    # Handle AI-generated content
-                    if not any(error_word in pred_result.lower() for error_word in 
-                              ["failed", "error", "not implemented", "sent successfully", "uploaded", "generated:"]) and \
-                       len(pred_result.strip()) > 10:
-                        
-                        # Use AI response as social media content
-                        if not enhanced_content or enhanced_content == "":
-                            enhanced_content = pred_result[:280]  # Limit for Twitter
-                        else:
-                            # Append AI content to existing content
-                            enhanced_content += f"\n\n{pred_result[:200]}"
-                        
-                        print(f"📝 Added AI content to social media post")
+                # Try to get file metadata
+                try:
+                    from services.file_upload import get_drive_file_info
+                    file_info_result = await get_drive_file_info(file_id)
                     
-                    # Handle Image generation results
-                    elif "Image generated:" in pred_result:
-                        image_path_from_ai = pred_result.split("Image generated: ")[-1]
-                        if os.path.exists(image_path_from_ai):
-                            final_image_path = image_path_from_ai
-                            print(f"🎨 Using AI-generated image for social media post")
-                    
-                    # Handle Document parsing results for content
-                    elif "Document parsed:" in pred_result:
-                        json_path = pred_result.split("Document parsed: ")[-1]
-                        try:
-                            with open(json_path, 'r', encoding='utf-8') as f:
-                                parsed_data = json.load(f)
+                    if file_info_result.get("success"):
+                        file_info = file_info_result["file_info"]
                         
-                            doc_content = parsed_data.get('content', '')
-                            if doc_content and not enhanced_content:
-                                # Use document summary as content
-                                summary = doc_content[:250] + "..." if len(doc_content) > 250 else doc_content
-                                enhanced_content = f"📄 Document Summary: {summary}"
-                                print(f"📄 Using document content for social media post")
-                        except Exception as e:
-                            print(f"Error reading parsed document for social media: {str(e)}")
+                        content += f"## Uploaded File Analysis\n\n"
+                        content += f"**File Name:** {file_info.get('name', 'Unknown')}\n\n"
+                        content += f"**File Type:** {file_info.get('mimeType', 'Unknown')}\n\n"
+                        content += f"**File Size:** {self._format_file_size(file_info.get('size'))}\n\n"
+                        content += f"**Upload Date:** {file_info.get('createdTime', 'Unknown')}\n\n"
+                        content += f"**File URL:** [View File]({file_url})\n\n"
+                        
+                        if file_info.get('isGoogleWorkspace'):
+                            content += f"**Type:** Google Workspace Document\n\n"
+                        
+                        # Store detailed file info in report data
+                        data[f"uploaded_file_{pred_id}"] = {
+                            "name": file_info.get('name'),
+                            "type": file_info.get('mimeType'),
+                            "size": file_info.get('size'),
+                            "url": file_url,
+                            "created": file_info.get('createdTime'),
+                            "is_workspace": file_info.get('isGoogleWorkspace', False)
+                        }
+                        
+                        # Try to download and analyze the file content if it's a document
+                        if self._is_analyzable_file(file_info.get('mimeType', '')):
+                            content += await self._analyze_uploaded_file_content(file_id, file_info)
+                            
+                    else:
+                        # Fallback if we can't get file info
+                        content += f"## Uploaded File\n\n"
+                        content += f"**File URL:** [View File]({file_url})\n\n"
+                        content += f"**Note:** Could not retrieve detailed file information.\n\n"
+                        
+                        data[f"uploaded_file_{pred_id}"] = {
+                            "url": file_url,
+                            "status": "info_unavailable"
+                        }
+                        
+                except Exception as file_error:
+                    print(f"⚠️ Could not get file info: {str(file_error)}")
+                    content += f"## Uploaded File\n\n"
+                    content += f"**File URL:** [View File]({file_url})\n\n"
+                    content += f"**Error:** Could not retrieve file details - {str(file_error)}\n\n"
+                    
+                    data[f"uploaded_file_{pred_id}"] = {
+                        "url": file_url,
+                        "error": str(file_error)
+                    }
+            else:
+                # Handle non-Google Drive URLs
+                content += f"## Uploaded File\n\n"
+                content += f"**File URL:** {file_url}\n\n"
+                data[f"uploaded_file_{pred_id}"] = {"url": file_url}
             
-            # Update node data with enhanced content
-            updated_data = {
-                **node.data,
-                "platform": platform,
-                "content": enhanced_content,
-                "image_path": final_image_path,
-                "webhook_url": webhook_url
-            }
-            
-            return await run_social_media_node(updated_data)
+        except Exception as e:
+            print(f"❌ Error processing uploaded file: {str(e)}")
+            content += f"## File Upload Error\n\nError processing uploaded file: {str(e)}\n\n"
+            data[f"upload_error_{pred_id}"] = str(e)
+        
+        return content, data
+
+    def _format_file_size(self, size_bytes):
+        """Format file size in human readable format."""
+        if not size_bytes or not str(size_bytes).isdigit():
+            return "Unknown"
+        
+        size_bytes = int(size_bytes)
+        if size_bytes < 1024:
+            return f"{size_bytes} bytes"
+        elif size_bytes < 1024 * 1024:
+            return f"{size_bytes / 1024:.1f} KB"
+        elif size_bytes < 1024 * 1024 * 1024:
+            return f"{size_bytes / (1024 * 1024):.1f} MB"
         else:
-            return f"{node.type} node not implemented"
-    except Exception as e:
-        error_msg = f"Error executing {node.type} node {node.id}: {str(e)}"
-        print(f"❌ {error_msg}")
-        return error_msg
+            return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
+
+    def _is_analyzable_file(self, mime_type: str) -> bool:
+        """Check if file type can be analyzed for content."""
+        analyzable_types = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'text/plain',
+            'text/csv',
+            'application/json',
+            'application/vnd.google-apps.document',
+            'application/vnd.google-apps.spreadsheet'
+        ]
+        return any(mime_type.startswith(t) for t in analyzable_types)
+
+    async def _analyze_uploaded_file_content(self, file_id: str, file_info: dict) -> str:
+        """Download and analyze file content for the report with enhanced resume analysis."""
+        try:
+            print(f"🔍 Attempting to analyze file content for report...")
+            
+            # Download the file
+            local_path = await download_from_drive(file_id)
+            if not local_path or not os.path.exists(local_path):
+                return "**Content Analysis:** Could not download file for analysis.\n\n"
+            
+            # Parse the document
+            try:
+                from services.document_parser import run_document_parser_node
+                parse_result = await run_document_parser_node({"file_path": local_path})
+                
+                if "Document parsed:" in parse_result:
+                    json_path = parse_result.split("Document parsed: ")[-1]
+                    
+                    if os.path.exists(json_path):
+                        with open(json_path, 'r', encoding='utf-8') as f:
+                            parsed_data = json.load(f)
+                        
+                        content_analysis = "### Content Analysis\n\n"
+                        
+                        # Add document metadata
+                        metadata = parsed_data.get('metadata', {})
+                        document_content = parsed_data.get('content', '')
+                        
+                        # Enhanced analysis for resume files
+                        if self._is_resume_file(file_info.get('name', ''), document_content):
+                            content_analysis += await self._analyze_resume_content(document_content, metadata)
+                        else:
+                            # General document analysis
+                            content_analysis += self._analyze_general_document(document_content, metadata, parsed_data)
+                        
+                        # Cleanup temp files
+                        try:
+                            if local_path.startswith("downloads"):
+                                os.remove(local_path)
+                            if os.path.exists(json_path):
+                                os.remove(json_path)
+                        except:
+                            pass
+                        
+                        return content_analysis
+                    
+                else:
+                    return f"**Content Analysis:** {parse_result}\n\n"
+                    
+            except Exception as parse_error:
+                print(f"⚠️ Document parsing failed: {str(parse_error)}")
+                return f"**Content Analysis:** Could not parse document - {str(parse_error)}\n\n"
+                
+        except Exception as e:
+            print(f"⚠️ File analysis error: {str(e)}")
+            return f"**Content Analysis:** Analysis failed - {str(e)}\n\n"
+
+    def _is_resume_file(self, filename: str, content: str) -> bool:
+        """Check if the file appears to be a resume/CV."""
+        filename_lower = filename.lower()
+        content_lower = content.lower()
+        
+        # Check filename indicators
+        resume_keywords_filename = ['resume', 'cv', 'curriculum', 'vitae']
+        filename_indicators = any(keyword in filename_lower for keyword in resume_keywords_filename)
+        
+        # Check content indicators
+        resume_keywords_content = [
+            'experience', 'education', 'skills', 'employment', 'work history',
+            'qualifications', 'achievements', 'objective', 'summary', 'career',
+            'projects', 'certifications', 'languages', 'references'
+        ]
+        content_indicators = sum(1 for keyword in resume_keywords_content if keyword in content_lower)
+        
+        return filename_indicators or content_indicators >= 3
+
+    async def _analyze_resume_content(self, content: str, metadata: dict) -> str:
+        """Analyze resume content and extract key information."""
+        analysis = "**Document Type:** Resume/CV\n\n"
+        
+        if metadata:
+            if 'character_count' in metadata:
+                analysis += f"**Character Count:** {metadata['character_count']:,}\n"
+            if 'word_count' in metadata:
+                analysis += f"**Word Count:** {metadata['word_count']:,}\n"
+            analysis += "\n"
+        
+        # Extract key sections
+        sections = self._extract_resume_sections(content)
+        
+        if sections:
+            analysis += "**Resume Structure Analysis:**\n\n"
+            
+            for section_name, section_content in sections.items():
+                if section_content:
+                    analysis += f"- **{section_name}:** {len(section_content)} characters\n"
+            
+            analysis += "\n"
+        
+        # Extract key information
+        key_info = self._extract_key_resume_info(content)
+        
+        if key_info:
+            analysis += "**Key Information Extracted:**\n\n"
+            
+            if key_info.get('contact_info'):
+                analysis += f"- **Contact Information:** Found {len(key_info['contact_info'])} contact items\n"
+            
+            if key_info.get('skills'):
+                analysis += f"- **Skills Mentioned:** {len(key_info['skills'])} skills identified\n"
+            
+            if key_info.get('experience_years'):
+                analysis += f"- **Experience Indicators:** {key_info['experience_years']} year references found\n"
+            
+            if key_info.get('education'):
+                analysis += f"- **Education:** {len(key_info['education'])} education-related terms\n"
+            
+            analysis += "\n"
+        
+        # Content preview
+        if len(content) > 500:
+            content_preview = content[:500] + "..."
+            analysis += f"**Content Preview:**\n\n```\n{content_preview}\n```\n\n"
+        else:
+            analysis += f"**Full Content:**\n\n```\n{content}\n```\n\n"
+        
+        return analysis
+
+    def _extract_resume_sections(self, content: str) -> dict:
+        """Extract common resume sections."""
+        import re
+        
+        sections = {}
+        content_lower = content.lower()
+        
+        # Common section headers
+        section_patterns = {
+            'Summary/Objective': r'(summary|objective|profile|overview)[\s\S]*?(?=\n[A-Z]|\n\n|\Z)',
+            'Experience': r'(experience|employment|work history|professional experience)[\s\S]*?(?=\n[A-Z]|\n\n|\Z)',
+            'Education': r'(education|academic|qualifications|degree)[\s\S]*?(?=\n[A-Z]|\n\n|\Z)',
+            'Skills': r'(skills|competencies|technical skills|core competencies)[\s\S]*?(?=\n[A-Z]|\n\n|\Z)',
+            'Projects': r'(projects|portfolio|work samples)[\s\S]*?(?=\n[A-Z]|\n\n|\Z)',
+            'Certifications': r'(certifications|certificates|licenses)[\s\S]*?(?=\n[A-Z]|\n\n|\Z)'
+        }
+        
+        for section_name, pattern in section_patterns.items():
+            matches = re.findall(pattern, content_lower, re.IGNORECASE | re.MULTILINE)
+            if matches:
+                sections[section_name] = matches[0]
+        
+        return sections
+
+    def _extract_key_resume_info(self, content: str) -> dict:
+        """Extract key resume information."""
+        import re
+        
+        key_info = {}
+        
+        # Extract contact information patterns
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        phone_pattern = r'[\+]?[1-9]?[0-9]{7,15}'
+        
+        emails = re.findall(email_pattern, content)
+        phones = re.findall(phone_pattern, content)
+        
+        contact_info = []
+        if emails:
+            contact_info.extend(emails)
+        if phones:
+            contact_info.extend(phones)
+        
+        key_info['contact_info'] = contact_info
+        
+        # Extract skills (common technical terms)
+        skill_keywords = [
+            'python', 'java', 'javascript', 'react', 'node', 'sql', 'html', 'css',
+            'aws', 'docker', 'kubernetes', 'git', 'agile', 'scrum', 'machine learning',
+            'data analysis', 'project management', 'leadership', 'communication'
+        ]
+        
+        found_skills = [skill for skill in skill_keywords if skill.lower() in content.lower()]
+        key_info['skills'] = found_skills
+        
+        # Extract experience years
+        year_pattern = r'\b(19|20)\d{2}\b'
+        years = re.findall(year_pattern, content)
+        key_info['experience_years'] = len(set(years))
+        
+        # Extract education keywords
+        education_keywords = [
+            'bachelor', 'master', 'phd', 'degree', 'university', 'college',
+            'graduate', 'undergraduate', 'diploma', 'certification'
+        ]
+        
+        found_education = [edu for edu in education_keywords if edu.lower() in content.lower()]
+        key_info['education'] = found_education
+        
+        return key_info
+
+    def _analyze_general_document(self, content: str, metadata: dict, parsed_data: dict) -> str:
+        """Analyze general document content."""
+        analysis = f"**Document Type:** {parsed_data.get('type', 'Unknown').upper()}\n\n"
+        
+        # Add document metadata
+        if metadata:
+            if 'character_count' in metadata:
+                analysis += f"**Character Count:** {metadata['character_count']:,}\n"
+            if 'word_count' in metadata:
+                analysis += f"**Word Count:** {metadata['word_count']:,}\n"
+            analysis += "\n"
+        
+        # Add Excel-specific information
+        if parsed_data.get('type') == 'excel':
+            sheets = parsed_data.get('sheets', {})
+            if sheets:
+                analysis += f"**Spreadsheet Information:**\n\n"
+                for sheet_name, sheet_data in sheets.items():
+                    analysis += f"- **{sheet_name}:** {sheet_data.get('shape', {}).get('rows', 0)} rows, {sheet_data.get('shape', {}).get('columns', 0)} columns\n"
+                analysis += "\n"
+        
+        # Content preview
+        if content:
+            if len(content) > 1000:
+                content_summary = content[:1000] + "..."
+                analysis += f"**Content Preview:**\n\n```\n{content_summary}\n```\n\n"
+            else:
+                analysis += f"**Full Content:**\n\n```\n{content}\n```\n\n"
+        
+        return analysis
+
+# Global workflow engine instance
+workflow_engine = WorkflowEngine()
+
+# Maintain backward compatibility
+scheduler = workflow_engine.scheduler.scheduler
+
+def schedule_task(cron_expr: str, workflow: Dict[str, Any]) -> None:
+    """Schedule a workflow task (backward compatibility)."""
+    workflow_engine.scheduler.schedule_task(cron_expr, workflow)
+
+def parse_cron_expr(expr: str) -> Dict[str, str]:
+    """Parse cron expression (backward compatibility)."""
+    return workflow_engine.scheduler._parse_cron_expr(expr)
+
+def run_workflow_sync(workflow: Dict[str, Any]) -> Any:
+    """Run workflow synchronously (backward compatibility)."""
+    return workflow_engine.scheduler._run_workflow_sync(workflow)
+
+async def run_workflow_engine(nodes: List[Node], edges: List[Edge], user_id: str = None) -> Dict[str, Any]:
+    """Run workflow engine (backward compatibility)."""
+    return await workflow_engine.run_workflow(nodes, edges, user_id)
+
+async def execute_node(node: Node, input_data: Dict[str, Any] = None, api_manager=None) -> str:
+    """Execute single node (backward compatibility)."""
+    context = NodeExecutionContext(node, input_data or {}, api_manager)
+    return await workflow_engine._execute_single_node(context)

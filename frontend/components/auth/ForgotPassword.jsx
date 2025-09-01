@@ -8,6 +8,9 @@ export default function ForgotPassword({ onBack }) {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
 
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
@@ -25,7 +28,7 @@ export default function ForgotPassword({ onBack }) {
     setLoading(true)
 
     try {
-      const response = await fetch("http://localhost:8000/auth/forgot-password", {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

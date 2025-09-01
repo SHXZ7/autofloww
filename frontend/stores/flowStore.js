@@ -2,6 +2,8 @@
 import { create } from "zustand"
 import { nanoid } from "nanoid"
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
 export const useFlowStore = create((set, get) => ({
   nodes: [],
   edges: [],
@@ -91,7 +93,7 @@ export const useFlowStore = create((set, get) => ({
       } else if (type === "webhook") {
         nodeData = {
           label: "WEBHOOK Node",
-          webhook_url: `http://localhost:8000/webhook/trigger/${id}`,
+          webhook_url: `${API_BASE_URL}/webhook/trigger/${id}`,
           method: "POST",
           description: "Webhook trigger point",
         }
@@ -192,8 +194,8 @@ export const useFlowStore = create((set, get) => ({
       if (!token) {
         throw new Error("Authentication required")
       }
-      
-      const response = await fetch("http://localhost:8000/workflows/save", {
+
+      const response = await fetch(`${API_BASE_URL}/workflows/save`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -228,8 +230,8 @@ export const useFlowStore = create((set, get) => ({
       if (!token) {
         return
       }
-      
-      const response = await fetch("http://localhost:8000/workflows", {
+
+      const response = await fetch(`${API_BASE_URL}/workflows`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -274,8 +276,8 @@ export const useFlowStore = create((set, get) => ({
       if (!token) {
         throw new Error("Authentication required")
       }
-      
-      const response = await fetch(`http://localhost:8000/workflows/${workflowId}`, {
+
+      const response = await fetch(`${API_BASE_URL}/workflows/${workflowId}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`

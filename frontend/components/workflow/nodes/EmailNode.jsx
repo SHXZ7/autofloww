@@ -6,6 +6,9 @@ import Select from "react-select"
 import AsyncSelect from "react-select/async"
 import { toast } from "react-hot-toast"
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
+
 const EmailNode = ({ node, onChange, isSelected }) => {
   const { id, data, position } = node
   const { updateNodeData } = useFlowStore()
@@ -18,7 +21,7 @@ const EmailNode = ({ node, onChange, isSelected }) => {
   // Load options for AI models
   const loadModelOptions = async (inputValue) => {
     if (!inputValue) return []
-    const response = await fetch(`http://localhost:8000/models/search?query=${inputValue}`)
+    const response = await fetch(`${API_BASE_URL}/models/search?query=${inputValue}`)
     const data = await response.json()
     return data.models.map((model) => ({
       value: model.id,

@@ -4,6 +4,7 @@ import { useAuthStore } from "../stores/authStore"
 import { useState } from "react"
 import { ChevronDownIcon, ChevronRightIcon, PlayIcon, ListBulletIcon, StopIcon } from "@heroicons/react/24/outline"
 
+
 export default function NodeSidebar() {
   const { addNode, nodes, edges, model, setModel, availableModels } = useFlowStore()
   const { isAuthenticated } = useAuthStore()
@@ -15,6 +16,7 @@ export default function NodeSidebar() {
     communication: false,
     automation: false,
   })
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
   const runWorkflow = async () => {
     try {
@@ -33,7 +35,7 @@ export default function NodeSidebar() {
         return
       }
 
-      const response = await fetch("http://localhost:8000/run", {
+      const response = await fetch(`${API_BASE_URL}/run`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -64,7 +66,7 @@ export default function NodeSidebar() {
   const stopScheduledWorkflow = async (workflowId) => {
     try {
       console.log(`Attempting to stop workflow: ${workflowId}`)
-      const response = await fetch(`http://localhost:8000/schedule/stop/${workflowId}`, {
+      const response = await fetch(`${API_BASE_URL}/schedule/stop/${workflowId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       })
@@ -79,7 +81,7 @@ export default function NodeSidebar() {
 
   const listScheduledWorkflows = async () => {
     try {
-      const response = await fetch("http://localhost:8000/schedule/list")
+      const response = await fetch(`${API_BASE_URL}/schedule/list`)
       const result = await response.json()
       console.log("Scheduled workflows:", result)
       alert(`Found ${result.count} scheduled workflows. Check console for details.`)

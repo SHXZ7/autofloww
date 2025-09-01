@@ -1,6 +1,8 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
 export const useAuthStore = create(
   persist(
     (set, get) => ({
@@ -13,7 +15,7 @@ export const useAuthStore = create(
       login: async (email, password) => {
         set({ loading: true, error: null })
         try {
-          const response = await fetch("http://localhost:8000/auth/login", {
+          const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password }),
@@ -46,7 +48,7 @@ export const useAuthStore = create(
       signup: async (name, email, password) => {
         set({ loading: true, error: null })
         try {
-          const response = await fetch("http://localhost:8000/auth/signup", {
+          const response = await fetch(`${API_BASE_URL}/auth/signup`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, email, password }),
@@ -102,7 +104,7 @@ export const useAuthStore = create(
           }
           
           // Make API call to update profile
-          const response = await fetch("http://localhost:8000/auth/profile", {
+          const response = await fetch(`${API_BASE_URL}/auth/profile`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -145,7 +147,7 @@ export const useAuthStore = create(
           }
           
           // Make API call to change password
-          const response = await fetch("http://localhost:8000/auth/password", {
+          const response = await fetch(`${API_BASE_URL}/auth/password`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -197,7 +199,7 @@ export const useAuthStore = create(
         // Otherwise, check token validity
         set({ loading: true })
         try {
-          const response = await fetch("http://localhost:8000/auth/me", {
+          const response = await fetch(`${API_BASE_URL}/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
           })
 
@@ -239,8 +241,8 @@ export const useAuthStore = create(
           if (!token) {
             throw new Error("Authentication required")
           }
-          
-          const response = await fetch('http://localhost:8000/api/user/api-keys', {
+
+          const response = await fetch(`${API_BASE_URL}/api/user/api-keys`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -275,8 +277,8 @@ export const useAuthStore = create(
           if (!token) {
             throw new Error("Authentication required")
           }
-          
-          const response = await fetch('http://localhost:8000/api/user/api-keys', {
+
+          const response = await fetch(`${API_BASE_URL}/api/user/api-keys`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }

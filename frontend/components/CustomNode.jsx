@@ -7,6 +7,7 @@ export default function CustomNode({ data, id }) {
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState(data)
 
+
   const handleSave = () => {
     Object.assign(data, formData)
     setIsEditing(false)

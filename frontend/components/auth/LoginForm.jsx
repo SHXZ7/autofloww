@@ -205,16 +205,6 @@ export default function LoginForm({ onSwitchToSignup }) {
           </button>
         </p>
       </div>
-
-      {/* Demo Credentials - only show if not in demo mode */}
-      {!isDemoMode && (
-        <div className="mt-8 p-4 glass rounded-lg">
-          <p className="text-xs text-gray-400 text-center">
-            <span className="block mb-1 text-sm">Try demo credentials:</span>
-            <span className="font-mono">user@autoflow.com / password123</span>
-          </p>
-        </div>
-      )}
     </div>
   )
 }

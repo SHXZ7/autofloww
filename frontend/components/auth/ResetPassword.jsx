@@ -7,6 +7,8 @@ export default function ResetPassword() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
   
   const [formData, setFormData] = useState({
     password: "",
@@ -32,8 +34,8 @@ export default function ResetPassword() {
 
   const validateToken = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/auth/validate-reset-token/${token}`)
-      const data = await response.json()
+        const response = await fetch(`${API_BASE_URL}/auth/validate-reset-token/${token}`)
+        const data = await response.json()
       
       if (response.ok) {
         setTokenValid(true)
@@ -70,7 +72,7 @@ export default function ResetPassword() {
     setLoading(true)
 
     try {
-      const response = await fetch("http://localhost:8000/auth/reset-password", {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

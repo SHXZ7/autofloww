@@ -319,6 +319,7 @@ development/
 backend/uploads/
 backend/generated_reports/
 backend/generated_images/
+backend/parsed_documents/
 backend/temp/
 backend/tmp/
 

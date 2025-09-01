@@ -230,6 +230,70 @@ export const useAuthStore = create(
 
       // Clear error
       clearError: () => set({ error: null }),
+
+      // API Keys management
+      updateApiKeys: async (apiKeys) => {
+        try {
+          const token = localStorage.getItem("token")
+          
+          if (!token) {
+            throw new Error("Authentication required")
+          }
+          
+          const response = await fetch('http://localhost:8000/api/user/api-keys', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ apiKeys })
+          })
+          
+          const data = await response.json()
+          
+          if (response.ok) {
+            set(state => ({
+              user: {
+                ...state.user,
+                apiKeys: data.apiKeys
+              }
+            }))
+            return { success: true }
+          } else {
+            return { success: false, error: data.detail || data.message || 'Failed to update API keys' }
+          }
+        } catch (error) {
+          console.error('Update API keys error:', error)
+          return { success: false, error: 'Network error occurred' }
+        }
+      },
+
+      getApiKeys: async () => {
+        try {
+          const token = localStorage.getItem("token")
+          
+          if (!token) {
+            throw new Error("Authentication required")
+          }
+          
+          const response = await fetch('http://localhost:8000/api/user/api-keys', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          
+          const data = await response.json()
+          
+          if (response.ok) {
+            return { success: true, apiKeys: data.apiKeys }
+          } else {
+            return { success: false, error: data.detail || data.message || 'Failed to fetch API keys' }
+          }
+        } catch (error) {
+          console.error('Get API keys error:', error)
+          return { success: false, error: 'Network error occurred' }
+        }
+      },
     }),
     {
       name: "auth-storage",

@@ -124,7 +124,6 @@ AutoFlow is a powerful visual workflow automation platform that allows you to cr
 
 1. **Visit Homepage**: Navigate to `http://localhost:3000/homepage` for the landing page
 2. **Create Account**: Sign up with email or use demo credentials
-3. **Setup 2FA** (Optional): Enable two-factor authentication in profile settings
 4. **Configure API Keys**: Add your external service API keys in settings
 
 ### Creating Your First Workflow

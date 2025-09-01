@@ -15,7 +15,6 @@ from services.twilio_node import run_twilio_node
 from services.googlesheets import write_to_sheet
 from services.file_upload import upload_to_drive
 from services.image_generation import run_image_generation_node
-from services.document_parser import run_document_parser_node
 from services.discord import run_discord_node
 from services.report_generator import run_report_generator_node
 from services.social_media import run_social_media_node
@@ -23,6 +22,12 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 import json
 from datetime import datetime
+from services.api_key_manager import get_user_api_manager
+
+# Import database operations
+from app.database.user_operations import get_user_by_id, update_user_stats
+from app.database.workflow_operations import save_execution_history
+
 
 scheduler = BackgroundScheduler()
 scheduler.start()
@@ -51,7 +56,69 @@ def run_workflow_sync(workflow):
     import asyncio
     return asyncio.run(run_workflow_engine(workflow["nodes"], workflow["edges"]))
 
-async def execute_node(node: Node, input_data: Dict[str, Any] = None) -> str:
+async def run_workflow_engine(nodes: List[Node], edges: List[Edge], user_id: str = None) -> Dict[str, Any]:
+    
+    G = nx.DiGraph()
+
+    # Build the graph
+    for node in nodes:
+        G.add_node(node.id, data=node)
+    for edge in edges:
+        G.add_edge(edge.source, edge.target)
+        print(f"Added edge: {edge.source} -> {edge.target}")  # Debug log
+
+    # Auto-register webhook workflows
+    from ..main import stored_workflows
+    from ..models.workflow import Workflow
+    
+    webhook_nodes = [node for node in nodes if node.type == "webhook"]
+    if webhook_nodes:
+        for webhook_node in webhook_nodes:
+            workflow_id = webhook_node.id
+            workflow = Workflow(nodes=nodes, edges=edges)
+            stored_workflows[workflow_id] = workflow
+            print(f"Auto-registered webhook workflow: {workflow_id}")
+
+    try:
+        execution_order = list(nx.topological_sort(G))
+        print(f"Execution order: {execution_order}")  # Debug log
+        
+        # Print node types in execution order
+        for node_id in execution_order:
+            node_type = G.nodes[node_id]["data"].type
+            print(f"Node {node_id} ({node_type}) will execute")
+            
+    except nx.NetworkXUnfeasible:
+        print("Cycle detected - printing graph structure:")
+        print(f"Nodes: {list(G.nodes())}")
+        print(f"Edges: {list(G.edges())}")
+        return {"error": "Cycle detected in workflow"}
+
+    # Create API key manager for this user if user_id is provided
+    api_manager = None
+    if user_id:
+        api_manager = await get_user_api_manager(user_id)
+    
+    results = {}
+
+    for node_id in execution_order:
+        node: Node = G.nodes[node_id]["data"]
+        input_data = {
+            pred: results.get(pred)
+            for pred in G.predecessors(node_id)
+        }
+        
+        print(f"Executing node {node_id} ({node.type})")
+        print(f"Input data for {node_id}: {input_data}")
+
+        # Pass API manager to node execution
+        output = await execute_node(node, input_data, api_manager)
+        results[node_id] = output
+        print(f"Node {node_id} result: {output}")
+
+    return results
+
+async def execute_node(node: Node, input_data: Dict[str, Any] = None, api_manager = None) -> str:
     """Execute a single node based on its type"""
     if input_data is None:
         input_data = {}
@@ -60,6 +127,18 @@ async def execute_node(node: Node, input_data: Dict[str, Any] = None) -> str:
     
     try:
         if node.type in ["gpt", "llama", "gemini", "claude", "mistral"]:
+            # Get API key for the model
+            if api_manager:
+                if node.type == "gpt" or node.data.get("model", "").startswith("openai"):
+                    api_key = await api_manager.get_openai_key()
+                    if api_key:
+                        os.environ["OPENAI_API_KEY"] = api_key
+                else:
+                    # Use OpenRouter for other models
+                    api_key = await api_manager.get_openrouter_key()
+                    if api_key:
+                        os.environ["OPENROUTER_API_KEY"] = api_key
+            
             # Use 'prompt' field first, then fall back to 'label'
             prompt = node.data.get("prompt") or node.data.get("label", "")
             model = node.data.get("model", "meta-llama/llama-3-8b-instruct")
@@ -94,45 +173,14 @@ async def execute_node(node: Node, input_data: Dict[str, Any] = None) -> str:
             
             print(f"Email node input_data: {input_data}")
             
+            # Enhanced AI content integration
+            ai_content_added = False
+            
             for pred_id, pred_result in input_data.items():
                 print(f"Checking predecessor {pred_id}: {pred_result}")
                 
-                # Handle report generation results
-                if "Report generated:" in str(pred_result):
-                    report_path = str(pred_result).split("Report generated: ")[-1]
-                    if os.path.exists(report_path):
-                        attachments.append({
-                            "path": report_path,
-                            "name": os.path.basename(report_path),
-                            "type": "file"
-                        })
-                        email_body += f"\n\nGenerated report attached: {os.path.basename(report_path)}"
-                        print(f"Added report attachment: {report_path}")
-                
-                # Handle file upload results
-                elif "File uploaded:" in str(pred_result):
-                    file_url = str(pred_result).split("File uploaded: ")[-1]
-                    attachments.append({
-                        "url": file_url,
-                        "name": "uploaded_file",
-                        "type": "url"
-                    })
-                    email_body += f"\n\nAttached file: {file_url}"
-                    print(f"Added file attachment: {file_url}")
-                
-                # Handle image generation results
-                elif "Image generated:" in str(pred_result):
-                    image_path = str(pred_result).split("Image generated: ")[-1]
-                    attachments.append({
-                        "path": image_path,
-                        "name": "generated_image",
-                        "type": "file"
-                    })
-                    email_body += f"\n\nGenerated image attached"
-                    print(f"Added image attachment: {image_path}")
-                
-                # Handle document parsing results
-                elif "Document parsed:" in str(pred_result):
+                # Handle document parsing results FIRST (before AI content check)
+                if "Document parsed:" in str(pred_result):
                     json_path = str(pred_result).split("Document parsed: ")[-1]
                     try:
                         with open(json_path, 'r', encoding='utf-8') as f:
@@ -140,16 +188,20 @@ async def execute_node(node: Node, input_data: Dict[str, Any] = None) -> str:
                         
                         # Add document content to email body
                         email_body += f"\n\n--- Parsed Document Content ---\n"
-                        email_body += f"Document: {parsed_data.get('metadata', {}).get('file_name', 'Unknown')}\n"
-                        email_body += f"Type: {parsed_data.get('type', 'Unknown')}\n\n"
+                        email_body += f"📄 Document: {parsed_data.get('metadata', {}).get('file_name', 'Unknown')}\n"
+                        email_body += f"📋 Type: {parsed_data.get('type', 'Unknown').upper()}\n"
+                        email_body += f"📖 Pages: {parsed_data.get('total_pages', 'Unknown')}\n"
+                        email_body += f"📏 Content Length: {parsed_data.get('metadata', {}).get('character_count', 0)} characters\n\n"
                         
                         # Add the main content
-                        if 'content' in parsed_data:
+                        if 'content' in parsed_data and parsed_data['content'].strip():
                             content = parsed_data['content']
-                            # Limit content length for email
-                            if len(content) > 2000:
-                                content = content[:2000] + "... (truncated)"
-                            email_body += content
+                            # Limit content length for email but provide more than before
+                            if len(content) > 5000:
+                                content = content[:5000] + "\n\n... (content truncated for email)"
+                            email_body += f"**Document Content:**\n{content}"
+                        else:
+                            email_body += "**Note:** No text content could be extracted from this document. This may be an image-based PDF or contain non-text elements."
                         
                         # Attach the JSON file
                         attachments.append({
@@ -162,19 +214,81 @@ async def execute_node(node: Node, input_data: Dict[str, Any] = None) -> str:
                     except Exception as e:
                         email_body += f"\n\nError reading parsed document: {str(e)}"
                 
-                # Handle AI-generated content (summaries, analysis, etc.)
-                elif any(ai_indicator in str(pred_result).lower() for ai_indicator in 
-                        ["summary", "analysis", "conclusion", "response"]) and \
-                     not any(error_word in str(pred_result).lower() for error_word in 
-                            ["failed", "error", "not implemented"]):
-                    # Add AI-generated content to email
-                    email_body += f"\n\n--- AI Analysis ---\n"
-                    email_body += str(pred_result)
-                    print(f"Added AI analysis to email")
-
-            print(f"Final attachments: {attachments}")
+                # Handle AI-generated content from any AI model (but not document parsing results)
+                elif isinstance(pred_result, str) and len(pred_result.strip()) > 10:
+                    # Check if this is AI-generated content (not error messages or system responses)
+                    # EXCLUDE document parsing results from being treated as AI content
+                    if not any(error_word in pred_result.lower() for error_word in 
+                              ["failed", "error", "not implemented", "sent successfully", 
+                               "uploaded", "generated:", "deleted", "saved", "webhook", "document parsed:"]):
+                        
+                        # This appears to be AI-generated content
+                        if not ai_content_added:
+                            email_body += "\n\n--- AI Generated Content ---\n"
+                            ai_content_added = True
+                        
+                        # Determine AI model type for better formatting
+                        ai_model = "AI Assistant"
+                        if "gpt" in str(pred_id).lower() or "openai" in str(pred_result).lower():
+                            ai_model = "GPT"
+                        elif "claude" in str(pred_id).lower():
+                            ai_model = "Claude"
+                        elif "gemini" in str(pred_id).lower():
+                            ai_model = "Gemini"
+                        elif "llama" in str(pred_id).lower():
+                            ai_model = "Llama"
+                        elif "mistral" in str(pred_id).lower():
+                            ai_model = "Mistral"
+                        
+                        email_body += f"\n**{ai_model} Response:**\n"
+                        email_body += f"{pred_result}\n"
+                        email_body += f"\n{'-' * 50}\n"
+                        
+                        print(f"✉️ Added {ai_model} content to email")
+                
+                # Handle report generation results
+                elif "Report generated:" in str(pred_result):
+                    report_path = str(pred_result).split("Report generated: ")[-1]
+                    if os.path.exists(report_path):
+                        attachments.append({
+                            "path": report_path,
+                            "name": os.path.basename(report_path),
+                            "type": "file"
+                        })
+                        email_body += f"\n\n📊 Generated report attached: {os.path.basename(report_path)}"
+                        print(f"Added report attachment: {report_path}")
+                
+                # Handle file upload results
+                elif "File uploaded:" in str(pred_result):
+                    file_url = str(pred_result).split("File uploaded: ")[-1]
+                    attachments.append({
+                        "url": file_url,
+                        "name": "uploaded_file",
+                        "type": "url"
+                    })
+                    email_body += f"\n\n📁 Attached file: {file_url}"
+                    print(f"Added file attachment: {file_url}")
+                
+                # Handle image generation results
+                elif "Image generated:" in str(pred_result):
+                    image_path = str(pred_result).split("Image generated: ")[-1]
+                    attachments.append({
+                        "path": image_path,
+                        "name": "generated_image",
+                        "type": "file"
+                    })
+                    email_body += f"\n\n🎨 Generated image attached"
+                    print(f"Added image attachment: {image_path}")
+                
+            # If AI content was added, add a footer
+            if ai_content_added:
+                email_body += f"\n\n🤖 This email contains AI-generated content from your AutoFlow workflow.\n"
+                email_body += f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             
-            # Update email data with attachments info
+            print(f"Final email body length: {len(email_body)} characters")
+            print(f"Final attachments: {len(attachments)} items")
+            
+            # Update email data with enhanced content
             email_data = {**node.data, "body": email_body, "attachments": attachments}
             return await run_email_node(email_data)
         elif node.type == "webhook":
@@ -232,6 +346,12 @@ async def execute_node(node: Node, input_data: Dict[str, Any] = None) -> str:
             message = node.data.get("message", "")
             username = node.data.get("username", "AutoFlow Bot")
             webhook_url = node.data.get("webhook_url", "")
+            
+            # Get Discord webhook from user settings
+            if api_manager:
+                webhook_url = await api_manager.get_discord_webhook()
+                if webhook_url:
+                    node.data["webhook_url"] = webhook_url
             
             if not webhook_url:
                 return "Error: Discord webhook URL is required"
@@ -444,6 +564,9 @@ async def execute_node(node: Node, input_data: Dict[str, Any] = None) -> str:
             
             # Check if there's a file path configured
             file_path = file_info.get("path", "")
+            file_name = file_info.get("name", "")
+            mime_type = file_info.get("mime_type", "")
+            
             if not file_path:
                 return "Error: No file selected for upload. Please configure the file upload node with a file."
             
@@ -454,31 +577,72 @@ async def execute_node(node: Node, input_data: Dict[str, Any] = None) -> str:
                     image_path = str(pred_result).split("Image generated: ")[-1]
                     if os.path.exists(image_path):
                         # Update file info with the generated image
-                        file_info = {
-                            "path": image_path,
-                            "name": os.path.basename(image_path),
-                            "mime_type": "image/png"
-                        }
+                        file_path = image_path
+                        file_name = file_name or os.path.basename(image_path)
+                        mime_type = mime_type or "image/png"
+                        print(f"📸 Using generated image: {image_path}")
                         break
-                elif "Image generated successfully" in str(pred_result):
-                    # Handle base64 case - we need to get the actual file path
-                    # This should be fixed in the image generation service
-                    return "File upload failed: Image generation returned base64 data instead of file path"
+                elif "Report generated:" in str(pred_result):
+                    # Handle report files
+                    report_path = str(pred_result).split("Report generated: ")[-1]
+                    if os.path.exists(report_path):
+                        file_path = report_path
+                        file_name = file_name or os.path.basename(report_path)
+                        # Detect MIME type for reports
+                        if report_path.endswith('.pdf'):
+                            mime_type = "application/pdf"
+                        elif report_path.endswith('.docx'):
+                            mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        print(f"📊 Using generated report: {report_path}")
+                        break
+                elif "Document parsed:" in str(pred_result):
+                    # Handle parsed document JSON files
+                    json_path = str(pred_result).split("Document parsed: ")[-1]
+                    if os.path.exists(json_path):
+                        file_path = json_path
+                        file_name = file_name or os.path.basename(json_path)
+                        mime_type = "application/json"
+                        print(f"📄 Using parsed document JSON: {json_path}")
+                        break
             
             # Validate file exists before upload
-            final_file_path = file_info.get("path", "")
-            if not final_file_path or not os.path.exists(final_file_path):
-                return f"Error: File not found at path: {final_file_path}. Please upload a file first."
+            if not file_path or not os.path.exists(file_path):
+                return f"Error: File not found at path: {file_path}. Please upload a file first or connect to a node that generates files."
+            
+            # Auto-generate file name if not provided
+            if not file_name:
+                file_name = os.path.basename(file_path)
+            
+            # Auto-detect MIME type if not provided
+            if not mime_type:
+                import mimetypes
+                mime_type, _ = mimetypes.guess_type(file_path)
+                if not mime_type:
+                    mime_type = 'application/octet-stream'
             
             try:
-                result = await upload_to_drive(
-                    file_info.get("path", ""),
-                    file_info.get("name", ""),
-                    file_info.get("mime_type", "")
-                )
-                return f"File uploaded: {result['file_url']}"
+                print(f"🚀 Starting file upload:")
+                print(f"   📁 File: {file_path}")
+                print(f"   📝 Name: {file_name}")
+                print(f"   🏷️ Type: {mime_type}")
+                
+                result = await upload_to_drive(file_path, file_name, mime_type)
+                
+                if result.get("success"):
+                    file_size_kb = int(result.get("file_size", 0)) / 1024 if result.get("file_size") else 0
+                    success_msg = f"File uploaded successfully: {file_name}"
+                    if file_size_kb > 0:
+                        success_msg += f" ({file_size_kb:.1f} KB)"
+                    
+                    print(f"✅ {success_msg}")
+                    return f"File uploaded: {result['file_url']}"
+                else:
+                    return "File upload failed: Unknown error"
+                    
             except Exception as e:
-                return f"File upload failed: {str(e)}"
+                error_msg = f"File upload failed: {str(e)}"
+                print(f"❌ {error_msg}")
+                return error_msg
         elif node.type == "image_generation":
             # Get prompt from node data
             prompt = node.data.get("prompt", "")
@@ -501,6 +665,19 @@ async def execute_node(node: Node, input_data: Dict[str, Any] = None) -> str:
             
             # Update node data with the prompt
             updated_node_data = {**node.data, "prompt": prompt}
+            
+            # Get API keys based on provider
+            if api_manager:
+                provider = node.data.get("provider", "openai")
+                if provider == "openai":
+                    api_key = await api_manager.get_openai_key()
+                    if api_key:
+                        os.environ["OPENAI_API_KEY"] = api_key
+                elif provider == "stability":
+                    api_key = await api_manager.get_stability_key()
+                    if api_key:
+                        os.environ["STABILITY_API_KEY"] = api_key
+            
             return await run_image_generation_node(updated_node_data)
         elif node.type == "document_parser":
             # Check if there's a file from connected file upload nodes
@@ -534,7 +711,66 @@ async def execute_node(node: Node, input_data: Dict[str, Any] = None) -> str:
                     break
             
             updated_node_data = {**node.data, "file_path": file_path}
-            return await run_document_parser_node(updated_node_data)
+            
+            # Try multiple import methods to fix the import issue
+            print(f"🔧 Attempting to import document parser...")
+            
+            # Method 1: Direct import from services
+            try:
+                from services.document_parser import run_document_parser_node
+                print(f"✅ Method 1: Successfully imported document parser")
+                result = await run_document_parser_node(updated_node_data)
+                return result
+            except Exception as e1:
+                print(f"❌ Method 1 failed: {str(e1)}")
+            
+            # Method 2: Absolute import
+            try:
+                import services.document_parser as doc_parser
+                print(f"✅ Method 2: Successfully imported document parser module")
+                result = await doc_parser.run_document_parser_node(updated_node_data)
+                return result
+            except Exception as e2:
+                print(f"❌ Method 2 failed: {str(e2)}")
+            
+            # Method 3: Dynamic import
+            try:
+                import importlib
+                doc_parser_module = importlib.import_module('services.document_parser')
+                run_document_parser_node = getattr(doc_parser_module, 'run_document_parser_node')
+                print(f"✅ Method 3: Successfully imported via importlib")
+                result = await run_document_parser_node(updated_node_data)
+                return result
+            except Exception as e3:
+                print(f"❌ Method 3 failed: {str(e3)}")
+            
+            # Method 4: Add to path and import
+            try:
+                
+                services_path = os.path.join(os.path.dirname(__file__), '..', '..', 'services')
+                abs_services_path = os.path.abspath(services_path)
+                
+                if abs_services_path not in sys.path:
+                    sys.path.insert(0, abs_services_path)
+                    print(f"📁 Added to path: {abs_services_path}")
+                
+                from services import run_document_parser_node
+                print(f"✅ Method 4: Successfully imported after path addition")
+                result = await run_document_parser_node(updated_node_data)
+                return result
+            except Exception as e4:
+                print(f"❌ Method 4 failed: {str(e4)}")
+            
+            # If all methods fail, return error with diagnostic info
+            error_msg = (
+                f"Error: Could not import document parser service. "
+                f"Tried 4 different methods. "
+                f"Current working directory: {os.getcwd()}. "
+                f"Services path exists: {os.path.exists(services_path)}. "
+                f"Document parser file exists: {os.path.exists(os.path.join(services_path, 'document_parser.py'))}"
+            )
+            print(f"❌ {error_msg}")
+            return error_msg
         elif node.type == "report_generator":
             # Enhanced report generation with workflow data integration
             title = node.data.get("title", "AutoFlow Report")
@@ -681,6 +917,31 @@ async def execute_node(node: Node, input_data: Dict[str, Any] = None) -> str:
             image_path = node.data.get("image_path", "")
             webhook_url = node.data.get("webhook_url", "")
             
+            # Get social media credentials
+            if api_manager:
+                platform = node.data.get("platform", "twitter")
+                
+                if platform == "twitter":
+                    twitter_creds = await api_manager.get_twitter_credentials()
+                    if twitter_creds["api_key"]:
+                        os.environ["TWITTER_API_KEY"] = twitter_creds["api_key"]
+                    if twitter_creds["api_secret"]:
+                        os.environ["TWITTER_API_SECRET"] = twitter_creds["api_secret"]
+                    if twitter_creds["access_token"]:
+                        os.environ["TWITTER_ACCESS_TOKEN"] = twitter_creds["access_token"]
+                    if twitter_creds["access_secret"]:
+                        os.environ["TWITTER_ACCESS_TOKEN_SECRET"] = twitter_creds["access_secret"]
+                
+                elif platform == "linkedin":
+                    linkedin_token = await api_manager.get_linkedin_token()
+                    if linkedin_token:
+                        os.environ["LINKEDIN_ACCESS_TOKEN"] = linkedin_token
+                
+                elif platform == "instagram":
+                    instagram_token = await api_manager.get_instagram_token()
+                    if instagram_token:
+                        os.environ["INSTAGRAM_ACCESS_TOKEN"] = instagram_token
+            
             # Collect content from connected nodes
             enhanced_content = content
             final_image_path = image_path
@@ -740,60 +1001,3 @@ async def execute_node(node: Node, input_data: Dict[str, Any] = None) -> str:
         error_msg = f"Error executing {node.type} node {node.id}: {str(e)}"
         print(f"❌ {error_msg}")
         return error_msg
-
-async def run_workflow_engine(nodes: List[Node], edges: List[Edge]) -> Dict[str, Any]:
-    
-    G = nx.DiGraph()
-
-    # Build the graph
-    for node in nodes:
-        G.add_node(node.id, data=node)
-    for edge in edges:
-        G.add_edge(edge.source, edge.target)
-        print(f"Added edge: {edge.source} -> {edge.target}")  # Debug log
-
-    # Auto-register webhook workflows
-    from ..main import stored_workflows
-    from ..models.workflow import Workflow
-    
-    webhook_nodes = [node for node in nodes if node.type == "webhook"]
-    if webhook_nodes:
-        for webhook_node in webhook_nodes:
-            workflow_id = webhook_node.id
-            workflow = Workflow(nodes=nodes, edges=edges)
-            stored_workflows[workflow_id] = workflow
-            print(f"Auto-registered webhook workflow: {workflow_id}")
-
-    try:
-        execution_order = list(nx.topological_sort(G))
-        print(f"Execution order: {execution_order}")  # Debug log
-        
-        # Print node types in execution order
-        for node_id in execution_order:
-            node_type = G.nodes[node_id]["data"].type
-            print(f"Node {node_id} ({node_type}) will execute")
-            
-    except nx.NetworkXUnfeasible:
-        print("Cycle detected - printing graph structure:")
-        print(f"Nodes: {list(G.nodes())}")
-        print(f"Edges: {list(G.edges())}")
-        return {"error": "Cycle detected in workflow"}
-
-    results = {}
-
-    for node_id in execution_order:
-        node: Node = G.nodes[node_id]["data"]
-        input_data = {
-            pred: results.get(pred)
-            for pred in G.predecessors(node_id)
-        }
-        
-        print(f"Executing node {node_id} ({node.type})")  # Debug log
-        print(f"Input data for {node_id}: {input_data}")  # Debug log
-
-        # Pass input data from connected nodes
-        output = await execute_node(node, input_data)
-        results[node_id] = output
-        print(f"Node {node_id} result: {output}")  # Debug log
-
-    return results

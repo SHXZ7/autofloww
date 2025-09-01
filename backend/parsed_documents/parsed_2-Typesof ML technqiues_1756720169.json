@@ -1,0 +1,25 @@
+{
+  "type": "pdf",
+  "total_pages": 2,
+  "content": "",
+  "pages": [
+    {
+      "page_number": 1,
+      "content": ""
+    },
+    {
+      "page_number": 2,
+      "content": ""
+    }
+  ],
+  "extraction_method": "PyPDF2",
+  "metadata": {
+    "file_name": "2-Typesof ML technqiues.pdf",
+    "file_size": 1365639,
+    "character_count": 0,
+    "pdf_info": {
+      "encrypted": false,
+      "pages": 2
+    }
+  }
+}

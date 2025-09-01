@@ -1,0 +1,22 @@
+{
+  "type": "pdf",
+  "total_pages": 2,
+  "content": "This PDF document (2-Typesof ML technqiues.pdf) appears to contain scanned images or graphics rather than selectable text.\n\nContent Details:\n- Document has 2 page(s)\n- File size: 1333.6 KB\n- No extractable text found\n\nThis could be because:\n1. The document contains scanned images\n2. The text is embedded as graphics\n3. The document is password protected\n4. The text encoding is not supported\n\nTo extract text from this document, you may need to:\n- Use OCR (Optical Character Recognition) software\n- Re-save the document with selectable text\n- Convert images to text using specialized tools",
+  "pages": [
+    {
+      "page_number": 1,
+      "content": ""
+    },
+    {
+      "page_number": 2,
+      "content": ""
+    }
+  ],
+  "extraction_method": "PyMuPDF",
+  "metadata": {
+    "file_name": "2-Typesof ML technqiues.pdf",
+    "file_size": 1365639,
+    "character_count": 590,
+    "has_extractable_text": true
+  }
+}

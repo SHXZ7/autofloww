@@ -5,7 +5,7 @@ import { useAuthStore } from "../stores/authStore"
 
 export default function ProfileSettings({ isOpen, onClose, activeTab = "profile" }) {
   const [currentTab, setCurrentTab] = useState(activeTab)
-  const { user, updateUserProfile, changePassword, loading } = useAuthStore()
+  const { user, updateUserProfile, changePassword, updateApiKeys, getApiKeys, loading } = useAuthStore()
   
   const [profile, setProfile] = useState({
     name: "",
@@ -21,11 +21,26 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
   
   const [apiKeys, setApiKeys] = useState({
     openai: { key: "", isActive: false },
+    openrouter: { key: "", isActive: false },
     google: { key: "", isActive: false },
     discord: { key: "", isActive: false },
-    github: { key: "", isActive: false }
+    github: { key: "", isActive: false },
+    twilio_sid: { key: "", isActive: false },
+    twilio_token: { key: "", isActive: false },
+    twilio_phone: { key: "", isActive: false },
+    stability: { key: "", isActive: false },
+    twitter_api_key: { key: "", isActive: false },
+    twitter_api_secret: { key: "", isActive: false },
+    twitter_access_token: { key: "", isActive: false },
+    twitter_access_secret: { key: "", isActive: false },
+    linkedin_token: { key: "", isActive: false },
+    instagram_token: { key: "", isActive: false }
   })
   
+  const [apiKeysLoading, setApiKeysLoading] = useState(false)
+  const [apiKeysSaving, setApiKeysSaving] = useState(false)
+  const [apiKeysHasChanges, setApiKeysHasChanges] = useState(false)
+
   // Password state
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -82,6 +97,27 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
       setChangingPassword(false)
     }
   }, [isOpen])
+
+  // Load API keys when component mounts or user changes
+  useEffect(() => {
+    const loadApiKeys = async () => {
+      if (user && currentTab === "api") {
+        setApiKeysLoading(true)
+        try {
+          const result = await getApiKeys()
+          if (result.success && result.apiKeys) {
+            setApiKeys(result.apiKeys)
+          }
+        } catch (error) {
+          console.error('Failed to load API keys:', error)
+        } finally {
+          setApiKeysLoading(false)
+        }
+      }
+    }
+    
+    loadApiKeys()
+  }, [user, currentTab])
 
   if (!isOpen) return null
   
@@ -165,7 +201,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
         isActive: value.length > 10 // Simple validation
       }
     }))
-    setHasChanges(true)
+    setApiKeysHasChanges(true)
   }
   
   const handlePasswordChange = (field, value) => {
@@ -271,6 +307,47 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
     }
   }
   
+  const saveApiKeys = async () => {
+    setApiKeysSaving(true)
+    
+    try {
+      const result = await updateApiKeys(apiKeys)
+      
+      if (result.success) {
+        setApiKeysHasChanges(false)
+        // Show success message
+        showNotification('API keys updated successfully!', 'success')
+      } else {
+        showNotification(result.error || 'Failed to update API keys', 'error')
+      }
+    } catch (error) {
+      console.error("Failed to save API keys:", error)
+      showNotification('An unexpected error occurred', 'error')
+    } finally {
+      setApiKeysSaving(false)
+    }
+  }
+
+  const showNotification = (message, type = 'success') => {
+    const notification = document.createElement('div')
+    notification.className = `fixed bottom-4 right-4 ${
+      type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    } text-white px-6 py-3 rounded-lg shadow-lg z-50`
+    notification.textContent = message
+    document.body.appendChild(notification)
+    
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification)
+      }
+    }, type === 'success' ? 3000 : 5000)
+  }
+
+  const maskApiKey = (key) => {
+    if (!key || key.length < 8) return key
+    return key.substring(0, 4) + '•'.repeat(Math.max(0, key.length - 8)) + key.substring(key.length - 4)
+  }
+
   const tabs = [
     { id: "profile", label: "Profile", icon: "👤" },
     { id: "security", label: "Security", icon: "🔒" },
@@ -436,92 +513,487 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                   <h3 className="text-lg font-semibold text-white mb-4">API Keys</h3>
                   <p className="text-[#999999] mb-6">Manage your API keys for external integrations</p>
                   
-                  <div className="space-y-6">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-[#cccccc]">OpenAI API Key</label>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          apiKeys.openai.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
-                        }`}>
-                          {apiKeys.openai.isActive ? "Active" : "Not Set"}
-                        </span>
-                      </div>
-                      <div className="relative">
-                        <input
-                          type="password"
-                          value={apiKeys.openai.key}
-                          onChange={(e) => handleApiKeyChange("openai", e.target.value)}
-                          placeholder="sk-..."
-                          className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
-                        />
-                      </div>
-                      <p className="text-xs text-[#999999] mt-1">
-                        Required for AI nodes using OpenAI models (GPT-4o, etc)
-                      </p>
+                  {apiKeysLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00D4FF]"></div>
+                      <span className="ml-2 text-[#999999]">Loading API keys...</span>
                     </div>
-                    
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-[#cccccc]">Google API Key</label>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          apiKeys.google.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
-                        }`}>
-                          {apiKeys.google.isActive ? "Active" : "Not Set"}
-                        </span>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* AI Services Section */}
+                      <div>
+                        <h4 className="text-white font-medium mb-4 flex items-center">
+                          <span className="text-lg mr-2">🤖</span>
+                          AI & Language Models
+                        </h4>
+                        <div className="space-y-4 ml-6">
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">OpenAI API Key</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.openai.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.openai.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.openai.key}
+                              onChange={(e) => handleApiKeyChange("openai", e.target.value)}
+                              placeholder="sk-..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.openai.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.openai.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for OpenAI GPT models (GPT-4, GPT-3.5, DALL-E)
+                            </p>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">OpenRouter API Key</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.openrouter.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.openrouter.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.openrouter.key}
+                              onChange={(e) => handleApiKeyChange("openrouter", e.target.value)}
+                              placeholder="sk-or-v1-..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.openrouter.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.openrouter.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for accessing multiple AI models (Llama, Claude, Gemini, Mistral)
+                            </p>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">Google API Key</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.google.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.google.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.google.key}
+                              onChange={(e) => handleApiKeyChange("google", e.target.value)}
+                              placeholder="AIza..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.google.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.google.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for Google Sheets integration, Google Drive, and Gemini AI models
+                            </p>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">Stability AI API Key</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.stability.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.stability.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.stability.key}
+                              onChange={(e) => handleApiKeyChange("stability", e.target.value)}
+                              placeholder="sk-..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.stability.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.stability.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for Stable Diffusion image generation
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <input
-                        type="password"
-                        value={apiKeys.google.key}
-                        onChange={(e) => handleApiKeyChange("google", e.target.value)}
-                        placeholder="AIza..."
-                        className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
-                      />
-                      <p className="text-xs text-[#999999] mt-1">
-                        Required for Google Sheets integration and Gemini AI models
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-[#cccccc]">Discord Webhook URL</label>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          apiKeys.discord.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
-                        }`}>
-                          {apiKeys.discord.isActive ? "Active" : "Not Set"}
-                        </span>
+
+                      {/* Communication Services Section */}
+                      <div>
+                        <h4 className="text-white font-medium mb-4 flex items-center">
+                          <span className="text-lg mr-2">💬</span>
+                          Communication & Messaging
+                        </h4>
+                        <div className="space-y-4 ml-6">
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">Discord Webhook URL</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.discord.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.discord.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.discord.key}
+                              onChange={(e) => handleApiKeyChange("discord", e.target.value)}
+                              placeholder="https://discord.com/api/webhooks/..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.discord.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.discord.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for Discord messaging integration
+                            </p>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">Twilio Account SID</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.twilio_sid.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.twilio_sid.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.twilio_sid.key}
+                              onChange={(e) => handleApiKeyChange("twilio_sid", e.target.value)}
+                              placeholder="AC..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.twilio_sid.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.twilio_sid.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for SMS and WhatsApp messaging via Twilio
+                            </p>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">Twilio Auth Token</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.twilio_token.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.twilio_token.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.twilio_token.key}
+                              onChange={(e) => handleApiKeyChange("twilio_token", e.target.value)}
+                              placeholder="Auth Token..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.twilio_token.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.twilio_token.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for SMS and WhatsApp messaging via Twilio
+                            </p>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">Twilio Phone Number</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.twilio_phone.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.twilio_phone.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.twilio_phone.key}
+                              onChange={(e) => handleApiKeyChange("twilio_phone", e.target.value)}
+                              placeholder="+1234567890"
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.twilio_phone.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.twilio_phone.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Your Twilio phone number for sending SMS/WhatsApp
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <input
-                        type="password"
-                        value={apiKeys.discord.key}
-                        onChange={(e) => handleApiKeyChange("discord", e.target.value)}
-                        placeholder="https://discord.com/api/webhooks/..."
-                        className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
-                      />
-                      <p className="text-xs text-[#999999] mt-1">
-                        Required for Discord messaging integration
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-[#cccccc]">GitHub Personal Access Token</label>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          apiKeys.github.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
-                        }`}>
-                          {apiKeys.github.isActive ? "Active" : "Not Set"}
-                        </span>
+
+                      {/* Social Media Services Section */}
+                      <div>
+                        <h4 className="text-white font-medium mb-4 flex items-center">
+                          <span className="text-lg mr-2">📱</span>
+                          Social Media Platforms
+                        </h4>
+                        <div className="space-y-4 ml-6">
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">Twitter API Key</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.twitter_api_key.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.twitter_api_key.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.twitter_api_key.key}
+                              onChange={(e) => handleApiKeyChange("twitter_api_key", e.target.value)}
+                              placeholder="API Key..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.twitter_api_key.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.twitter_api_key.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for Twitter/X posting automation
+                            </p>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">Twitter API Secret</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.twitter_api_secret.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.twitter_api_secret.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.twitter_api_secret.key}
+                              onChange={(e) => handleApiKeyChange("twitter_api_secret", e.target.value)}
+                              placeholder="API Secret..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.twitter_api_secret.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.twitter_api_secret.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for Twitter/X posting automation
+                            </p>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">Twitter Access Token</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.twitter_access_token.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.twitter_access_token.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.twitter_access_token.key}
+                              onChange={(e) => handleApiKeyChange("twitter_access_token", e.target.value)}
+                              placeholder="Access Token..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.twitter_access_token.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.twitter_access_token.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for Twitter/X posting automation
+                            </p>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">Twitter Access Token Secret</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.twitter_access_secret.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.twitter_access_secret.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.twitter_access_secret.key}
+                              onChange={(e) => handleApiKeyChange("twitter_access_secret", e.target.value)}
+                              placeholder="Access Token Secret..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.twitter_access_secret.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.twitter_access_secret.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for Twitter/X posting automation
+                            </p>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">LinkedIn Access Token</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.linkedin_token.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.linkedin_token.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.linkedin_token.key}
+                              onChange={(e) => handleApiKeyChange("linkedin_token", e.target.value)}
+                              placeholder="LinkedIn Access Token..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.linkedin_token.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.linkedin_token.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for LinkedIn posting automation
+                            </p>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">Instagram Access Token</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.instagram_token.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.instagram_token.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.instagram_token.key}
+                              onChange={(e) => handleApiKeyChange("instagram_token", e.target.value)}
+                              placeholder="Instagram Access Token..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.instagram_token.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.instagram_token.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for Instagram posting automation
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <input
-                        type="password"
-                        value={apiKeys.github.key}
-                        onChange={(e) => handleApiKeyChange("github", e.target.value)}
-                        placeholder="ghp_..."
-                        className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
-                      />
-                      <p className="text-xs text-[#999999] mt-1">
-                        Required for GitHub actions and repository management
-                      </p>
+
+                      {/* Development Services Section */}
+                      <div>
+                        <h4 className="text-white font-medium mb-4 flex items-center">
+                          <span className="text-lg mr-2">⚡</span>
+                          Development & Integration
+                        </h4>
+                        <div className="space-y-4 ml-6">
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#cccccc]">GitHub Personal Access Token</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.github.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                              }`}>
+                                {apiKeys.github.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.github.key}
+                              onChange={(e) => handleApiKeyChange("github", e.target.value)}
+                              placeholder="ghp_..."
+                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                            />
+                            {apiKeys.github.key && (
+                              <div className="text-xs text-[#999999] mt-1">
+                                Current: {maskApiKey(apiKeys.github.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#999999] mt-1">
+                              Required for GitHub actions and repository management
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* API Keys Management Tips */}
+                      <div className="mt-8 p-4 bg-[#2a2a2a] rounded-lg border border-[#444444]">
+                        <h4 className="text-white font-medium mb-3 flex items-center">
+                          <span className="text-lg mr-2">💡</span>
+                          API Keys Security Tips
+                        </h4>
+                        <ul className="text-sm text-[#cccccc] space-y-2">
+                          <li className="flex items-start">
+                            <span className="text-[#00D4FF] mr-2 mt-1">•</span>
+                            All API keys are encrypted and stored securely
+                          </li>
+                          <li className="flex items-start">
+                            <span className="text-[#00D4FF] mr-2 mt-1">•</span>
+                            Keys are only decrypted when needed for workflow execution
+                          </li>
+                          <li className="flex items-start">
+                            <span className="text-[#00D4FF] mr-2 mt-1">•</span>
+                            Ensure your API keys have minimal required permissions
+                          </li>
+                          <li className="flex items-start">
+                            <span className="text-[#00D4FF] mr-2 mt-1">•</span>
+                            Regularly rotate your API keys for better security
+                          </li>
+                          <li className="flex items-start">
+                            <span className="text-[#00D4FF] mr-2 mt-1">•</span>
+                            Monitor your API usage through respective service dashboards
+                          </li>
+                        </ul>
+                      </div>
                     </div>
+                  )}
+
+                  {/* Save Button for API Keys */}
+                  <div className="mt-6 pt-4 border-t border-[#333333]">
+                    <button 
+                      onClick={saveApiKeys}
+                      disabled={!apiKeysHasChanges || apiKeysSaving || apiKeysLoading}
+                      className={`px-6 py-2 bg-[#00D4FF] hover:bg-[#00C4EF] text-white rounded-lg transition-colors ${
+                        !apiKeysHasChanges || apiKeysSaving || apiKeysLoading ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {apiKeysSaving ? "Saving..." : "Save API Keys"}
+                    </button>
+                    {apiKeysHasChanges && !apiKeysLoading && (
+                      <p className="text-yellow-400 text-sm mt-2">
+                        You have unsaved changes
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

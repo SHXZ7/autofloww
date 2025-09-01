@@ -362,3 +362,4 @@ test_*.json
 mock_*.json
 
 
+.env

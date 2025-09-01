@@ -3,17 +3,17 @@ import { useState } from "react"
 import { ShieldCheckIcon, ArrowLeftIcon } from "@heroicons/react/24/outline"
 import { useAuthStore } from "../../stores/authStore"
 
-export default function TwoFactorLogin({ email, onSuccess, onCancel }) {
-  const [code, setCode] = useState("")
+export default function PinLogin({ email, onSuccess, onCancel }) {
+  const [pin, setPin] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const { verify2FALogin } = useAuthStore()
+  const { verifyPinLogin } = useAuthStore()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    if (!code || code.length !== 6) {
-      setError("Please enter a valid 6-digit code")
+    if (!pin || pin.length < 4 || pin.length > 6) {
+      setError("Please enter a valid 4-6 digit PIN")
       return
     }
 
@@ -21,12 +21,12 @@ export default function TwoFactorLogin({ email, onSuccess, onCancel }) {
     setError("")
 
     try {
-      const result = await verify2FALogin(email, code)
+      const result = await verifyPinLogin(email, pin)
       
       if (result.success) {
         onSuccess()
       } else {
-        setError(result.error || "Invalid verification code")
+        setError(result.error || "Invalid PIN")
       }
     } catch (error) {
       setError("An unexpected error occurred")
@@ -35,9 +35,9 @@ export default function TwoFactorLogin({ email, onSuccess, onCancel }) {
     }
   }
 
-  const handleCodeInput = (e) => {
+  const handlePinInput = (e) => {
     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 6)
-    setCode(value)
+    setPin(value)
     setError('')
   }
 
@@ -47,9 +47,9 @@ export default function TwoFactorLogin({ email, onSuccess, onCancel }) {
         <div className="w-16 h-16 bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] rounded-xl flex items-center justify-center mx-auto mb-4">
           <ShieldCheckIcon className="w-8 h-8 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Two-Factor Authentication</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">Enter Your 2FA PIN</h2>
         <p className="text-gray-400">
-          Enter the 6-digit code from your authenticator app
+          Enter your 6-digit PIN to complete sign in
         </p>
         <p className="text-gray-500 text-sm mt-2">
           Signing in as: <span className="text-[#00D4FF]">{email}</span>
@@ -65,34 +65,34 @@ export default function TwoFactorLogin({ email, onSuccess, onCancel }) {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-3 text-center">
-            Verification Code
+            2FA PIN
           </label>
           <input
             type="text"
-            value={code}
-            onChange={handleCodeInput}
-            className="w-full bg-[#0a0a0a] border border-[#444] rounded-xl px-4 py-4 text-center text-white text-xl font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent transition-all duration-200"
+            value={pin}
+            onChange={handlePinInput}
+            className="w-full bg-[#0a0a0a] border border-[#444] rounded-xl px-4 py-4 text-center text-white text-2xl font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent transition-all duration-200"
             placeholder="000000"
             maxLength={6}
             autoFocus
           />
           <p className="text-xs text-gray-400 mt-2 text-center">
-            Enter the code from your authenticator app
+            Enter your 4-6 digit PIN
           </p>
         </div>
 
         <button
           type="submit"
-          disabled={code.length !== 6 || loading}
+          disabled={pin.length < 4 || loading}
           className="w-full bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300"
         >
           {loading ? (
             <div className="flex items-center justify-center space-x-2">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Verifying...</span>
+              <span>Verifying PIN...</span>
             </div>
           ) : (
-            "Verify & Sign In"
+            "Verify PIN & Sign In"
           )}
         </button>
       </form>
@@ -109,8 +109,8 @@ export default function TwoFactorLogin({ email, onSuccess, onCancel }) {
 
       <div className="mt-6 p-4 bg-[#1a1a1a] rounded-xl">
         <p className="text-gray-400 text-xs text-center">
-          <span className="font-medium text-white">Can't access your authenticator?</span><br/>
-          You can use one of your backup codes instead of the 6-digit code.
+          <span className="font-medium text-white">Lost your PIN?</span><br/>
+          Contact support or disable 2FA from your profile settings.
         </p>
       </div>
     </div>

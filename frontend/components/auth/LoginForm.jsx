@@ -3,7 +3,6 @@ import { useState, useEffect } from "react"
 import { useAuthStore } from "../../stores/authStore"
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"
 import { useRouter } from 'next/navigation'
-import TwoFactorLogin from "./TwoFactorLogin"
 import ForgotPassword from "./ForgotPassword"
 
 export default function LoginForm({ onSwitchToSignup }) {

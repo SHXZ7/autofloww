@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react"
 import { XMarkIcon, UserCircleIcon, KeyIcon, CreditCardIcon, ShieldCheckIcon, ShieldExclamationIcon } from "@heroicons/react/24/outline"
 import { useAuthStore } from "../stores/authStore"
-import TwoFactorSetup from "./auth/TwoFactorSetup"
 
 export default function ProfileSettings({ isOpen, onClose, activeTab = "profile" }) {
   const [currentTab, setCurrentTab] = useState(activeTab)
@@ -34,10 +33,6 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
     confirmPassword: ""
   })
   
-  // Add states for 2FA
-  const [show2FASetup, setShow2FASetup] = useState(false)
-  const [disabling2FA, setDisabling2FA] = useState(false)
-  const [disablePassword, setDisablePassword] = useState("")
   const [passwordErrors, setPasswordErrors] = useState({})
   
   const [hasChanges, setHasChanges] = useState(false)
@@ -276,58 +271,6 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
     }
   }
   
-  const handle2FASetup = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    console.log("Setting up 2FA, opening setup dialog");
-    setShow2FASetup(true)
-  }
-  
-  const handleDisable2FA = async () => {
-    if (!disablePassword) {
-      setPasswordErrors({
-        ...passwordErrors,
-        disable2fa: "Password is required to disable 2FA"
-      })
-      return
-    }
-    
-    
-    setDisabling2FA(true)
-    
-    try {
-      const result = await useAuthStore.getState().disable2FA(disablePassword)
-      
-      if (result.success) {
-        // Reset form
-        setDisablePassword("")
-        
-        // Show success message
-        const successNotification = document.createElement('div')
-        successNotification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50'
-        successNotification.textContent = 'Two-factor authentication disabled successfully!'
-        document.body.appendChild(successNotification)
-        
-        setTimeout(() => {
-          document.body.removeChild(successNotification)
-        }, 3000)
-      } else {
-        setPasswordErrors({
-          ...passwordErrors,
-          disable2fa: result.error
-        })
-      }
-    } catch (error) {
-      console.error("Failed to disable 2FA:", error)
-      setPasswordErrors({
-        ...passwordErrors,
-        disable2fa: "An unexpected error occurred"
-      })
-    } finally {
-      setDisabling2FA(false)
-    }
-  }
-
   const tabs = [
     { id: "profile", label: "Profile", icon: "👤" },
     { id: "security", label: "Security", icon: "🔒" },
@@ -665,82 +608,6 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                   <p className="text-[#999999] mb-6">Manage your account security</p>
                   
                   <div className="space-y-6">
-                    {/* Two-Factor Authentication Card */}
-                    <div className="p-4 bg-[#2a2a2a] rounded-lg">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          {user?.two_factor_enabled ? (
-                            <ShieldCheckIcon className="w-6 h-6 text-[#00D4FF]" />
-                          ) : (
-                            <ShieldExclamationIcon className="w-6 h-6 text-[#FF6B35]" />
-                          )}
-                          <h4 className="text-white font-medium">Two-Factor Authentication</h4>
-                        </div>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          user?.two_factor_enabled 
-                            ? "bg-[#00D4FF]/20 text-[#00D4FF]" 
-                            : "bg-[#666666]/20 text-[#999999]"
-                        }`}>
-                          {user?.two_factor_enabled ? "Enabled" : "Disabled"}
-                        </span>
-                      </div>
-                      
-                      <p className="text-[#999999] text-sm mb-4">
-                        Two-factor authentication adds an extra layer of security to your account by requiring a verification code in addition to your password when you sign in.
-                      </p>
-                      
-                      {user?.two_factor_enabled ? (
-                        <div className="space-y-3">
-                          <p className="text-sm text-[#00D4FF]">
-                            Your account is protected with two-factor authentication.
-                          </p>
-                          
-                          <div className="mt-2">
-                            <label className="block text-sm font-medium text-[#cccccc] mb-2">
-                              Enter your password to disable 2FA
-                            </label>
-                            <div className="flex space-x-3">
-                              <input
-                                type="password"
-                                value={disablePassword}
-                                onChange={(e) => setDisablePassword(e.target.value)}
-                                className={`flex-1 bg-[#1a1a1a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent ${
-                                  passwordErrors.disable2fa ? 'border-red-500' : 'border-[#444444]'
-                                }`}
-                                placeholder="Your current password"
-                              />
-                              <button
-                                onClick={handleDisable2FA}
-                                disabled={disabling2FA}
-                                className="px-4 py-2 bg-[#FF6B35] hover:bg-[#FF6B35]/80 text-white rounded-lg transition-colors disabled:opacity-50"
-                              >
-                                {disabling2FA ? "Disabling..." : "Disable 2FA"}
-                              </button>
-                            </div>
-                            {passwordErrors.disable2fa && (
-                              <p className="text-red-400 text-sm mt-1">{passwordErrors.disable2fa}</p>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                      <button
-                        type="button"
-   
-                        onClick={(e) => handle2FASetup(e)}
-                        className="px-4 py-2 bg-[#00D4FF] hover:bg-[#00C4EF] text-white rounded-lg transition-colors"
-                          >
-                          Enable 2FA
-                       </button>
-                      )}
-                    </div>
-    {/* ✅ Place 2FA modal OUTSIDE tab content */}
-    {show2FASetup && (
-      <TwoFactorSetup 
-        isOpen={show2FASetup}
-        onClose={() => setShow2FASetup(false)}
-      />
-    )}                    
-                    
                     <div className="p-4 bg-[#2a2a2a] rounded-lg">
                       <h4 className="text-white font-medium mb-4">Change Password</h4>
                       <div className="space-y-4">

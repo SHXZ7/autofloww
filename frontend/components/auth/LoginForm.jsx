@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { useAuthStore } from "../../stores/authStore"
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"
 import { useRouter } from 'next/navigation'
-import TwoFactorLogin from "./TwoFactorLogin"
+import PinLogin from "./PinLogin"
 import ForgotPassword from "./ForgotPassword"
 
 export default function LoginForm({ onSwitchToSignup }) {
@@ -90,7 +90,7 @@ export default function LoginForm({ onSwitchToSignup }) {
   if (currentView === "2fa" && needs2FA) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <TwoFactorLogin 
+        <PinLogin 
           email={pendingEmail}
           onSuccess={handle2FASuccess}
           onCancel={handleCancel2FA}

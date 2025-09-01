@@ -12,6 +12,7 @@ uploads/
 # Generated content
 generated_images/
 generated_reports/
+parsed_documents/
 
 # Downloaded files
 downloads/

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { XMarkIcon, UserCircleIcon, KeyIcon, CreditCardIcon, ShieldCheckIcon, ShieldExclamationIcon } from "@heroicons/react/24/outline"
 import { useAuthStore } from "../stores/authStore"
-import PinSetup from "./auth/PinSetup"
+import TwoFactorSetup from "./auth/TwoFactorSetup"
 
 export default function ProfileSettings({ isOpen, onClose, activeTab = "profile" }) {
   const [currentTab, setCurrentTab] = useState(activeTab)
@@ -35,7 +35,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
   })
   
   // Add states for 2FA
-  const [showPinSetup, setShowPinSetup] = useState(false)
+  const [show2FASetup, setShow2FASetup] = useState(false)
   const [disabling2FA, setDisabling2FA] = useState(false)
   const [disablePassword, setDisablePassword] = useState("")
   const [passwordErrors, setPasswordErrors] = useState({})
@@ -279,8 +279,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
   const handle2FASetup = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    console.log("Setting up PIN-based 2FA, opening setup dialog");
-    setShowPinSetup(true)
+    console.log("Setting up 2FA, opening setup dialog");
+    setShow2FASetup(true)
   }
   
   const handleDisable2FA = async () => {
@@ -686,13 +686,13 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                       </div>
                       
                       <p className="text-[#999999] text-sm mb-4">
-                        PIN-based two-factor authentication adds an extra layer of security to your account by requiring a PIN in addition to your password when you sign in.
+                        Two-factor authentication adds an extra layer of security to your account by requiring a verification code in addition to your password when you sign in.
                       </p>
                       
                       {user?.two_factor_enabled ? (
                         <div className="space-y-3">
                           <p className="text-sm text-[#00D4FF]">
-                            Your account is protected with PIN-based two-factor authentication.
+                            Your account is protected with two-factor authentication.
                           </p>
                           
                           <div className="mt-2">
@@ -729,15 +729,15 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         onClick={(e) => handle2FASetup(e)}
                         className="px-4 py-2 bg-[#00D4FF] hover:bg-[#00C4EF] text-white rounded-lg transition-colors"
                           >
-                          Enable PIN-based 2FA
+                          Enable 2FA
                        </button>
                       )}
                     </div>
-    {/* ✅ Place PIN setup modal OUTSIDE tab content */}
-    {showPinSetup && (
-      <PinSetup 
-        isOpen={showPinSetup}
-        onClose={() => setShowPinSetup(false)}
+    {/* ✅ Place 2FA modal OUTSIDE tab content */}
+    {show2FASetup && (
+      <TwoFactorSetup 
+        isOpen={show2FASetup}
+        onClose={() => setShow2FASetup(false)}
       />
     )}                    
                     

@@ -1,7 +1,10 @@
 import httpx
 import json
 import re
-from typing import Dict, Any, Optional
+import aiohttp
+import asyncio
+import os
+from typing import Dict, Any, Optional, List
 
 async def send_discord_message(webhook_url: str, content: str, embeds: Optional[list] = None, files: Optional[list] = None):
     """Send a message to Discord via webhook"""
@@ -40,62 +43,66 @@ async def send_discord_message(webhook_url: str, content: str, embeds: Optional[
     except Exception as e:
         return {"error": f"Failed to send Discord message: {str(e)}"}
 
-async def run_discord_node(node_data: Dict[str, Any]) -> str:
-    """Main function for Discord node"""
+async def run_discord_node(discord_data: Dict[str, Any]) -> str:
+    """Send message to Discord via webhook"""
     try:
-        webhook_url = node_data.get("webhook_url", "")
-        message = node_data.get("message", "")
-        username = node_data.get("username", "AutoFlow Bot")
-        avatar_url = node_data.get("avatar_url", "")
-        embeds = node_data.get("embeds", [])  # Get embeds from node data
+        webhook_url = discord_data.get("webhook_url", "")
+        message = discord_data.get("message", "")
+        username = discord_data.get("username", "AutoFlow Bot")
+        embeds = discord_data.get("embeds", [])
+        
+        # Use environment webhook if none provided
+        if not webhook_url:
+            webhook_url = os.getenv("SOCIAL_MEDIA_TEST_WEBHOOK", "")
         
         if not webhook_url:
-            return "Error: Discord webhook URL is required"
+            return "Error: Discord webhook URL not configured"
+        
+        print(f"🎮 Sending Discord message to webhook")
+        print(f"📝 Message: {message[:100]}..." if message else "📝 Message: (embeds only)")
+        print(f"🔗 Webhook: {webhook_url[:50]}...")
         
         # Prepare payload
-        payload = {"username": username}
+        payload = {
+            "username": username,
+            "avatar_url": "https://i.imgur.com/4M34hi2.png"  # AutoFlow bot avatar
+        }
         
-        if avatar_url:
-            payload["avatar_url"] = avatar_url
+        # Add message content if provided
+        if message:
+            payload["content"] = message
         
-        # Use provided embeds or create default embed
-        if embeds and len(embeds) > 0:
-            payload["embeds"] = embeds
-        elif message:
-            # Create default embed for better formatting
-            embed = {
-                "title": "AutoFlow Notification",
-                "description": message[:4096],  # Discord embed description limit
-                "color": 5814783,  # Blue color
-                "footer": {"text": "Sent via AutoFlow"}
-            }
-            payload["embeds"] = [embed]
-        else:
-            return "Error: Message content or embeds are required"
+        # Add embeds if provided
+        if embeds:
+            payload["embeds"] = embeds[:10]  # Discord limit is 10 embeds
+            print(f"📊 Sending {len(embeds)} embed(s)")
         
-        headers = {"Content-Type": "application/json"}
+        # If no message and no embeds, send default message
+        if not message and not embeds:
+            payload["content"] = "🤖 AutoFlow workflow completed successfully!"
         
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                webhook_url,
-                json=payload,
-                headers=headers,
-                timeout=30.0
-            )
-            response.raise_for_status()
+        # Use aiohttp for async request with timeout
+        timeout = aiohttp.ClientTimeout(total=10)
         
-        embed_count = len(payload.get("embeds", []))
-        return f"Discord message sent successfully with {embed_count} embed(s)"
-        
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
-            return "Error: Discord webhook not found. Please check the webhook URL."
-        elif e.response.status_code == 400:
-            return "Error: Invalid message format or content too long."
-        else:
-            return f"Error: Discord API error {e.response.status_code}"
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(webhook_url, json=payload) as response:
+                if response.status == 204:
+                    print("✅ Discord message sent successfully!")
+                    return "Discord message sent successfully"
+                else:
+                    error_text = await response.text()
+                    print(f"❌ Discord webhook failed: {response.status} - {error_text}")
+                    return f"Discord webhook failed: {response.status}"
+    
+    except asyncio.TimeoutError:
+        print(f"❌ Discord webhook timeout")
+        return "Discord webhook timeout: Request timed out after 10 seconds"
+    except aiohttp.ClientError as e:
+        print(f"❌ Discord client error: {str(e)}")
+        return f"Discord client error: {str(e)}"
     except Exception as e:
-        return f"Discord message failed: {str(e)}"
+        print(f"❌ Discord webhook failed: {str(e)}")
+        return f"Discord webhook failed: {str(e)}"
 
 def validate_discord_webhook(webhook_url: str) -> bool:
     """Validate if the URL is a valid Discord webhook URL"""

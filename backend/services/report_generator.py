@@ -254,16 +254,17 @@ def create_summary_box(title: str, content: str, color_scheme: str = "blue"):
         Paragraph(content, box_style)
     ]
 
+def safe_bold(text):
+    # Replace **bold** with <b>bold</b> safely
+    return re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
+
 def parse_enhanced_content(content: str, styles: Dict) -> List:
     """Parse content with enhanced formatting"""
     story = []
     lines = content.split('\n')
-    import re
 
-    def safe_bold(text):
-        # Replace **bold** with <b>bold</b> safely
-        return re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
-
+    # ...existing code...
+    
     i = 0
     while i < len(lines):
         line = lines[i].strip()
@@ -295,7 +296,7 @@ def parse_enhanced_content(content: str, styles: Dict) -> List:
                 bulletFontName='Symbol',
                 bulletText='•'
             )
-            story.append(Paragraph(bullet_text, bullet_style))
+            story.append(Paragraph(safe_bold(bullet_text), bullet_style))
         
         elif line.startswith('  - '):
             sub_bullet_text = line[4:].strip()
@@ -307,7 +308,7 @@ def parse_enhanced_content(content: str, styles: Dict) -> List:
                 bulletFontName='Symbol',
                 bulletText='◦'
             )
-            story.append(Paragraph(sub_bullet_text, sub_bullet_style))
+            story.append(Paragraph(safe_bold(sub_bullet_text), sub_bullet_style))
         
         # Numbered lists
         elif re.match(r'^\d+\.\s', line):
@@ -318,7 +319,7 @@ def parse_enhanced_content(content: str, styles: Dict) -> List:
                 leftIndent=20,
                 bulletIndent=10
             )
-            story.append(Paragraph(numbered_text, numbered_style))
+            story.append(Paragraph(safe_bold(numbered_text), numbered_style))
         
         # Code blocks
         elif line.startswith('```'):
@@ -331,12 +332,41 @@ def parse_enhanced_content(content: str, styles: Dict) -> List:
             
             if code_lines:
                 code_content = '\n'.join(code_lines)
+                # Escape HTML entities in code
+                code_content = code_content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                 story.append(Paragraph(f"<font name='Courier'>{code_content}</font>", styles['code']))
         
         # Quotes
         elif line.startswith('> '):
             quote_text = line[2:].strip()
-            story.append(Paragraph(quote_text, styles['quote']))
+            story.append(Paragraph(safe_bold(quote_text), styles['quote']))
+        
+        # Tables (simple markdown tables)
+        elif '|' in line and line.count('|') >= 2:
+            # Try to parse a markdown table
+            table_lines = [line]
+            i += 1
+            
+            # Collect table rows
+            while i < len(lines) and '|' in lines[i]:
+                table_lines.append(lines[i].strip())
+                i += 1
+            i -= 1  # Step back one since we'll increment at the end
+            
+            # Parse table
+            if len(table_lines) >= 2:
+                table_data = []
+                for table_line in table_lines:
+                    if not table_line.startswith('|-') and not all(c in '|-: ' for c in table_line):
+                        cells = [cell.strip() for cell in table_line.split('|')[1:-1]]  # Remove empty first/last
+                        if cells:
+                            table_data.append(cells)
+                
+                if table_data:
+                    enhanced_table = create_enhanced_table(table_data[1:], table_data[0] if table_data else None, "data")
+                    if enhanced_table:
+                        story.append(enhanced_table)
+                        story.append(Spacer(1, 12))
         
         # Bold formatting (only **bold**)
         elif '**' in line:
@@ -345,7 +375,7 @@ def parse_enhanced_content(content: str, styles: Dict) -> List:
         
         # Regular paragraph
         else:
-            story.append(Paragraph(line, styles['body']))
+            story.append(Paragraph(safe_bold(line), styles['body']))
         
         i += 1
 
@@ -664,6 +694,17 @@ async def run_report_generator_node(node_data: Dict[str, Any]) -> str:
         print(f"📊 Generating enhanced {format_type.upper()} report: {title}")
         print(f"📄 Content length: {len(content)} characters")
         
+        # Validate format type
+        if format_type not in ["pdf", "docx"]:
+            return f"Error: Unsupported format '{format_type}'. Supported formats: 'pdf', 'docx'"
+        
+        # Check dependencies
+        if format_type == "pdf" and not REPORTLAB_AVAILABLE:
+            return "Error: PDF generation not available. Install with: pip install reportlab"
+        
+        if format_type == "docx" and not DOCX_AVAILABLE:
+            return "Error: Word document generation not available. Install with: pip install python-docx"
+        
         # Extract and enhance report data
         report_data = node_data.get("data", {})
         
@@ -672,15 +713,19 @@ async def run_report_generator_node(node_data: Dict[str, Any]) -> str:
             "report_generation_time": datetime.now().isoformat(),
             "report_title": title,
             "report_format": format_type.upper(),
-            "content_sections": len([line for line in content.split('\n') if line.startswith('#')])
+            "content_sections": len([line for line in content.split('\n') if line.startswith('#')]),
+            "total_content_lines": len(content.split('\n'))
         })
         
+        # Generate report based on format
         if format_type == "pdf":
             file_path = generate_pdf_report(title, content, report_data)
         elif format_type == "docx":
             file_path = generate_docx_report(title, content, report_data)
-        else:
-            return f"Error: Unsupported format '{format_type}'. Use 'pdf' or 'docx'"
+        
+        # Verify file was created successfully
+        if not os.path.exists(file_path):
+            return f"Error: Report file was not created successfully"
         
         file_size = os.path.getsize(file_path) / 1024  # Size in KB
         print(f"✅ Enhanced report generated successfully!")
@@ -694,3 +739,77 @@ async def run_report_generator_node(node_data: Dict[str, Any]) -> str:
     except Exception as e:
         print(f"❌ Report generation error: {str(e)}")
         return f"Report generation failed: {str(e)}"
+
+# Add helper function for report templates
+def get_report_template(template_name: str) -> str:
+    """Get predefined report templates"""
+    templates = {
+        "executive_summary": """# Executive Summary Report
+
+## Overview
+This report provides a comprehensive overview of the workflow execution and key findings.
+
+## Key Metrics
+- **Execution Date**: {execution_time}
+- **Total Nodes**: {total_nodes}
+- **Status**: Completed Successfully
+
+## Summary
+{ai_summary}
+
+## Recommendations
+Based on the analysis, the following recommendations are provided:
+- Continue monitoring workflow performance
+- Review and optimize where necessary
+- Implement suggested improvements
+
+## Conclusion
+The workflow completed successfully with valuable insights generated.
+""",
+        
+        "data_analysis": """# Data Analysis Report
+
+## Introduction
+This report contains detailed analysis of the processed data and workflow results.
+
+## Data Overview
+{data_overview}
+
+## Analysis Results
+{analysis_results}
+
+## Statistical Summary
+{statistical_summary}
+
+## Visualizations
+{visualizations}
+
+## Insights
+{insights}
+
+## Next Steps
+{next_steps}
+""",
+        
+        "workflow_summary": """# Workflow Execution Summary
+
+## Workflow Details
+- **Name**: {workflow_name}
+- **Execution Time**: {execution_time}
+- **Status**: {status}
+
+## Node Execution Summary
+{node_summary}
+
+## Results
+{results}
+
+## Performance Metrics
+{performance_metrics}
+
+## Attachments
+{attachments}
+"""
+    }
+    
+    return templates.get(template_name, templates["executive_summary"])

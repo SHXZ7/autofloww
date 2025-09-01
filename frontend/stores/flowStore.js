@@ -25,8 +25,9 @@ export const useFlowStore = create((set, get) => ({
       })),
     }),
   setEdges: (edges) => set({ 
-    edges: edges.map(edge => ({
+    edges: edges.map((edge, index) => ({
       ...edge,
+      id: edge.id || `edge_${index}_${edge.source}_${edge.target}`, // Ensure ID exists
       markerEnd: {
         type: 'arrowclosed',
         color: '#ff6d6d',

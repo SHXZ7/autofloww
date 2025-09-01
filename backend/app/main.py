@@ -21,6 +21,7 @@ from app.database.workflow_operations import save_workflow, get_user_workflows, 
 from datetime import datetime, timedelta
 import uuid
 from app.auth.email_service import send_password_reset_email
+from app.utils.encryption import encrypt_api_key, decrypt_api_key
 
 load_dotenv()
 
@@ -265,12 +266,28 @@ async def run_workflow(flow: Workflow, current_user_id: str = Depends(get_curren
             )
     
     try:
-        result = await run_workflow_engine(flow.nodes, flow.edges)
+        # Fix: Call the correct workflow engine function
+        result = await run_workflow_engine(flow.nodes, flow.edges, current_user_id)
         print(f"Workflow execution result: {result}")
         
         # Save execution history
         try:
-            nodes_dict = [{"id": node.id, "type": node.type, "data": node.data, "position": node.position} for node in flow.nodes]
+            # Fix: Handle missing position attribute safely
+            nodes_dict = []
+            for node in flow.nodes:
+                node_dict = {
+                    "id": node.id, 
+                    "type": node.type, 
+                    "data": node.data
+                }
+                # Only add position if it exists
+                if hasattr(node, 'position') and node.position is not None:
+                    node_dict["position"] = node.position
+                else:
+                    node_dict["position"] = {"x": 0, "y": 0}  # Default position
+                    
+                nodes_dict.append(node_dict)
+            
             edges_dict = [{"id": edge.id, "source": edge.source, "target": edge.target} for edge in flow.edges]
             
             await save_execution_history(current_user_id, None, nodes_dict, edges_dict, result)
@@ -283,7 +300,8 @@ async def run_workflow(flow: Workflow, current_user_id: str = Depends(get_curren
             user = await get_user_by_id(current_user_id)
             if user:
                 current_count = user.get("profile", {}).get("execution_count", 0)
-                await update_user_stats(current_user_id, execution_count=current_count + 1)
+                # Fix: Pass stats as dictionary
+                await update_user_stats(current_user_id, {"execution_count": current_count + 1})
         except Exception as e:
             print(f"Warning: Could not update user stats: {str(e)}")
         
@@ -828,3 +846,171 @@ async def reset_password(reset_data: dict):
     except Exception as e:
         print(f"❌ Password reset error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to reset password")
+
+@app.get("/api/user/api-keys")
+async def get_user_api_keys(current_user_id: str = Depends(get_current_user)):
+    """Get user's API keys (masked for security)"""
+    try:
+        user = await get_user_by_id(current_user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        api_keys_data = user.get("api_keys", {})
+        
+        # Return masked API keys
+        masked_keys = {}
+        service_keys = [
+            "openai", "openrouter", "google", "discord", "github", 
+            "twilio_sid", "twilio_token", "twilio_phone", "stability",
+            "twitter_api_key", "twitter_api_secret", "twitter_access_token", 
+            "twitter_access_secret", "linkedin_token", "instagram_token"
+        ]
+        
+        for service in service_keys:
+            if service in api_keys_data and api_keys_data[service]:
+                masked_keys[service] = {
+                    "key": "•" * 20,
+                    "isActive": True
+                }
+            else:
+                masked_keys[service] = {
+                    "key": "",
+                    "isActive": False
+                }
+        
+        return {"apiKeys": masked_keys}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Get API keys error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get API keys")
+
+@app.put("/api/user/api-keys")
+async def update_user_api_keys(
+    api_keys_data: dict,
+    current_user_id: str = Depends(get_current_user)
+):
+    """Update user's API keys"""
+    try:
+        user = await get_user_by_id(current_user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        api_keys = api_keys_data.get("apiKeys", {})
+        current_api_keys = user.get("api_keys", {})
+        updated_api_keys = {}
+        
+        service_keys = [
+            "openai", "openrouter", "google", "discord", "github", 
+            "twilio_sid", "twilio_token", "twilio_phone", "stability",
+            "twitter_api_key", "twitter_api_secret", "twitter_access_token", 
+            "twitter_access_secret", "linkedin_token", "instagram_token"
+        ]
+        
+        for service in service_keys:
+            if service in api_keys:
+                key_data = api_keys[service]
+                new_key = key_data.get("key", "")
+                
+                # Only update if it's not the masked placeholder
+                if new_key and new_key != "•" * 20:
+                    encrypted_key = encrypt_api_key(new_key)
+                    if encrypted_key:
+                        updated_api_keys[service] = encrypted_key
+                elif service in current_api_keys:
+                    # Keep existing key if masked placeholder is sent
+                    updated_api_keys[service] = current_api_keys[service]
+        
+        # Update user with new API keys
+        success = await update_user(current_user_id, {"api_keys": updated_api_keys})
+        
+        if success:
+            # Return masked keys for frontend
+            masked_keys = {}
+            for service in service_keys:
+                if service in updated_api_keys and updated_api_keys[service]:
+                    masked_keys[service] = {
+                        "key": "•" * 20,
+                        "isActive": True
+                    }
+                else:
+                    masked_keys[service] = {
+                        "key": "",
+                        "isActive": False
+                    }
+            
+            print(f"✅ API keys updated for user: {current_user_id}")
+            return {
+                "message": "API keys updated successfully",
+                "apiKeys": masked_keys
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update API keys")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Update API keys error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update API keys")
+
+@app.get("/api/user/api-keys/decrypt/{service}")
+async def get_decrypted_api_key(
+    service: str,
+    current_user_id: str = Depends(get_current_user)
+):
+    """Get decrypted API key for internal use (admin/system only)"""
+    try:
+        user = await get_user_by_id(current_user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        api_keys_data = user.get("api_keys", {})
+        
+        if service not in api_keys_data:
+            raise HTTPException(status_code=404, detail=f"{service} API key not found")
+        
+        encrypted_data = api_keys_data[service]
+        decrypted_key = decrypt_api_key(encrypted_data)
+        
+        if not decrypted_key:
+            raise HTTPException(status_code=500, detail="Failed to decrypt API key")
+        
+        return {"key": decrypted_key}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Decrypt API key error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to decrypt API key")
+
+
+@app.get("/api/user/api-keys/decrypt/{service}")
+async def get_decrypted_api_key(
+    service: str,
+    current_user_id: str = Depends(get_current_user)
+):
+    """Get decrypted API key for internal use (admin/system only)"""
+    try:
+        user = await get_user_by_id(current_user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        api_keys_data = user.get("api_keys", {})
+        
+        if service not in api_keys_data:
+            raise HTTPException(status_code=404, detail=f"{service} API key not found")
+        
+        encrypted_data = api_keys_data[service]
+        decrypted_key = decrypt_api_key(encrypted_data)
+        
+        if not decrypted_key:
+            raise HTTPException(status_code=500, detail="Failed to decrypt API key")
+        
+        return {"key": decrypted_key}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Decrypt API key error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to decrypt API key")

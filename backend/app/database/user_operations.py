@@ -121,7 +121,14 @@ async def update_user_stats(user_id: str, stats: Dict[str, Any]) -> bool:
         else:
             query = {"_id": ObjectId(user_id)}
         
-        update_data = {"profile." + key: value for key, value in stats.items()}
+        # Build update data with proper dot notation for nested fields
+        update_data = {}
+        for key, value in stats.items():
+            if key in ["workflow_count", "execution_count"]:
+                update_data[f"profile.{key}"] = value
+            else:
+                update_data[key] = value
+        
         update_data["updated_at"] = datetime.utcnow()
         
         result = await users_collection.update_one(query, {"$set": update_data})
@@ -145,41 +152,16 @@ async def update_last_login(user_id: str) -> bool:
         
         result = await users_collection.update_one(
             query,
-            {"$set": {"last_login": datetime.utcnow()}}
+            {"$set": {
+                "profile.last_login": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }}
         )
         
         return result.modified_count > 0
         
     except Exception as e:
         print(f"❌ Error updating last login: {str(e)}")
-        return False
-        users_collection = database.users
-        
-        update_data = {"updated_at": datetime.utcnow()}
-        
-        if workflow_count is not None:
-            update_data["profile.workflow_count"] = workflow_count
-            
-        if execution_count is not None:
-            update_data["profile.execution_count"] = execution_count
-        
-        # Handle both MongoDB ObjectId and in-memory string ID
-        if db.in_memory_mode:
-            query = {"_id": user_id}
-        else:
-            if not ObjectId.is_valid(user_id):
-                return False
-            query = {"_id": ObjectId(user_id)}
-        
-        result = await users_collection.update_one(
-            query,
-            {"$set": update_data}
-        )
-        
-        return result.modified_count > 0
-        
-    except Exception as e:
-        print(f"❌ Error updating user stats: {str(e)}")
         return False
 
 async def deactivate_user(user_id: str) -> bool:
@@ -203,6 +185,37 @@ async def deactivate_user(user_id: str) -> bool:
         
         return result.modified_count > 0
         
+    except Exception as e:
+        print(f"❌ Error deactivating user: {str(e)}")
+        return False
+
+# Get total number of users
+async def get_user_count() -> int:
+    """Get total number of users"""
+    try:
+        database = get_database()
+        users_collection = database.users
+        count = await users_collection.count_documents({})
+        return count
+    except Exception as e:
+        print(f"❌ Error getting user count: {str(e)}")
+        return 0
+
+
+# Deactivate a user by ID
+async def deactivate_user(user_id: str) -> bool:
+    """Deactivate a user (set is_active = False)"""
+    try:
+        database = get_database()
+        users_collection = database.users
+
+        query = {"_id": ObjectId(user_id)}
+        result = await users_collection.update_one(
+            query,
+            {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+        )
+        return result.modified_count > 0
+
     except Exception as e:
         print(f"❌ Error deactivating user: {str(e)}")
         return False

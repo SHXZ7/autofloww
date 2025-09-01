@@ -1,12 +1,13 @@
 # Core FastAPI and web dependencies
 fastapi==0.104.1
-uvicorn==0.24.0.post1
+uvicorn[standard]==0.24.0
 python-multipart==0.0.6
 python-dotenv==1.0.0
 
 # HTTP client
 httpx==0.25.2
 requests==2.31.0
+aiohttp==3.9.1
 
 # Graph processing
 networkx==3.2.1
@@ -19,6 +20,7 @@ APScheduler==3.10.4
 
 # Document processing
 PyPDF2==3.0.1
+PyMuPDF==1.23.8
 python-docx==1.1.0
 pandas==2.1.4
 openpyxl==3.1.2
@@ -32,7 +34,7 @@ jinja2==3.1.2
 
 # Authentication
 pyjwt==2.8.0
-bcrypt==4.0.1
+bcrypt==4.1.1
 email-validator==2.0.0.post2
 python-jose==3.3.0
 
@@ -47,14 +49,15 @@ google-generativeai==0.3.2
 anthropic==0.7.8
 
 # Communication services
-twilio==8.10.3
+twilio==8.10.0
 
 # Image processing
-Pillow==10.0.1
+Pillow==10.1.0
 
 # MongoDB dependencies
-motor==3.3.1
+motor==3.3.2
 pymongo==4.6.0
+certifi==2023.11.17
 
 # Additional dependencies
 dnspython==2.4.2
@@ -62,3 +65,11 @@ pyotp==2.9.0
 qrcode==7.4.2
 pillow==10.0.1
 cryptography>=41.0.0
+nanoid==2.0.0
+
+# Development and testing (optional)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+
+# Networking and web utilities
+starlette==0.27.0

@@ -127,42 +127,106 @@ async def run_email_node(email_data):
                         # Determine MIME type
                         mime_type, _ = mimetypes.guess_type(file_path)
                         
-                        if file_ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
-                            # Image attachment
-                            with open(file_path, "rb") as f:
-                                img_data = f.read()
-                            image = MIMEImage(img_data)
-                            image.add_header("Content-Disposition", f"attachment; filename={file_name}")
-                            message.attach(image)
-                            print(f"📎 Attached image: {file_name}")
-                            
+                        print(f"📎 Processing attachment: {file_name}")
+                        print(f"   Path: {file_path}")
+                        print(f"   Extension: {file_ext}")
+                        print(f"   MIME type: {mime_type}")
+                        print(f"   File size: {os.path.getsize(file_path) / 1024:.1f} KB")
+                        
+                        if file_ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp']:
+    # Image attachment - Enhanced handling
+                            try:
+                                print(f"🖼️ Processing image attachment: {file_name}")
+                                print(f"   📂 Full path: {file_path}")
+        
+        # Verify file exists and is readable
+                                if not os.path.exists(file_path):
+                                    print(f"❌ Image file not found: {file_path}")
+                                    continue
+            
+                                if not os.access(file_path, os.R_OK):
+                                    print(f"❌ Permission denied accessing image: {file_path}")
+                                    continue
+        
+                                file_size = os.path.getsize(file_path)
+                                print(f"   📏 File size: {file_size} bytes")
+        
+                                if file_size == 0:
+                                    print(f"❌ Image file is empty: {file_path}")
+                                    continue
+        
+                                with open(file_path, "rb") as f:
+                                    img_data = f.read()
+        
+                                if not img_data:
+                                    print(f"❌ No data read from image file: {file_path}")
+                                    continue
+        
+                                print(f"   ✅ Read {len(img_data)} bytes from image file")
+        
+        # Determine the correct MIME subtype
+                                subtype_map = {
+                                    '.png': 'png',
+                                    '.jpg': 'jpeg',
+                                    '.jpeg': 'jpeg',
+                                    '.gif': 'gif',
+                                    '.bmp': 'bmp',
+                                    '.webp': 'webp'
+                                    }
+                                subtype = subtype_map.get(file_ext.lower(), 'png')
+        
+                                image = MIMEImage(img_data, _subtype=subtype)
+                                image.add_header("Content-Disposition", f"attachment; filename={file_name}")
+                                image.add_header('Content-ID', f'<{file_name}>')
+        
+                                message.attach(image)
+                                attachment_count += 1
+                                print(f"✅ Successfully attached image: {file_name} (type: {subtype}, size: {len(img_data)} bytes)")
+        
+                            except Exception as img_error:
+                                print(f"❌ Failed to attach image {file_name}: {str(img_error)}")
+                                print(f"   File path: {file_path}")
+                                print(f"   File exists: {os.path.exists(file_path)}")
+                                continue
+
                         elif file_ext in ['.pdf', '.docx', '.xlsx', '.json', '.txt', '.csv']:
                             # Document attachments
-                            with open(file_path, "rb") as f:
-                                file_data = f.read()
-                            
-                            if mime_type:
-                                part = MIMEBase(*mime_type.split('/'))
-                                part.set_payload(file_data)
-                                encoders.encode_base64(part)
-                            else:
-                                part = MIMEApplication(file_data)
-                            
+                            try:
+                                with open(file_path, "rb") as f:
+                                    file_data = f.read()
+                                
+                                if mime_type:
+                                    part = MIMEBase(*mime_type.split('/'))
+                                    part.set_payload(file_data)
+                                    encoders.encode_base64(part)
+                                else:
+                                    part = MIMEApplication(file_data)
+                                
+                                part.add_header("Content-Disposition", f"attachment; filename={file_name}")
+                                message.attach(part)
+                                attachment_count += 1
+                                print(f"📎 Attached document: {file_name}")
+                                
+                            except Exception as doc_error:
+                                print(f"❌ Failed to attach document {file_name}: {str(doc_error)}")
+                                continue
 
-                            part.add_header("Content-Disposition", f"attachment; filename={file_name}")
-                            message.attach(part)
-                            print(f"📎 Attached document: {file_name}")
-                            
                         else:
                             # Generic file attachment
-                            with open(file_path, "rb") as f:
-                                file_data = f.read()
-                            part = MIMEApplication(file_data)
-                            part.add_header("Content-Disposition", f"attachment; filename={file_name}")
-                            message.attach(part)
-                            print(f"📎 Attached file: {file_name}")
+                            try:
+                                with open(file_path, "rb") as f:
+                                    file_data = f.read()
+                                
+                                part = MIMEApplication(file_data)
+                                part.add_header("Content-Disposition", f"attachment; filename={file_name}")
+                                message.attach(part)
+                                print(f"✅ Successfully attached file: {file_name}")
+                                attachment_count += 1
+                                
+                            except Exception as file_error:
+                                print(f"❌ Failed to attach file {file_name}: {str(file_error)}")
+                                continue
                         
-                        attachment_count += 1
                     else:
                         print(f"⚠️ Attachment file not found: {file_path}")
                         
@@ -171,7 +235,7 @@ async def run_email_node(email_data):
                     print(f"🔗 URL attachment referenced in body: {attachment.get('url')}")
                     
             except Exception as e:
-                print(f"⚠️ Failed to attach file {attachment.get('name', 'unknown')}: {str(e)}")
+                print(f"⚠️ Failed to process attachment {attachment.get('name', 'unknown')}: {str(e)}")
                 continue
         
         # Prepare recipient list for SMTP

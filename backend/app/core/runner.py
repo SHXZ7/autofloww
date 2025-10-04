@@ -19,7 +19,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-# Import models
+# Import models - FIXED: Use relative imports
 from ..models.workflow import Node, Edge, Workflow
 
 # Import services
@@ -42,9 +42,9 @@ except ImportError:
     async def get_user_api_manager(user_id: str):
         return None
 
-# Import database operations
-from app.database.user_operations import get_user_by_id, update_user_stats
-from app.database.workflow_operations import save_execution_history
+# Import database operations - FIXED: Use relative imports
+from ..database.user_operations import get_user_by_id, update_user_stats
+from ..database.workflow_operations import save_execution_history
 
 
 @dataclass

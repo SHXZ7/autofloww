@@ -111,10 +111,13 @@ scheduler.start()
 # Store workflows temporarily (in production, use a database)
 stored_workflows: Dict[str, Workflow] = {}
 
-# Create uploads directory if it doesn't exist
-UPLOAD_DIR = "uploads"
-REPORTS_DIR = "generated_reports"
-IMAGES_DIR = "generated_images"
+# File directories - Use /tmp for cloud deployment compatibility
+BASE_DIR = "/tmp"
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+REPORTS_DIR = os.path.join(BASE_DIR, "generated_reports")
+IMAGES_DIR = os.path.join(BASE_DIR, "generated_images")
+
+# Create directories if they don't exist
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(REPORTS_DIR, exist_ok=True)
 os.makedirs(IMAGES_DIR, exist_ok=True)

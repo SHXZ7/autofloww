@@ -5,8 +5,11 @@ import httpx
 import asyncio
 from typing import Dict, Any
 
-# Create images directory
-IMAGES_DIR = "generated_images"
+# File directories - Use /tmp for cloud deployment compatibility
+BASE_DIR = "/tmp"
+IMAGES_DIR = os.path.join(BASE_DIR, "generated_images")
+
+# Create directory if it doesn't exist
 os.makedirs(IMAGES_DIR, exist_ok=True)
 
 async def generate_openai_image(prompt: str, size: str = "1024x1024", quality: str = "standard") -> str:

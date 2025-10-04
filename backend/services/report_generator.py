@@ -33,10 +33,11 @@ try:
 except ImportError:
     DOCX_AVAILABLE = False
 
-OUTPUT_DIR = "generated_reports"
+# File directories - Use /tmp for cloud deployment compatibility
+BASE_DIR = "/tmp"
+OUTPUT_DIR = os.path.join(BASE_DIR, "generated_reports")
+
 # Ensure directory exists with absolute path
-if not os.path.isabs(OUTPUT_DIR):
-    OUTPUT_DIR = os.path.join(os.getcwd(), OUTPUT_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 class ReportStyles:

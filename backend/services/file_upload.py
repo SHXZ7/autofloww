@@ -185,8 +185,9 @@ async def download_from_drive(file_id: str, custom_filename: str = None) -> str:
             mime_type = None
             print(f"📄 Using fallback filename: {file_name}")
         
-        # Create downloads directory with timestamp subdirectory
-        downloads_dir = "downloads"
+        # Create downloads directory with timestamp subdirectory - Use /tmp for cloud deployment
+        BASE_DIR = "/tmp"
+        downloads_dir = os.path.join(BASE_DIR, "downloads")
         timestamp_dir = os.path.join(downloads_dir, datetime.now().strftime('%Y%m%d'))
         os.makedirs(timestamp_dir, exist_ok=True)
         
@@ -455,5 +456,5 @@ async def cleanup_old_downloads(days_old: int = 7) -> dict:
             "success": False,
             "error": f"Cleanup failed: {str(e)}"
         }
-        
-        
+
+

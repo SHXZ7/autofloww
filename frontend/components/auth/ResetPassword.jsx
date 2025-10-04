@@ -7,7 +7,7 @@ export default function ResetPassword() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-  const API_BASE_URL =  "http://localhost:8000"
+  const API_BASE_URL =  "https://autoflow-backend-pl6h.onrender.com/"
 
   
   const [formData, setFormData] = useState({

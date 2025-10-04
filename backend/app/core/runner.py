@@ -19,7 +19,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-# Import models - FIXED: Use relative imports
+# Import models
 from ..models.workflow import Node, Edge, Workflow
 
 # Import services
@@ -34,31 +34,18 @@ from services.discord import run_discord_node
 from services.report_generator import run_report_generator_node
 from services.social_media import run_social_media_node
 
-# Fix the import path for API manager with better error handling
+# Fix the import path for API manager
 try:
     from services.api_key_manager import get_user_api_manager
-except ImportError as e:
-    print(f"⚠️ Warning: Could not import API key manager: {str(e)}")
+except ImportError:
     # Fallback for deployment contexts
     async def get_user_api_manager(user_id: str):
-        print(f"⚠️ Using fallback API manager for user {user_id}")
         return None
 
-# Import database operations - FIXED: Use relative imports with error handling
-try:
-    from ..database.user_operations import get_user_by_id, update_user_stats
-    from ..database.workflow_operations import save_execution_history
-except ImportError as e:
-    print(f"⚠️ Warning: Could not import database operations: {str(e)}")
-    # Create fallback functions
-    async def get_user_by_id(user_id: str):
-        return None
-    
-    async def update_user_stats(user_id: str, stats: dict):
-        return False
-    
-    async def save_execution_history(user_id: str, workflow_id: str, nodes: list, edges: list, result: dict):
-        return "fallback_execution_id"
+# Import database operations
+from app.database.user_operations import get_user_by_id, update_user_stats
+from app.database.workflow_operations import save_execution_history
+
 
 @dataclass
 class NodeExecutionContext:

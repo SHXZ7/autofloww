@@ -1,8 +1,0 @@
-sdk: "other"
-app_file: "app.py"  # This must match the root file you just created
-title: "Autoflow"
-emoji: "📈"
-colorFrom: "green"
-colorTo: "gray"
-pinned: false
-license: "mit"

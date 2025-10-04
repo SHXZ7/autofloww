@@ -8,7 +8,7 @@ export default function ForgotPassword({ onBack }) {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
 
-  const API_BASE_URL =  "http://localhost:8000"
+  const API_BASE_URL =  "https://autoflow-backend-pl6h.onrender.com/"
 
 
   const handleSubmit = async (e) => {

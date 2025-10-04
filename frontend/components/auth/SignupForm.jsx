@@ -13,7 +13,7 @@ export default function SignupForm({ onSwitchToLogin }) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const { signup, loading, error, clearError } = useAuthStore()
-  const API_BASE_URL =  "http://localhost:8000"
+  const API_BASE_URL =  "https://autoflow-backend-pl6h.onrender.com/"
 
 
   const handleSubmit = async (e) => {

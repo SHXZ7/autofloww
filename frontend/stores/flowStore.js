@@ -2,7 +2,7 @@
 import { create } from "zustand"
 import { nanoid } from "nanoid"
 
-  const API_BASE_URL = "http://localhost:8000"
+  const API_BASE_URL ="https://autoflow-backend-pl6h.onrender.com/"
 
 export const useFlowStore = create((set, get) => ({
   nodes: [],

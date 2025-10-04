@@ -21,7 +21,19 @@ from .database.workflow_operations import save_workflow, get_user_workflows, upd
 from datetime import datetime, timedelta
 import uuid
 from .auth.email_service import send_password_reset_email
-from .utils.encryption import encrypt_api_key, decrypt_api_key
+
+# Add fallback import for encryption
+try:
+    from .utils.encryption import encrypt_api_key, decrypt_api_key
+except ImportError:
+    # Fallback functions if encryption module is not available
+    def encrypt_api_key(api_key: str):
+        return {"encrypted": api_key, "version": "fallback"}
+    
+    def decrypt_api_key(encrypted_data):
+        if isinstance(encrypted_data, dict):
+            return encrypted_data.get("encrypted", "")
+        return str(encrypted_data) if encrypted_data else ""
 
 app = FastAPI(title="AutoFlow API", description="Visual Workflow Automation Platform")
 

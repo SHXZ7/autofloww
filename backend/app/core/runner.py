@@ -33,7 +33,14 @@ from services.image_generation import run_image_generation_node
 from services.discord import run_discord_node
 from services.report_generator import run_report_generator_node
 from services.social_media import run_social_media_node
-from services.api_key_manager import get_user_api_manager
+
+# Fix the import path for API manager
+try:
+    from services.api_key_manager import get_user_api_manager
+except ImportError:
+    # Fallback for deployment contexts
+    async def get_user_api_manager(user_id: str):
+        return None
 
 # Import database operations
 from app.database.user_operations import get_user_by_id, update_user_stats

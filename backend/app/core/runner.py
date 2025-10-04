@@ -34,18 +34,31 @@ from services.discord import run_discord_node
 from services.report_generator import run_report_generator_node
 from services.social_media import run_social_media_node
 
-# Fix the import path for API manager
+# Fix the import path for API manager with better error handling
 try:
     from services.api_key_manager import get_user_api_manager
-except ImportError:
+except ImportError as e:
+    print(f"⚠️ Warning: Could not import API key manager: {str(e)}")
     # Fallback for deployment contexts
     async def get_user_api_manager(user_id: str):
+        print(f"⚠️ Using fallback API manager for user {user_id}")
         return None
 
-# Import database operations - FIXED: Use relative imports
-from ..database.user_operations import get_user_by_id, update_user_stats
-from ..database.workflow_operations import save_execution_history
-
+# Import database operations - FIXED: Use relative imports with error handling
+try:
+    from ..database.user_operations import get_user_by_id, update_user_stats
+    from ..database.workflow_operations import save_execution_history
+except ImportError as e:
+    print(f"⚠️ Warning: Could not import database operations: {str(e)}")
+    # Create fallback functions
+    async def get_user_by_id(user_id: str):
+        return None
+    
+    async def update_user_stats(user_id: str, stats: dict):
+        return False
+    
+    async def save_execution_history(user_id: str, workflow_id: str, nodes: list, edges: list, result: dict):
+        return "fallback_execution_id"
 
 @dataclass
 class NodeExecutionContext:

@@ -2,8 +2,8 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
-from app.database.connection import get_database, db
-from app.auth.auth import hash_password
+from .connection import get_database, db
+from ..auth.auth import hash_password
 
 async def create_user(user_data: Dict[str, Any]) -> Dict[str, Any]:
     """Create a new user in MongoDB"""

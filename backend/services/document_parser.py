@@ -48,8 +48,11 @@ except ImportError:
 # JSON parsing (built-in)
 import json as json_lib
 
+# File directories - Use /tmp for cloud deployment compatibility
+BASE_DIR = "/tmp"
+PARSED_DIR = os.path.join(BASE_DIR, "parsed_documents")
+
 # Create output directory for parsed documents
-PARSED_DIR = "parsed_documents"
 os.makedirs(PARSED_DIR, exist_ok=True)
 
 async def parse_pdf(file_path: str) -> Dict[str, Any]:

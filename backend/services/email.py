@@ -7,7 +7,10 @@ from email.mime.application import MIMEApplication
 from email.mime.base import MIMEBase
 from email import encoders
 import mimetypes
+import socket
+import ssl
 from typing import List, Dict, Any
+import asyncio
 
 async def run_email_node(email_data):
     try:
@@ -16,6 +19,12 @@ async def run_email_node(email_data):
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
         email_user = os.getenv("EMAIL_USER")
         email_password = os.getenv("EMAIL_PASSWORD")
+        
+        print(f"📧 Email Configuration Check:")
+        print(f"   SMTP Server: {smtp_server}")
+        print(f"   SMTP Port: {smtp_port}")
+        print(f"   Email User: {email_user[:10]}..." if email_user else "   Email User: Not configured")
+        print(f"   Password: {'*' * len(email_password) if email_password else 'Not configured'}")
         
         if not email_user or not email_password:
             return "Error: Email credentials not configured. Please set EMAIL_USER and EMAIL_PASSWORD environment variables"
@@ -118,7 +127,6 @@ async def run_email_node(email_data):
         for attachment in attachments:
             try:
                 if attachment.get("type") == "file" and "path" in attachment:
-                    # Attach actual file (like generated images, reports, or JSON files)
                     file_path = attachment["path"]
                     if os.path.exists(file_path):
                         file_name = attachment.get("name", os.path.basename(file_path))
@@ -128,69 +136,28 @@ async def run_email_node(email_data):
                         mime_type, _ = mimetypes.guess_type(file_path)
                         
                         print(f"📎 Processing attachment: {file_name}")
-                        print(f"   Path: {file_path}")
-                        print(f"   Extension: {file_ext}")
-                        print(f"   MIME type: {mime_type}")
-                        print(f"   File size: {os.path.getsize(file_path) / 1024:.1f} KB")
                         
                         if file_ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp']:
-    # Image attachment - Enhanced handling
                             try:
-                                print(f"🖼️ Processing image attachment: {file_name}")
-                                print(f"   📂 Full path: {file_path}")
-        
-        # Verify file exists and is readable
-                                if not os.path.exists(file_path):
-                                    print(f"❌ Image file not found: {file_path}")
-                                    continue
-            
-                                if not os.access(file_path, os.R_OK):
-                                    print(f"❌ Permission denied accessing image: {file_path}")
-                                    continue
-        
-                                file_size = os.path.getsize(file_path)
-                                print(f"   📏 File size: {file_size} bytes")
-        
-                                if file_size == 0:
-                                    print(f"❌ Image file is empty: {file_path}")
-                                    continue
-        
                                 with open(file_path, "rb") as f:
                                     img_data = f.read()
-        
-                                if not img_data:
-                                    print(f"❌ No data read from image file: {file_path}")
-                                    continue
-        
-                                print(f"   ✅ Read {len(img_data)} bytes from image file")
-        
-        # Determine the correct MIME subtype
+                                
                                 subtype_map = {
-                                    '.png': 'png',
-                                    '.jpg': 'jpeg',
-                                    '.jpeg': 'jpeg',
-                                    '.gif': 'gif',
-                                    '.bmp': 'bmp',
-                                    '.webp': 'webp'
-                                    }
+                                    '.png': 'png', '.jpg': 'jpeg', '.jpeg': 'jpeg',
+                                    '.gif': 'gif', '.bmp': 'bmp', '.webp': 'webp'
+                                }
                                 subtype = subtype_map.get(file_ext.lower(), 'png')
-        
+                                
                                 image = MIMEImage(img_data, _subtype=subtype)
                                 image.add_header("Content-Disposition", f"attachment; filename={file_name}")
-                                image.add_header('Content-ID', f'<{file_name}>')
-        
                                 message.attach(image)
                                 attachment_count += 1
-                                print(f"✅ Successfully attached image: {file_name} (type: {subtype}, size: {len(img_data)} bytes)")
-        
+                                print(f"✅ Successfully attached image: {file_name}")
                             except Exception as img_error:
                                 print(f"❌ Failed to attach image {file_name}: {str(img_error)}")
-                                print(f"   File path: {file_path}")
-                                print(f"   File exists: {os.path.exists(file_path)}")
                                 continue
-
+                        
                         elif file_ext in ['.pdf', '.docx', '.xlsx', '.json', '.txt', '.csv']:
-                            # Document attachments
                             try:
                                 with open(file_path, "rb") as f:
                                     file_data = f.read()
@@ -206,36 +173,15 @@ async def run_email_node(email_data):
                                 message.attach(part)
                                 attachment_count += 1
                                 print(f"📎 Attached document: {file_name}")
-                                
                             except Exception as doc_error:
                                 print(f"❌ Failed to attach document {file_name}: {str(doc_error)}")
-                                continue
-
-                        else:
-                            # Generic file attachment
-                            try:
-                                with open(file_path, "rb") as f:
-                                    file_data = f.read()
-                                
-                                part = MIMEApplication(file_data)
-                                part.add_header("Content-Disposition", f"attachment; filename={file_name}")
-                                message.attach(part)
-                                print(f"✅ Successfully attached file: {file_name}")
-                                attachment_count += 1
-                                
-                            except Exception as file_error:
-                                print(f"❌ Failed to attach file {file_name}: {str(file_error)}")
                                 continue
                         
                     else:
                         print(f"⚠️ Attachment file not found: {file_path}")
                         
-                elif attachment.get("type") == "url" and attachment.get("url"):
-                    # For URL attachments, just mention in body (already added above)
-                    print(f"🔗 URL attachment referenced in body: {attachment.get('url')}")
-                    
             except Exception as e:
-                print(f"⚠️ Failed to process attachment {attachment.get('name', 'unknown')}: {str(e)}")
+                print(f"⚠️ Failed to process attachment: {str(e)}")
                 continue
         
         # Prepare recipient list for SMTP
@@ -245,42 +191,162 @@ async def run_email_node(email_data):
         if bcc_email:
             recipients.append(bcc_email)
         
-        # Send email with enhanced error handling
-        print("🔌 Connecting to SMTP server...")
+        # RENDER-SPECIFIC EMAIL SENDING (Simplified approach)
+        print("🔌 Connecting to SMTP server for Render deployment...")
+        
         try:
-            with smtplib.SMTP(smtp_server, smtp_port) as server:
+            # Use a single, reliable connection method for Render
+            print("🔄 Using optimized SMTP connection for Render...")
+            
+            # Create SSL context for better compatibility
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            
+            # Connect using STARTTLS (most compatible with Render)
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=60) as server:
+                print("🔌 Connected to SMTP server")
+                
+                # Enable debug for troubleshooting
+                server.set_debuglevel(1)
+                
                 print("🔐 Starting TLS...")
-                server.starttls()
+                server.starttls(context=context)
+                print("✅ TLS started successfully")
+                
                 print("🔐 Logging in...")
                 server.login(email_user, email_password)
+                print("✅ Login successful")
+                
                 print("📤 Sending message...")
                 server.send_message(message, to_addrs=recipients)
                 print("✅ Email sent successfully!")
                 
-        except smtplib.SMTPAuthenticationError:
-            return "Error: Email authentication failed. Please check your email credentials"
-        except smtplib.SMTPRecipientsRefused:
-            return f"Error: Email recipient '{to_email}' was refused by the server"
-        except smtplib.SMTPServerDisconnected:
-            return "Error: SMTP server disconnected unexpectedly"
-        except smtplib.SMTPException as e:
-            return f"Error: SMTP error occurred: {str(e)}"
-        
-        # Build success message
-        success_msg = f"Email sent successfully to {to_email}"
-        if cc_email:
-            success_msg += f" (CC: {cc_email})"
-        if bcc_email:
-            success_msg += f" (BCC: {bcc_email})"
-        if attachment_count > 0:
-            success_msg += f" with {attachment_count} attachment(s)"
-        
-        return success_msg
+                # Build success message
+                success_msg = f"Email sent successfully to {to_email}"
+                if cc_email:
+                    success_msg += f" (CC: {cc_email})"
+                if bcc_email:
+                    success_msg += f" (BCC: {bcc_email})"
+                if attachment_count > 0:
+                    success_msg += f" with {attachment_count} attachment(s)"
+                success_msg += " from Render"
+                
+                return success_msg
+                
+        except smtplib.SMTPAuthenticationError as e:
+            error_msg = f"Gmail authentication failed: {str(e)}"
+            print(f"❌ {error_msg}")
+            print("💡 Check your Gmail App Password:")
+            print("   1. Go to Google Account settings")
+            print("   2. Security > 2-Step Verification")
+            print("   3. App passwords > Generate new app password")
+            print("   4. Use the generated password in EMAIL_PASSWORD")
+            return f"Error: {error_msg}"
+            
+        except smtplib.SMTPRecipientsRefused as e:
+            error_msg = f"Recipients refused: {str(e)}"
+            print(f"❌ {error_msg}")
+            return f"Error: Email recipient '{to_email}' was refused by Gmail: {str(e)}"
+            
+        except smtplib.SMTPServerDisconnected as e:
+            error_msg = f"Gmail server disconnected: {str(e)}"
+            print(f"❌ {error_msg}")
+            return f"Error: Gmail server disconnected: {str(e)}"
+            
+        except smtplib.SMTPConnectError as e:
+            error_msg = f"Cannot connect to Gmail: {str(e)}"
+            print(f"❌ {error_msg}")
+            return f"Error: Cannot connect to Gmail SMTP server: {str(e)}"
+            
+        except socket.timeout as e:
+            error_msg = f"Gmail connection timeout: {str(e)}"
+            print(f"❌ {error_msg}")
+            return f"Error: Gmail connection timeout. This may be a Render network issue."
+            
+        except OSError as e:
+            if e.errno == 101:  # Network is unreachable
+                error_msg = f"Network unreachable from Render: {str(e)}"
+                print(f"❌ {error_msg}")
+                return f"Error: Network unreachable from Render. Check if Render can access external SMTP servers."
+            else:
+                error_msg = f"OS error on Render: {str(e)}"
+                print(f"❌ {error_msg}")
+                return f"Error: System error on Render - {str(e)}"
+                    
+        except Exception as e:
+            error_msg = f"Unexpected Gmail error: {str(e)}"
+            print(f"❌ {error_msg}")
+            return f"Error: Unexpected error - {str(e)}"
         
     except Exception as e:
         error_msg = f"Email failed: {str(e)}"
         print(f"❌ {error_msg}")
         return error_msg
+
+# Helper function to validate email format
+def is_valid_email(email: str) -> bool:
+    """Basic email validation"""
+    if not email or "@" not in email:
+        return False
+    
+    parts = email.split("@")
+    if len(parts) != 2:
+        return False
+    
+    local, domain = parts
+    if not local or not domain or "." not in domain:
+        return False
+    
+    return True
+
+# Helper function to get email configuration status
+def get_email_config_status():
+    """Check email configuration status"""
+    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = os.getenv("SMTP_PORT", "587")
+    email_user = os.getenv("EMAIL_USER")
+    email_password = os.getenv("EMAIL_PASSWORD")
+    
+    return {
+        "smtp_server": smtp_server,
+        "smtp_port": smtp_port,
+        "email_configured": bool(email_user and email_password),
+        "email_user": email_user if email_user else "Not configured"
+    }
+
+# Test function for email service
+async def test_email_service(to_email: str = None):
+    """Test email service with a simple message"""
+    if not to_email:
+        print("❌ Please provide a test email address")
+        return False
+    
+    test_data = {
+        "to": to_email,
+        "subject": "AutoFlow Email Service Test",
+        "body": """
+        🎉 Email Service Test
+
+        This is a test email from AutoFlow to verify that the email service is working correctly.
+
+        If you receive this email, the service is configured properly!
+
+        Best regards,
+        AutoFlow Team
+        """,
+        "attachments": []
+    }
+    
+    print(f"🧪 Testing email service with recipient: {to_email}")
+    result = await run_email_node(test_data)
+    
+    if "successfully" in result:
+        print("✅ Email service test passed!")
+        return True
+    else:
+        print(f"❌ Email service test failed: {result}")
+        return False
 
 # Helper function to validate email format
 def is_valid_email(email: str) -> bool:

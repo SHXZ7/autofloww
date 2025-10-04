@@ -3,9 +3,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict
 from dotenv import load_dotenv
-from app.models.workflow import Node, Edge, Workflow
-from app.models.webhook import WebhookTrigger
-from app.core.runner import run_workflow_engine
+from .models.workflow import Node, Edge, Workflow
+from .models.webhook import WebhookTrigger
+from .core.runner import run_workflow_engine
 from fastapi.middleware.cors import CORSMiddleware
 from services.scheduler import schedule_workflow
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -13,17 +13,15 @@ from apscheduler.triggers.cron import CronTrigger
 import time
 import os
 import shutil
-from app.models.user import UserCreate, UserLogin, User, UserResponse
-from app.auth.auth import hash_password, verify_password, create_access_token, get_current_user
-from app.database.connection import connect_to_mongo, close_mongo_connection, db
-from app.database.user_operations import create_user, get_user_by_email, get_user_by_id, update_user_stats, update_last_login, update_user
-from app.database.workflow_operations import save_workflow, get_user_workflows, update_workflow, delete_workflow, save_execution_history
+from .models.user import UserCreate, UserLogin, User, UserResponse
+from .auth.auth import hash_password, verify_password, create_access_token, get_current_user
+from .database.connection import connect_to_mongo, close_mongo_connection, db
+from .database.user_operations import create_user, get_user_by_email, get_user_by_id, update_user_stats, update_last_login, update_user
+from .database.workflow_operations import save_workflow, get_user_workflows, update_workflow, delete_workflow, save_execution_history
 from datetime import datetime, timedelta
 import uuid
-from app.auth.email_service import send_password_reset_email
-from app.utils.encryption import encrypt_api_key, decrypt_api_key
-
-load_dotenv()
+from .auth.email_service import send_password_reset_email
+from .utils.encryption import encrypt_api_key, decrypt_api_key
 
 app = FastAPI(title="AutoFlow API", description="Visual Workflow Automation Platform")
 
@@ -1012,5 +1010,7 @@ async def get_decrypted_api_key(
     except HTTPException:
         raise
     except Exception as e:
+        print(f"❌ Decrypt API key error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to decrypt API key")
         print(f"❌ Decrypt API key error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to decrypt API key")

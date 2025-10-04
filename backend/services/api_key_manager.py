@@ -35,6 +35,24 @@ class UserAPIManager:
             self._user_data = await get_user_by_id(self.user_id)
         return self._user_data
     
+    async def get_api_key(self, key: str) -> Optional[str]:
+        """Get a specific API key by name"""
+        try:
+            user = await self._get_user_data()
+            if not user:
+                return None
+            
+            api_keys = user.get("api_keys", {})
+            encrypted_key = api_keys.get(key)
+            
+            if encrypted_key:
+                return decrypt_api_key(encrypted_key)
+            
+            return None
+        except Exception as e:
+            print(f"Error getting API key {key}: {str(e)}")
+            return None
+    
     async def get_openai_key(self) -> Optional[str]:
         """Get OpenAI API key for the user"""
         try:
@@ -110,16 +128,9 @@ class UserAPIManager:
         except Exception as e:
             print(f"Error getting Discord webhook: {str(e)}")
             return os.getenv("SOCIAL_MEDIA_TEST_WEBHOOK")
-
-async def get_user_api_manager(user_id: str) -> Optional[UserAPIManager]:
-    """Get API manager for a user"""
-    if not user_id:
-        return None
-    
-    return UserAPIManager(user_id)
     
     async def validate_service_keys(self, service: str) -> bool:
-        """Validate if required keys are available for a service"""
+        """Validate if all required keys for a service are available"""
         validation_map = {
             "openai": ["openai"],
             "openrouter": ["openrouter"],
@@ -142,6 +153,12 @@ async def get_user_api_manager(user_id: str) -> Optional[UserAPIManager]:
         
         return True
 
-async def get_user_api_manager(user_id: str) -> APIKeyManager:
-    """Factory function to create APIKeyManager for a user"""
-    return APIKeyManager(user_id)
+# Type alias for backward compatibility
+APIKeyManager = UserAPIManager
+
+async def get_user_api_manager(user_id: str) -> Optional[UserAPIManager]:
+    """Factory function to create UserAPIManager for a user"""
+    if not user_id:
+        return None
+    
+    return UserAPIManager(user_id)

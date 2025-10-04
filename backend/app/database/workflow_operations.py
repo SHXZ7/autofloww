@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from bson import ObjectId
-from .connection import get_database, db
+from app.database.connection import get_database, db
 
 async def save_workflow(user_id: str, workflow_name: str, nodes: List[Dict], edges: List[Dict]) -> str:
     """Save a workflow to MongoDB"""

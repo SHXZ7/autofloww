@@ -5,7 +5,7 @@ from apscheduler.triggers.date import DateTrigger
 from datetime import datetime, timedelta
 import asyncio
 from typing import Dict, Any, List
-from app.core.runner import run_workflow_engine  
+from backend.app.core.runner import run_workflow_engine  
 
 # Global scheduler instance
 scheduler = BackgroundScheduler()

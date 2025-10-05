@@ -63,7 +63,7 @@ async def startup_event():
 
 async def create_test_data():
     """Create some test data when running in memory mode"""
-    from app.auth.auth import hash_password
+    from .auth import hash_password
     
     # Create test user
     test_user = {

@@ -43,8 +43,8 @@ except ImportError:
         return None
 
 # Import database operations
-from app.database.user_operations import get_user_by_id, update_user_stats
-from app.database.workflow_operations import save_execution_history
+from ..database.user_operations import get_user_by_id, update_user_stats
+from ..database.workflow_operations import save_execution_history
 
 
 @dataclass

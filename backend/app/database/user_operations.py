@@ -2,8 +2,8 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
-from backend.app.database.connection import get_database, db
-from backend.app.auth.auth import hash_password
+from .connection import get_database, db
+from ..auth.auth import hash_password
 
 async def create_user(user_data: Dict[str, Any]) -> Dict[str, Any]:
     """Create a new user in MongoDB"""
@@ -138,32 +138,6 @@ async def update_user_stats(user_id: str, stats: Dict[str, Any]) -> bool:
         print(f"❌ Error updating user stats: {str(e)}")
         return False
 
-async def update_last_login(user_id: str) -> bool:
-    """Update user's last login timestamp"""
-    try:
-        database = get_database()
-        users_collection = database.users
-        
-        # Handle both MongoDB ObjectId and in-memory string ID
-        if db.in_memory_mode:
-            query = {"_id": user_id}
-        else:
-            query = {"_id": ObjectId(user_id)}
-        
-        result = await users_collection.update_one(
-            query,
-            {"$set": {
-                "profile.last_login": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
-            }}
-        )
-        
-        return result.modified_count > 0
-        
-    except Exception as e:
-        print(f"❌ Error updating last login: {str(e)}")
-        return False
-
 async def deactivate_user(user_id: str) -> bool:
     """Deactivate a user account"""
     try:
@@ -189,6 +163,34 @@ async def deactivate_user(user_id: str) -> bool:
         print(f"❌ Error deactivating user: {str(e)}")
         return False
 
+async def update_last_login(user_id: str) -> bool:
+    """Update user's last login timestamp"""
+    try:
+        database = get_database()
+        users_collection = database.users
+        
+        # Handle both MongoDB ObjectId and in-memory string ID
+        if db.in_memory_mode:
+            query = {"_id": user_id}
+        else:
+            if not ObjectId.is_valid(user_id):
+                return False
+            query = {"_id": ObjectId(user_id)}
+        
+        result = await users_collection.update_one(
+            query,
+            {"$set": {
+                "profile.last_login": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        
+        return result.modified_count > 0
+        
+    except Exception as e:
+        print(f"❌ Error updating last login: {str(e)}")
+        return False
+
 # Get total number of users
 async def get_user_count() -> int:
     """Get total number of users"""
@@ -200,8 +202,6 @@ async def get_user_count() -> int:
     except Exception as e:
         print(f"❌ Error getting user count: {str(e)}")
         return 0
-
-
 # Deactivate a user by ID
 async def deactivate_user(user_id: str) -> bool:
     """Deactivate a user (set is_active = False)"""

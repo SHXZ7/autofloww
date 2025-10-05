@@ -2,7 +2,7 @@
 import { create } from "zustand"
 import { nanoid } from "nanoid"
 
-  const API_BASE_URL ="https://autoflow-backend-pl6h.onrender.com/"
+  const API_BASE_URL = "https://shxz7-autoflow.hf.space"
 
 export const useFlowStore = create((set, get) => ({
   nodes: [],

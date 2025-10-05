@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
-  const API_BASE_URL =  "https://autoflow-backend-pl6h.onrender.com/"
+  const API_BASE_URL = "https://shxz7-autoflow.hf.space"
 
 export const useAuthStore = create(
   persist(

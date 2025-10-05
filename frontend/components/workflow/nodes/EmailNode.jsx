@@ -6,7 +6,7 @@ import Select from "react-select"
 import AsyncSelect from "react-select/async"
 import { toast } from "react-hot-toast"
 
-const API_BASE_URL = "https://autoflow-backend-pl6h.onrender.com/"
+const API_BASE_URL = "https://shxz7-autoflow.hf.space"
 
 
 const EmailNode = ({ node, onChange, isSelected }) => {

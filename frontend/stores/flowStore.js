@@ -2,7 +2,7 @@
 import { create } from "zustand"
 import { nanoid } from "nanoid"
 
-  const API_BASE_URL = "https://shxz7-autoflow.hf.space"
+  const API_BASE_URL = "http://127.0.0.1:8000"
 
 export const useFlowStore = create((set, get) => ({
   nodes: [],
@@ -315,5 +315,21 @@ export const useFlowStore = create((set, get) => ({
       edges: [],
       currentWorkflowId: null
     })
+  },
+
+  loadTemplate: (nodes, edges) => {
+    // Assign clean positions if not provided
+    const positioned = nodes.map((n, i) => ({
+      ...n,
+      position: n.position || { x: 160 + (i % 3) * 220, y: 120 + Math.floor(i / 3) * 200 },
+    }))
+    const styledEdges = (edges || []).map((e, i) => ({
+      ...e,
+      id: e.id || `te_${i}_${e.source}_${e.target}`,
+      markerEnd: { type: 'arrowclosed', color: '#ff6d6d', width: 20, height: 20 },
+      style: { stroke: '#ff6d6d', strokeWidth: 2 },
+      animated: false,
+    }))
+    set({ nodes: positioned, edges: styledEdges, currentWorkflowId: null })
   },
 }))

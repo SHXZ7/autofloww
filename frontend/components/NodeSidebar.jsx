@@ -1,8 +1,8 @@
 "use client"
 import { useFlowStore } from "../stores/flowStore"
 import { useAuthStore } from "../stores/authStore"
-import { useState } from "react"
-import { ChevronDownIcon, ChevronRightIcon, PlayIcon, ListBulletIcon, StopIcon } from "@heroicons/react/24/outline"
+import { useState, useEffect } from "react"
+import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/outline"
 
 
 export default function NodeSidebar() {
@@ -15,8 +15,17 @@ export default function NodeSidebar() {
     integrations: false,
     communication: false,
     automation: false,
+    utilities: false,
   })
-  const API_BASE_URL = "https://shxz7-autoflow.hf.space"
+  const [isLight, setIsLight] = useState(false)
+  useEffect(() => {
+    const update = () => setIsLight(document.documentElement.classList.contains('light'))
+    update()
+    const observer = new MutationObserver(update)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+  const API_BASE_URL = "http://127.0.0.1:8000"
 
   const runWorkflow = async () => {
     try {
@@ -127,184 +136,140 @@ export default function NodeSidebar() {
 
   const nodeCategories = {
     ai: {
-      title: "AI Nodes",
-      icon: "🤖",
+      title: "AI",
+      icon: "/images/ai.png",
+      accent: "#8B5CF6",
       nodes: [
-        { type: "gpt", label: "GPT", icon: "➕", color: "bg-[#00D4FF]" },
-        { type: "llama", label: "Llama", icon: "🦙", color: "bg-[#00D4FF]" },
-        { type: "gemini", label: "Gemini", icon: "💎", color: "bg-[#00D4FF]" },
-        { type: "claude", label: "Claude", icon: "🤖", color: "bg-[#00D4FF]" },
-        { type: "mistral", label: "Mistral", icon: "🌪️", color: "bg-[#00D4FF]" },
+        { type: "gpt",    label: "GPT",    icon: "/images/gpt.png",    color: "bg-[#00D4FF]" },
+        { type: "claude", label: "Claude", icon: "/images/claude.png", color: "bg-[#00D4FF]" },
+        { type: "gemini", label: "Gemini", icon: "/images/gemini.png", color: "bg-[#00D4FF]" },
       ],
     },
     integrations: {
       title: "Integrations",
-      icon: "🔗",
+      icon: "/images/integrations.png",
+      accent: "#3B82F6",
       nodes: [
-        { type: "webhook", label: "Webhook", icon: "🪝", color: "bg-[#FF6B35]" },
+        { type: "webhook", label: "Webhook", icon: "/images/webhook.png", color: "bg-[#FF6B35]" },
         {
           type: "google_sheets",
           label: "Google Sheets",
-          icon: "📊",
+          icon: "/images/google_sheets.png",
           color: "bg-[#FF6B35]",
           config: {
             id: Date.now().toString(),
             type: "google_sheets",
-            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
-            data: {
-              label: "Google Sheets Node",
-              spreadsheet_id: "",
-              range: "Sheet1!A1",
-              values: [],
-            },
+            position: { x: 0, y: 0 },
+            data: { label: "Google Sheets Node", spreadsheet_id: "", range: "Sheet1!A1", values: [] },
           },
         },
         {
           type: "file_upload",
           label: "File Upload",
-          icon: "📁",
+          icon: "/images/file_upload.png",
           color: "bg-[#FF6B35]",
           config: {
             id: Date.now().toString(),
             type: "file_upload",
-            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
-            data: {
-              label: "File Upload Node",
-              path: "",
-              name: "",
-              mime_type: "",
-              service: "google_drive",
-            },
+            position: { x: 0, y: 0 },
+            data: { label: "File Upload Node", path: "", name: "", mime_type: "", service: "google_drive" },
           },
         },
       ],
     },
     communication: {
       title: "Communication",
-      icon: "💬",
+      icon: "/images/communication.png",
+      accent: "#22C55E",
       nodes: [
-        { type: "email", label: "Email", icon: "📧", color: "bg-[#6c5ce7]" },
+        { type: "email", label: "Email", icon: "/images/email.png", color: "bg-[#6c5ce7]" },
         {
           type: "discord",
           label: "Discord",
-          icon: "💬",
+          icon: "/images/discord.png",
           color: "bg-[#6c5ce7]",
           config: {
             id: Date.now().toString(),
             type: "discord",
-            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
-            data: {
-              label: "Discord Node",
-              webhook_url: "",
-              message: "",
-              username: "AutoFlow Bot",
-            },
+            position: { x: 0, y: 0 },
+            data: { label: "Discord Node", webhook_url: "", message: "", username: "AutoFlow Bot" },
           },
         },
         {
           type: "twilio",
-          label: "Twilio",
-          icon: "📱",
+          label: "SMS",
+          icon: "/images/sms.png",
           color: "bg-[#6c5ce7]",
           config: {
             id: Date.now().toString(),
             type: "twilio",
-            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
-            data: {
-              label: "Twilio Node",
-              mode: "whatsapp",
-              to: "",
-              message: "",
-            },
-          },
-        },
-        {
-          type: "social_media",
-          label: "Social Media",
-          icon: "📱",
-          color: "bg-[#6c5ce7]",
-          config: {
-            id: Date.now().toString(),
-            type: "social_media",
-            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
-            data: {
-              label: "Social Media Node",
-              platform: "twitter",
-              content: "🚀 Posted automatically by AutoFlow!",
-              image_path: "",
-              webhook_url: "",
-            },
+            position: { x: 0, y: 0 },
+            data: { label: "SMS Node", mode: "sms", to: "", message: "" },
           },
         },
       ],
     },
     automation: {
       title: "Automation",
-      icon: "⚡",
+      icon: "/images/automation.png",
+      accent: "#F59E0B",
       nodes: [
         {
           type: "schedule",
           label: "Schedule",
-          icon: "⏰",
+          icon: "/images/schedule.png",
           color: "bg-[#9b59b6]",
           config: {
             id: Date.now().toString(),
             type: "schedule",
-            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
-            data: {
-              label: "Schedule Node",
-              cron: "0 9 * * *",
-            },
+            position: { x: 0, y: 0 },
+            data: { label: "Schedule Node", cron: "0 9 * * *" },
           },
         },
         {
-          type: "image_generation",
-          label: "Image Gen",
-          icon: "🎨",
+          type: "delay",
+          label: "Delay",
+          icon: "/images/delay.png",
           color: "bg-[#9b59b6]",
           config: {
             id: Date.now().toString(),
-            type: "image_generation",
-            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
-            data: {
-              label: "Image Generation Node",
-              prompt: "",
-              provider: "openai",
-              size: "1024x1024",
-              quality: "standard",
-            },
+            type: "delay",
+            position: { x: 0, y: 0 },
+            data: { label: "Delay Node", seconds: 5 },
           },
         },
+      ],
+    },
+    utilities: {
+      title: "Utilities",
+      icon: "/images/utilities.png",
+      accent: "#06B6D4",
+      nodes: [
         {
           type: "document_parser",
-          label: "Doc Parser",
-          icon: "📄",
+          label: "Document Parser",
+          icon: "/images/document_parser.png",
           color: "bg-[#1abc9c]",
           config: {
             id: Date.now().toString(),
             type: "document_parser",
-            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
-            data: {
-              label: "Document Parser Node",
-              file_path: "",
-              supported_types: "PDF, Word, Excel, Text",
-            },
+            position: { x: 0, y: 0 },
+            data: { label: "Document Parser Node", file_path: "", supported_types: "PDF, Word, Excel, Text" },
           },
         },
         {
           type: "report_generator",
-          label: "Report Gen",
-          icon: "📊",
+          label: "Report Generator",
+          icon: "/images/report_generator.png",
           color: "bg-[#1abc9c]",
           config: {
             id: Date.now().toString(),
             type: "report_generator",
-            position: { x: 0, y: 0 }, // Will be recalculated in handleAddNode
+            position: { x: 0, y: 0 },
             data: {
               label: "Report Generator Node",
               title: "AutoFlow Report",
-              content:
-                "# Workflow Report\n\nThis report was generated automatically by AutoFlow.\n\n## Summary\n\nWorkflow executed successfully.",
+              content: "# Workflow Report\n\nThis report was generated automatically by AutoFlow.\n\n## Summary\n\nWorkflow executed successfully.",
               format: "pdf",
             },
           },
@@ -322,21 +287,21 @@ export default function NodeSidebar() {
   }, {})
 
   return (
-    <div className="h-full bg-[#0a0a0a] flex flex-col font-['Inter']">
+    <div className="h-full flex flex-col" style={{background: isLight ? '#f8fafc' : '#0f172a', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}>
       <style jsx>{`
         /* Custom scrollbar for webkit browsers */
         ::-webkit-scrollbar {
           width: 6px;
         }
         ::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.05);
+          background: rgba(30, 41, 59, 0.3);
         }
         ::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.2);
+          background: rgba(51, 65, 85, 0.8);
           border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.3);
+          background: rgba(71, 85, 105, 0.9);
         }
         
         /* Glassmorphism effect */
@@ -396,138 +361,104 @@ export default function NodeSidebar() {
         }
       `}</style>
 
-      {/* Header */}
-      <div className="p-4 border-b border-white/10">
-        <div className="flex items-center mb-4">
-          <h1 className="text-xl font-bold gradient-text flex-1">Workflow Nodes</h1>
-          <div className="w-8 h-8 bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">AF</span>
-          </div>
-        </div>
-
-        {/* Search */}
-        <div className="relative mb-4">
-          <input
-            type="text"
-            placeholder="Search nodes..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00D4FF] transition-all duration-200"
-          />
-        </div>
-
-        {/* Model Selection */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-300 mb-2">Default AI Model</label>
-          <select
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] transition-all duration-200"
-          >
-            {availableModels.map((m) => (
-              <option key={m} value={m} className="bg-[#151515]">
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Search */}
+      <div style={{padding:'14px 12px 10px', borderBottom:`1px solid ${isLight ? '#e2e8f0' : '#1e293b'}`, flexShrink:0}}>
+        <input
+          type="text"
+          placeholder="Search nodes…"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            width:'100%', boxSizing:'border-box',
+            background: isLight ? '#ffffff' : '#1e293b',
+            border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
+            borderRadius:'8px', padding:'8px 12px',
+            color: isLight ? '#1e293b' : '#F1F5F9', fontSize:'14px',
+            fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)",
+            outline:'none',
+          }}
+        />
       </div>
 
       {/* Node Categories */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto" style={{padding:'10px', display:'flex', flexDirection:'column', gap:'4px'}}>
         {Object.entries(filteredCategories).map(([key, category]) => (
           <div key={key} className="space-y-2">
             {/* Category Header */}
             <button
               onClick={() => toggleSection(key)}
-              className="w-full flex items-center justify-between p-2 glass rounded-lg transition-all duration-200 group"
+              style={{
+                width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
+                padding:'9px 10px', borderRadius:'8px', border:'none',
+                background: expandedSections[key]
+                  ? (isLight ? 'rgba(226,232,240,0.8)' : 'rgba(30,41,59,0.8)')
+                  : 'transparent',
+                cursor:'pointer', transition:'background 0.12s',
+              }}
+              onMouseEnter={e => { if (!expandedSections[key]) e.currentTarget.style.background = isLight ? 'rgba(226,232,240,0.5)' : 'rgba(30,41,59,0.5)' }}
+              onMouseLeave={e => { if (!expandedSections[key]) e.currentTarget.style.background = 'transparent' }}
             >
-              <div className="flex items-center space-x-2">
-                <span className="text-lg">{category.icon}</span>
-                <span className="text-white font-medium">{category.title}</span>
-                <span className="text-gray-400 text-sm">({category.nodes.length})</span>
+              <div style={{display:'flex', alignItems:'center', gap:'7px'}}>
+                {category.icon.startsWith('/') ? <img src={category.icon} alt="" style={{width:'20px', height:'20px', objectFit:'contain', flexShrink:0}} /> : <span style={{fontSize:'16px'}}>{category.icon}</span>}
+                <span style={{fontSize:'14.5px', fontWeight:'600', color: expandedSections[key] ? (isLight ? '#1e293b' : '#F1F5F9') : (isLight ? '#475569' : '#64748b'), fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}>{category.title}</span>
+                <span style={{fontSize:'12px', color: isLight ? '#94a3b8' : '#475569', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}> ({category.nodes.length})</span>
               </div>
-              {expandedSections[key] ? (
-                <ChevronDownIcon className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
-              ) : (
-                <ChevronRightIcon className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
-              )}
+              {expandedSections[key]
+                ? <ChevronDownIcon style={{width:'15px', height:'15px', color: isLight ? '#64748b' : '#64748b'}} />
+                : <ChevronRightIcon style={{width:'15px', height:'15px', color: isLight ? '#94a3b8' : '#475569'}} />
+              }
             </button>
 
             {/* Category Nodes */}
             {expandedSections[key] && (
-              <div className="space-y-2 pl-2">
-                {category.nodes.map((node) => (
+              <div style={{display:'flex', flexWrap:'wrap', gap:'6px', padding:'6px 4px 8px'}}>
+                {category.nodes.map((node) => {
+                  const accent = category.accent || '#64748b'
+                  return (
                   <button
                     key={node.type}
                     onClick={() => handleAddNode(node.config || node.type)}
                     disabled={isAdding}
-                    className={`w-full node-card flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 ${
-                      isAdding ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
+                    title={node.label}
+                    style={{
+                      display:'flex', alignItems:'center', gap:'6px',
+                      padding:'7px 12px',
+                      borderRadius:'6px',
+                      border:`1px solid ${accent}33`,
+                      background:`${accent}14`,
+                      color: isAdding ? '#334155' : accent,
+                      fontSize:'13.5px', fontWeight:'500',
+                      fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)",
+                      cursor: isAdding ? 'not-allowed' : 'pointer',
+                      transition:'background 0.12s, color 0.12s, border-color 0.12s',
+                      whiteSpace:'nowrap',
+                    }}
+                    onMouseEnter={e => {
+                      if (!isAdding) {
+                        e.currentTarget.style.background = `${accent}28`
+                        e.currentTarget.style.borderColor = `${accent}66`
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = `${accent}14`
+                      e.currentTarget.style.borderColor = `${accent}33`
+                    }}
                   >
-                    <div
-                      className={`w-8 h-8 ${node.color} rounded-lg flex items-center justify-center text-white text-sm font-medium shadow-lg`}
-                    >
-                      {node.icon}
-                    </div>
-                    <div className="flex-1 text-left">
-                      <div className="text-white font-medium">{node.label}</div>
-                      <div className="text-gray-400 text-xs">Add {node.label.toLowerCase()} node</div>
-                    </div>
+                    {node.icon.startsWith('/')
+                      ? <img src={node.icon} alt="" style={{width:'16px', height:'16px', objectFit:'contain', flexShrink:0}} />
+                      : <span style={{fontSize:'15px'}}>{node.icon}</span>
+                    }
+                    {node.label}
                   </button>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
         ))}
       </div>
 
-      {/* Bottom Actions */}
-      <div className="p-4 border-t border-white/10 space-y-3">
-        {/* Run Workflow Button */}
-        <button
-          onClick={runWorkflow}
-          className="w-full bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] hover:opacity-90 text-white font-semibold px-4 py-3 rounded-lg transition-all duration-300 pulse-glow flex items-center justify-center space-x-2"
-        >
-          <PlayIcon className="w-5 h-5" />
-          <span>Run Workflow</span>
-        </button>
 
-        {/* Scheduled Workflows */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-gray-300">Scheduled Workflows</h3>
-
-          <button
-            onClick={listScheduledWorkflows}
-            className="w-full bg-white/5 hover:bg-white/10 text-white px-3 py-2 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
-          >
-            <ListBulletIcon className="w-4 h-4" />
-            <span>List Workflows</span>
-          </button>
-
-          <div className="space-y-2">
-            <div className="glass gradient-border rounded-lg p-3">
-              <input
-                type="text"
-                placeholder="Workflow ID to stop"
-                id="stopWorkflowId"
-                className="w-full bg-transparent border-0 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-0"
-              />
-              <button
-                onClick={() => {
-                  const workflowId = document.getElementById("stopWorkflowId").value
-                  if (workflowId) stopScheduledWorkflow(workflowId)
-                }}
-                className="w-full mt-2 bg-[#FF6B35]/80 hover:bg-[#FF6B35] text-white px-3 py-2 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
-              >
-                <StopIcon className="w-4 h-4" />
-                <span>Stop Workflow</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

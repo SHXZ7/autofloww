@@ -102,10 +102,10 @@ export default function ProfileBar() {
 
   if (loading || !user) {
     return (
-      <div className="flex items-center justify-end p-4 bg-[#0a0a0a] border-b border-white/10">
-        <div className="animate-pulse flex items-center space-x-3">
-          <div className="w-8 h-8 bg-[#333333] rounded-full"></div>
-          <div className="w-24 h-4 bg-[#333333] rounded"></div>
+      <div style={{display:'flex', alignItems:'center', height:'100%', padding:'0 10px'}}>
+        <div className="animate-pulse" style={{display:'flex', alignItems:'center', gap:'8px'}}>
+          <div style={{width:'26px', height:'26px', background:'rgba(255,255,255,0.08)', borderRadius:'50%'}}></div>
+          <div style={{width:'68px', height:'11px', background:'rgba(255,255,255,0.08)', borderRadius:'6px'}}></div>
         </div>
       </div>
     )
@@ -113,43 +113,41 @@ export default function ProfileBar() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Profile Bar */}
-      <div className="bg-[#0a0a0a] border-b border-white/10 px-6 py-3">
-        <div className="flex items-center justify-between">
-          {/* Logo/Brand */}
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">AF</span>
-            </div>
-            <h1 className="text-white font-semibold text-lg gradient-text">AutoFlow</h1>
-          </div>
-
-          {/* Profile Section */}
-          <button
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-all duration-200 group"
-          >
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] rounded-full flex items-center justify-center">
-                <UserCircleIcon className="w-5 h-5 text-white" />
-              </div>
-              <div className="hidden md:block text-left">
-                <div className="text-white text-sm font-medium">{user?.name || "AutoFlow User"}</div>
-                <div className="text-gray-400 text-xs">{currentWorkspace?.name || "My Workspace"}</div>
-              </div>
-            </div>
-            <ChevronDownIcon 
-              className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-                isProfileOpen ? "rotate-180" : ""
-              }`} 
-            />
-          </button>
+      {/* Compact profile button — sits inline inside the unified nav */}
+      <button
+        onClick={() => setIsProfileOpen(!isProfileOpen)}
+        className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.05] transition-all duration-150"
+        style={{border:'none', background:'transparent', cursor:'pointer'}}
+      >
+        <div style={{
+          width:'26px', height:'26px', borderRadius:'50%', flexShrink:0,
+          background:'linear-gradient(135deg, #00D4FF 0%, #FF6B35 100%)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+        }}>
+          <span style={{color:'white', fontWeight:700, fontSize:'11px'}}>
+            {(user?.name || 'A').charAt(0).toUpperCase()}
+          </span>
         </div>
-      </div>
+        <div className="hidden md:flex flex-col items-start" style={{minWidth:0}}>
+          <span style={{color:'#ddd', fontSize:'12.5px', fontWeight:500, lineHeight:'1.25', whiteSpace:'nowrap'}}>
+            {user?.name || "User"}
+          </span>
+          <span style={{color:'#555', fontSize:'10.5px', lineHeight:'1.25', whiteSpace:'nowrap'}}>
+            {currentWorkspace?.name || "Workspace"}
+          </span>
+        </div>
+        <ChevronDownIcon
+          style={{
+            width:'13px', height:'13px', color:'#555', flexShrink:0,
+            transition:'transform 0.18s ease',
+            transform: isProfileOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+          }}
+        />
+      </button>
 
       {/* Profile Dropdown */}
       {isProfileOpen && (
-        <div className="absolute top-full right-6 mt-2 w-80 glass border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute top-full right-0 mt-2 w-80 rounded-xl z-50 overflow-hidden" style={{background:'#0e0e0e', border:'1px solid rgba(255,255,255,0.1)', boxShadow:'0 24px 56px rgba(0,0,0,0.75)'}}>
           <style jsx>{`
             .glass {
               background: rgba(15, 15, 15, 0.95);

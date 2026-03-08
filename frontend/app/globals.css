@@ -2,28 +2,28 @@
 
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #020617;
+  --foreground: #F1F5F9;
 }
 
 :root {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-space-grotesk);
+  --font-mono: var(--font-space-grotesk);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #020617;
+    --foreground: #F1F5F9;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-space-grotesk), -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 @layer utilities {
@@ -81,9 +81,63 @@ body {
   }
 }
 
+/* LogoSlider - CSS Variables & Animations */
+.logo-slider {
+  --speed: 60;
+  --count: 8;
+  --blurs: 8;
+  --blur: 1;
+}
+
+.logo-slider__container {
+  mask: linear-gradient(90deg, transparent, black 15% 85%, transparent);
+  -webkit-mask: linear-gradient(90deg, transparent, black 15% 85%, transparent);
+}
+
+.logo-slider__blur > div {
+  z-index: var(--blur-index);
+  mask: linear-gradient(90deg,
+    transparent calc(var(--blur-index) * calc((100 / var(--blurs)) * 1%)),
+    black calc((var(--blur-index) + 1) * calc((100 / var(--blurs)) * 1%)),
+    black calc((var(--blur-index) + 2) * calc((100 / var(--blurs)) * 1%)),
+    transparent calc((var(--blur-index) + 3) * calc((100 / var(--blurs)) * 1%)));
+  backdrop-filter: blur(calc((var(--blur-index, 0) * var(--blur, 0)) * 1px));
+  -webkit-backdrop-filter: blur(calc((var(--blur-index, 0) * var(--blur, 0)) * 1px));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .logo-slider__track { gap: 0; }
+  .logo-slider__item {
+    --duration: calc(var(--speed) * 1s);
+    --delay: calc((var(--duration) / var(--count)) * (var(--item-index, 0) * -1));
+    --origin-x: calc(((var(--count) - var(--item-index)) + var(--inset, 0)) * 100%);
+    --destination-x: calc((var(--item-index) + 1 + var(--outset, 0)) * -100%);
+    animation: logo-slider-slide var(--duration) var(--delay) infinite linear;
+    translate: var(--origin-x) 0;
+  }
+  @keyframes logo-slider-slide {
+    100% { translate: var(--destination-x) 0; }
+  }
+}
+
+.logo-slider__container[data-direction="right"] .logo-slider__item {
+  animation-direction: reverse;
+}
+
+.logo-slider__container[data-pause-on-hover="true"]:hover .logo-slider__item {
+  animation-play-state: paused;
+}
+
 /* ReactFlow Dark Theme Overrides */
 .react-flow {
   background: #1a1a1a !important;
+}
+
+html.light .react-flow,
+html.light .react-flow__pane,
+html.light .react-flow__background,
+html.light .rf-canvas-bg {
+  background: #f1f5f9 !important;
 }
 
 .react-flow__node {
@@ -245,3 +299,122 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #888888;
 }
+
+/* ===== LIGHT MODE ===== */
+html.light body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+/* ---- App shell: sidebar nav ---- */
+html.light nav[style] {
+  background-color: #ffffff !important;
+  border-right-color: #e2e8f0 !important;
+}
+/* Dividers inside nav */
+html.light nav[style] > div[style*="height: '1px'"],
+html.light nav[style] > div[style*="height:1px"],
+html.light nav[style] > div[style*="borderTop"] {
+  background: #e2e8f0 !important;
+  border-top-color: #e2e8f0 !important;
+}
+
+/* ---- Page backgrounds ---- */
+html.light div[style*="background: #020617"],
+html.light div[style*="background: rgb(2, 6, 23)"],
+html.light div[style*="background-color: #020617"] {
+  background: #f8fafc !important;
+}
+html.light div[style*="background: #0f172a"],
+html.light div[style*="background-color: #0f172a"],
+html.light div[style*="background: rgb(15, 23, 42)"] {
+  background: #ffffff !important;
+}
+html.light div[style*="background: #1e293b"],
+html.light div[style*="background-color: #1e293b"],
+html.light div[style*="background: rgb(30, 41, 59)"] {
+  background: #f1f5f9 !important;
+}
+
+/* ---- Cards / bordered panels ---- */
+html.light div[style*="border: '1px solid #1e293b'"],
+html.light div[style*="border: 1px solid #1e293b"],
+html.light div[style*="border-color: #1e293b"],
+html.light div[style*="borderBottom: '1px solid #1e293b'"],
+html.light div[style*="borderBottom: 1px solid #1e293b"],
+html.light div[style*="borderTop: '1px solid #1e293b'"],
+html.light div[style*="borderTop: 1px solid #1e293b"] {
+  border-color: #e2e8f0 !important;
+}
+
+/* ---- Text colors ---- */
+html.light [style*="color: '#F1F5F9'"],
+html.light [style*="color: #F1F5F9"],
+html.light [style*="color: rgb(241, 245, 249)"] {
+  color: #0f172a !important;
+}
+html.light [style*="color: '#e2e8f0'"],
+html.light [style*="color: #e2e8f0"],
+html.light [style*="color: rgb(226, 232, 240)"] {
+  color: #1e293b !important;
+}
+html.light [style*="color: '#94a3b8'"],
+html.light [style*="color: #94a3b8"],
+html.light [style*="color: rgb(148, 163, 184)"] {
+  color: #475569 !important;
+}
+html.light [style*="color: '#64748b'"],
+html.light [style*="color: #64748b"],
+html.light [style*="color: rgb(100, 116, 139)"] {
+  color: #64748b !important;
+}
+html.light [style*="color: '#475569'"],
+html.light [style*="color: #475569"] {
+  color: #64748b !important;
+}
+
+/* ---- Inline settings/nav active states ---- */
+html.light div[style*="background: #1e293b"][style*="border-radius"],
+html.light div[style*="background: '#1e293b'"][style*="border-radius"] {
+  background: #e2e8f0 !important;
+}
+html.light div[style*="background: '#0f172a'"],
+html.light section[style*="background: '#0f172a'"] {
+  background: #ffffff !important;
+}
+
+/* ---- Tailwind Backgrounds ---- */
+html.light .bg-\[\#020617\] { background-color: #f8fafc !important; }
+html.light .bg-\[\#0f172a\] { background-color: #ffffff !important; }
+html.light .bg-\[\#1e293b\] { background-color: #e2e8f0 !important; }
+html.light .bg-\[\#020617\]\/80 { background-color: rgba(248,250,252,0.85) !important; }
+
+/* ---- Tailwind Borders ---- */
+html.light .border-\[\#1e293b\] { border-color: #cbd5e1 !important; }
+html.light .border-t-\[\#1e293b\] { border-top-color: #cbd5e1 !important; }
+html.light .border-b-\[\#1e293b\] { border-bottom-color: #cbd5e1 !important; }
+html.light .border-y-\[\#1e293b\] {
+  border-top-color: #cbd5e1 !important;
+  border-bottom-color: #cbd5e1 !important;
+}
+
+/* ---- Tailwind Text ---- */
+html.light .text-\[\#F1F5F9\] { color: #0f172a !important; }
+html.light .text-\[\#94a3b8\] { color: #475569 !important; }
+html.light .text-\[\#64748b\] { color: #64748b !important; }
+html.light .text-\[\#475569\] { color: #64748b !important; }
+html.light .hover\:text-\[\#F1F5F9\]:hover { color: #0f172a !important; }
+
+/* ---- Inputs / forms ---- */
+html.light input,
+html.light textarea,
+html.light select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* ---- Scrollbar ---- */
+html.light ::-webkit-scrollbar-track { background: #e2e8f0; }
+html.light ::-webkit-scrollbar-thumb { background: #94a3b8; }
+html.light ::-webkit-scrollbar-thumb:hover { background: #64748b; }

@@ -55,51 +55,25 @@ export default function FlowCanvas() {
 
   return (
     <div
-      className="h-screen w-full bg-[#1e1e1e]"
+      className="h-screen w-full"
       style={{
         scrollbarWidth: "thin",
-        scrollbarColor: "#666666 #252525",
+        scrollbarColor: "#334155 #0f172a",
       }}
     >
       <style jsx>{`
-        /* Custom scrollbar for webkit browsers */
-        ::-webkit-scrollbar {
-          width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-          background: #252525;
-        }
-        ::-webkit-scrollbar-thumb {
-          background: #666666;
-          border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-          background: #888888;
-        }
-        
-        /* ReactFlow custom styles */
-        .react-flow__node {
-          font-family: inherit;
-        }
-        .react-flow__edge-path {
-          stroke: #888888;
-          stroke-width: 2;
-        }
-        .react-flow__edge.selected .react-flow__edge-path {
-          stroke: #ff6d6d;
-        }
-        .react-flow__connection-line {
-          stroke: #ff6d6d;
-          stroke-width: 2;
-        }
-        .react-flow__handle {
-          border: 2px solid #ffffff;
-          width: 12px;
-          height: 12px;
-        }
-        .react-flow__handle-connecting {
-          background: #ff6d6d !important;
-        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .react-flow__node { font-family: inherit; }
+        .react-flow__edge-path { stroke: #3B82F6; stroke-width: 2.5; filter: drop-shadow(0 0 6px rgba(59,130,246,0.55)); }
+        .react-flow__edge.selected .react-flow__edge-path { stroke: #93C5FD; stroke-width: 2.5; filter: drop-shadow(0 0 8px rgba(147,197,253,0.7)); }
+        .react-flow__edge:hover .react-flow__edge-path { stroke: #60A5FA; filter: drop-shadow(0 0 8px rgba(96,165,250,0.7)); }
+        .react-flow__connection-line { stroke: #3B82F6; stroke-width: 2.5; stroke-dasharray: 6 3; filter: drop-shadow(0 0 4px rgba(59,130,246,0.5)); }
+        .react-flow__handle { border: 2.5px solid #ffffff; width: 12px; height: 12px; box-shadow: 0 0 6px rgba(59,130,246,0.6); }
+        .react-flow__handle:hover { transform: translateX(-50%) scale(1.3) !important; box-shadow: 0 0 10px rgba(59,130,246,0.9); }
+        .react-flow__handle-connecting { background: #60A5FA !important; box-shadow: 0 0 10px rgba(96,165,250,0.9) !important; }
       `}</style>
 
       <ReactFlowProvider>
@@ -112,51 +86,42 @@ export default function FlowCanvas() {
           nodeTypes={nodeTypes}
           fitView
           defaultEdgeOptions={{
-            style: { stroke: "#888888", strokeWidth: 2 },
-            type: "smoothstep",
+            style: { stroke: "#3B82F6", strokeWidth: 2.5 },
+            type: "bezier",
             markerEnd: {
               type: "arrowclosed",
-              color: "#888888",
+              color: "#3B82F6",
+              width: 16,
+              height: 16,
             },
           }}
         >
           <MiniMap
             style={{
-              backgroundColor: "#252525",
-              border: "1px solid #404040",
+              backgroundColor: "#0f172a",
+              border: "1px solid #1e293b",
             }}
             nodeColor={(node) => {
               const nodeTypeColors = {
-                gpt: "#4a90e2",
-                claude: "#4a90e2",
-                llama: "#4a90e2",
-                gemini: "#4a90e2",
-                mistral: "#4a90e2",
-                email: "#2ecc71",
-                discord: "#2ecc71",
-                twilio: "#2ecc71",
-                social_media: "#2ecc71",
-                webhook: "#f39c12",
-                google_sheets: "#f39c12",
-                file_upload: "#f39c12",
-                schedule: "#9b59b6",
-                image_generation: "#9b59b6",
-                document_parser: "#1abc9c",
-                report_generator: "#1abc9c",
+                gpt: "#8B5CF6", claude: "#8B5CF6", llama: "#8B5CF6", gemini: "#8B5CF6", mistral: "#8B5CF6",
+                email: "#22C55E", discord: "#22C55E", twilio: "#22C55E", social_media: "#22C55E",
+                webhook: "#3B82F6", google_sheets: "#3B82F6", file_upload: "#3B82F6",
+                schedule: "#F59E0B", image_generation: "#F59E0B",
+                document_parser: "#06B6D4", report_generator: "#06B6D4",
               }
-              return nodeTypeColors[node.type] || "#666666"
+              return nodeTypeColors[node.type] || "#64748b"
             }}
           />
           <Controls
             style={{
               button: {
-                backgroundColor: "#3a3a3a",
-                border: "1px solid #666666",
-                color: "#ffffff",
+                backgroundColor: "#1e293b",
+                border: "1px solid #334155",
+                color: "#F1F5F9",
               },
             }}
           />
-          <Background color="#404040" gap={20} size={1} style={{ backgroundColor: "#1e1e1e" }} />
+          <Background color="rgba(148,163,184,0.12)" gap={20} size={1} style={{ backgroundColor: "#020617" }} />
         </ReactFlow>
       </ReactFlowProvider>
     </div>

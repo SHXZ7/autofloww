@@ -176,40 +176,85 @@ async def hard_delete_workflow(workflow_id: str, user_id: str) -> bool:
         print(f"❌ Error permanently deleting workflow: {str(e)}")
         return False
 
-async def save_execution_history(user_id: str, workflow_id: str, nodes: List[Dict], edges: List[Dict], result: Dict) -> str:
+async def save_execution_history(
+    user_id: str,
+    workflow_id: Optional[str],
+    nodes: List[Dict],
+    edges: List[Dict],
+    result: Dict,
+    workflow_name: str = "Unnamed Workflow",
+    duration_ms: int = 0,
+) -> str:
     """Save workflow execution history"""
     try:
         database = get_database()
         executions_collection = database.workflow_executions
-        
-        # Handle both MongoDB ObjectId and in-memory string ID
+
         if db.in_memory_mode:
             user_object_id = user_id
             workflow_object_id = workflow_id if workflow_id else None
         else:
             user_object_id = ObjectId(user_id)
             workflow_object_id = ObjectId(workflow_id) if workflow_id else None
-        
+
+        # Determine status: failed if top-level error OR any node result starts with "Error"
+        has_error = bool(result.get("error"))
+        if not has_error:
+            for val in result.values():
+                if isinstance(val, str) and val.lower().startswith("error"):
+                    has_error = True
+                    break
+        status = "failed" if has_error else "success"
+
         execution_doc = {
             "user_id": user_object_id,
             "workflow_id": workflow_object_id,
+            "workflow_name": workflow_name,
             "nodes": nodes,
             "edges": edges,
             "result": result,
-            "executed_at": datetime.utcnow(),
-            "status": "success" if not result.get("error") else "failed"
+            "created_at": datetime.utcnow(),
+            "duration_ms": duration_ms,
+            "status": status,
         }
-        
-        result = await executions_collection.insert_one(execution_doc)
-        
-        # Handle both MongoDB ObjectId and in-memory string ID
-        if hasattr(result, "inserted_id"):
-            execution_id = str(result.inserted_id)
+
+        insert_result = await executions_collection.insert_one(execution_doc)
+
+        if hasattr(insert_result, "inserted_id"):
+            execution_id = str(insert_result.inserted_id)
         else:
-            execution_id = result.inserted_id
-            
+            execution_id = insert_result.inserted_id
+
         return execution_id
-        
+
     except Exception as e:
         print(f"❌ Error saving execution history: {str(e)}")
         raise
+
+
+async def get_execution_history(user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+    """Get execution history for a user, newest first"""
+    try:
+        database = get_database()
+        executions_collection = database.workflow_executions
+
+        if db.in_memory_mode:
+            query = {"user_id": user_id}
+        else:
+            query = {"user_id": ObjectId(user_id)}
+
+        cursor = executions_collection.find(query).sort("created_at", -1).limit(limit)
+
+        executions = []
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            doc["user_id"] = str(doc["user_id"])
+            if doc.get("workflow_id"):
+                doc["workflow_id"] = str(doc["workflow_id"])
+            executions.append(doc)
+
+        return executions
+
+    except Exception as e:
+        print(f"❌ Error getting execution history: {str(e)}")
+        return []

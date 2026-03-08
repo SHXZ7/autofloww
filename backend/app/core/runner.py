@@ -253,7 +253,7 @@ class AINodeExecutor(BaseNodeExecutor):
             if not prompt:
                 return ExecutionResult(False, None, f"No prompt provided for {context.node.type} node")
             
-            model = context.node.data.get("model", "meta-llama/llama-3-8b-instruct")
+            model = context.node.data.get("model", "llama-3.3-70b-versatile")
             result = await run_gpt_node(prompt, model)
             
             return ExecutionResult(True, result)
@@ -269,14 +269,9 @@ class AINodeExecutor(BaseNodeExecutor):
         node_type = context.node.type
         model = context.node.data.get("model", "")
         
-        if node_type == "gpt" or model.startswith("openai"):
-            api_key = await context.api_manager.get_openai_key()
-            if api_key:
-                os.environ["OPENAI_API_KEY"] = api_key
-        else:
-            api_key = await context.api_manager.get_openrouter_key()
-            if api_key:
-                os.environ["OPENROUTER_API_KEY"] = api_key
+        api_key = await context.api_manager.get_groq_key()
+        if api_key:
+            os.environ["GROQ_API_KEY"] = api_key
     
     def _build_prompt(self, context: NodeExecutionContext) -> str:
         """Build prompt from node data and input context."""
@@ -791,15 +786,42 @@ class WorkflowEngine:
         file_path = node.data.get("file_path", "")
         
         for pred_id, pred_result in input_data.items():
-            if "File uploaded:" in str(pred_result):
-                drive_url = str(pred_result).split("File uploaded: ")[-1].strip()
+            pred_str = str(pred_result)
+            if "File uploaded:" in pred_str:
+                drive_url = pred_str.split("File uploaded: ")[-1].strip()
                 print(f"📥 Attempting to download file for parsing: {drive_url}")
-                
-                # Since this is a sync method called from async context,
-                # we need to handle the async download differently
                 return drive_url  # Return the URL directly, handle download in async method
+            # If the predecessor already returned a parsed document path, pass it through
+            if "Document parsed:" in pred_str:
+                parsed_path = pred_str.split("Document parsed: ")[-1].strip()
+                if os.path.exists(parsed_path):
+                    return parsed_path
+        
+        # Use the pre-configured file path from node data
+        if file_path and os.path.exists(file_path):
+            print(f"📄 Using pre-configured document: {file_path}")
+            return file_path
         
         return file_path
+
+    async def _execute_messaging_node(self, context: NodeExecutionContext) -> str:
+        """Execute Twilio SMS/WhatsApp node."""
+        node = context.node
+        input_data = context.input_data or {}
+
+        # Build message, optionally appending predecessor output
+        message = node.data.get("message", "")
+        if not message:
+            # Use predecessor output as the message body
+            for pred_result in input_data.values():
+                pred_str = str(pred_result)
+                if pred_str and not pred_str.startswith("Schedule set:"):
+                    message = pred_str
+                    break
+
+        node_data = {**node.data, "message": message}
+        print(f"Executing twilio node: {node.id}")
+        return await run_twilio_node(node_data)
 
     async def _execute_document_parser(self, node_data: Dict[str, Any]) -> str:
         """Execute document parser with enhanced file handling and cleanup."""
@@ -830,10 +852,10 @@ class WorkflowEngine:
         
         # Validate that we have a file path
         if not file_path:
-            return "Error: No file path provided"
+            return "Error: No document configured. Double-click the Document Parser node and upload a file first."
         
         if not os.path.exists(file_path):
-            return f"Error: File not found at path: {file_path}"
+            return f"Error: File not found at path: {file_path}. Please re-upload the document in the node settings."
         
         try:
             # Try multiple import methods

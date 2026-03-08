@@ -22,7 +22,9 @@ class Edge(BaseModel):
 class Workflow(BaseModel):
     nodes: List[Node]
     edges: List[Edge]
-    
+    name: Optional[str] = None
+    workflow_id: Optional[str] = None
+
     class Config:
         # Allow arbitrary types for compatibility
         arbitrary_types_allowed = True

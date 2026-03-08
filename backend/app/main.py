@@ -3,6 +3,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict
 from dotenv import load_dotenv
+import os
+
+# Load .env from the backend directory regardless of where uvicorn is launched from
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+
 from .models.workflow import Node, Edge, Workflow
 from .models.webhook import WebhookTrigger
 from .core.runner import run_workflow_engine
@@ -11,17 +16,15 @@ from services.scheduler import schedule_workflow
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import time
-import os
 import shutil
 from .models.user import UserCreate, UserLogin, User, UserResponse
 from .auth.auth import hash_password, verify_password, create_access_token, get_current_user
 from .database.connection import connect_to_mongo, close_mongo_connection, db
 from .database.user_operations import create_user, get_user_by_email, get_user_by_id, update_user_stats, update_last_login, update_user
-from .database.workflow_operations import save_workflow, get_user_workflows, update_workflow, delete_workflow, save_execution_history
+from .database.workflow_operations import save_workflow, get_user_workflows, update_workflow, delete_workflow, save_execution_history, get_execution_history
 from datetime import datetime, timedelta
 import uuid
 from .auth.email_service import send_password_reset_email
-
 # Add fallback import for encryption
 try:
     from .utils.encryption import encrypt_api_key, decrypt_api_key
@@ -93,7 +96,7 @@ async def create_test_data():
             {
                 "id": "1", 
                 "type": "gpt",
-                "data": {"label": "GPT Node", "model": "openai/gpt-4o"},
+                "data": {"label": "GPT Node", "model": "llama-3.3-70b-versatile"},
                 "position": {"x": 100, "y": 100}
             }
         ],
@@ -261,15 +264,13 @@ async def run_workflow(flow: Workflow, current_user_id: str = Depends(get_curren
     print(f"Node types: {[node.type for node in flow.nodes]}")
     print(f"Edges: {len(flow.edges)}")
     print(f"User: {current_user_id}")
-    
+
     # Check for schedule nodes and register them
     for node in flow.nodes:
         if node.type == "schedule":
             cron_expr = node.data.get("cron", "*/1 * * * *")
             workflow_id = f"scheduled_{node.id}"
             stored_workflows[workflow_id] = flow
-            
-            # Add the scheduled job
             scheduler.add_job(
                 run_scheduled_workflow,
                 CronTrigger.from_crontab(cron_expr),
@@ -277,51 +278,73 @@ async def run_workflow(flow: Workflow, current_user_id: str = Depends(get_curren
                 id=workflow_id,
                 replace_existing=True
             )
-    
+
+    workflow_name = flow.name or "Unnamed Workflow"
+    # If a saved workflow_id was passed, try to resolve its name from DB
+    if flow.workflow_id:
+        try:
+            from .database.connection import get_database as _gdb
+            from bson import ObjectId as _ObjId
+            _db = _gdb()
+            _q = {"_id": flow.workflow_id} if db.in_memory_mode else {"_id": _ObjId(flow.workflow_id)}
+            _wf = await _db.workflows.find_one(_q)
+            if _wf and _wf.get("name"):
+                workflow_name = _wf["name"]
+        except Exception:
+            pass
+
+    start_time = time.time()
     try:
-        # Fix: Call the correct workflow engine function
         result = await run_workflow_engine(flow.nodes, flow.edges, current_user_id)
         print(f"Workflow execution result: {result}")
-        
-        # Save execution history
-        try:
-            # Fix: Handle missing position attribute safely
-            nodes_dict = []
-            for node in flow.nodes:
-                node_dict = {
-                    "id": node.id, 
-                    "type": node.type, 
-                    "data": node.data
-                }
-                # Only add position if it exists
-                if hasattr(node, 'position') and node.position is not None:
-                    node_dict["position"] = node.position
-                else:
-                    node_dict["position"] = {"x": 0, "y": 0}  # Default position
-                    
-                nodes_dict.append(node_dict)
-            
-            edges_dict = [{"id": edge.id, "source": edge.source, "target": edge.target} for edge in flow.edges]
-            
-            await save_execution_history(current_user_id, None, nodes_dict, edges_dict, result)
-            print("✅ Execution history saved")
-        except Exception as e:
-            print(f"Warning: Could not save execution history: {str(e)}")
-        
-        # Update user execution count
-        try:
-            user = await get_user_by_id(current_user_id)
-            if user:
-                current_count = user.get("profile", {}).get("execution_count", 0)
-                # Fix: Pass stats as dictionary
-                await update_user_stats(current_user_id, {"execution_count": current_count + 1})
-        except Exception as e:
-            print(f"Warning: Could not update user stats: {str(e)}")
-        
-        return {"message": result}
     except Exception as e:
         print(f"Workflow execution error: {str(e)}")
-        return {"error": f"Workflow execution failed: {str(e)}"}
+        result = {"error": f"Workflow execution failed: {str(e)}"}
+
+    duration_ms = int((time.time() - start_time) * 1000)
+
+    # Save execution history
+    try:
+        nodes_dict = []
+        for node in flow.nodes:
+            node_dict = {"id": node.id, "type": node.type, "data": node.data}
+            if hasattr(node, 'position') and node.position is not None:
+                node_dict["position"] = node.position
+            else:
+                node_dict["position"] = {"x": 0, "y": 0}
+            nodes_dict.append(node_dict)
+        edges_dict = [{"id": edge.id, "source": edge.source, "target": edge.target} for edge in flow.edges]
+        await save_execution_history(
+            current_user_id, flow.workflow_id, nodes_dict, edges_dict, result,
+            workflow_name=workflow_name, duration_ms=duration_ms
+        )
+        print("✅ Execution history saved")
+    except Exception as e:
+        print(f"Warning: Could not save execution history: {str(e)}")
+
+    # Update user execution count
+    try:
+        user = await get_user_by_id(current_user_id)
+        if user:
+            current_count = user.get("profile", {}).get("execution_count", 0)
+            await update_user_stats(current_user_id, {"execution_count": current_count + 1})
+    except Exception as e:
+        print(f"Warning: Could not update user stats: {str(e)}")
+
+    if result.get("error"):
+        return {"error": result["error"]}
+    return {"message": result}
+
+
+@app.get("/executions")
+async def get_executions(current_user_id: str = Depends(get_current_user)):
+    """Get workflow execution history for the current user"""
+    try:
+        executions = await get_execution_history(current_user_id)
+        return executions
+    except Exception as e:
+        print(f"❌ Get executions error: {str(e)}")
+        return []
 
 @app.post("/webhook/register/{workflow_id}")
 async def register_webhook_workflow(workflow_id: str, flow: Workflow):

@@ -72,24 +72,24 @@ class UserAPIManager:
             print(f"Error getting OpenAI key: {str(e)}")
             return os.getenv("OPENAI_API_KEY")
     
-    async def get_openrouter_key(self) -> Optional[str]:
-        """Get OpenRouter API key for the user"""
+    async def get_groq_key(self) -> Optional[str]:
+        """Get Groq API key for the user"""
         try:
             user = await self._get_user_data()
             if not user:
                 return None
             
             api_keys = user.get("api_keys", {})
-            encrypted_key = api_keys.get("openrouter")
+            encrypted_key = api_keys.get("groq")
             
             if encrypted_key:
                 return decrypt_api_key(encrypted_key)
             
             # Fallback to environment variable
-            return os.getenv("OPENROUTER_API_KEY")
+            return os.getenv("GROQ_API_KEY")
         except Exception as e:
-            print(f"Error getting OpenRouter key: {str(e)}")
-            return os.getenv("OPENROUTER_API_KEY")
+            print(f"Error getting Groq key: {str(e)}")
+            return os.getenv("GROQ_API_KEY")
     
     async def get_stability_key(self) -> Optional[str]:
         """Get Stability API key for the user"""

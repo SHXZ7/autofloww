@@ -3,124 +3,137 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "../../../stores/authStore"
 import { ArrowLeftIcon } from "@heroicons/react/24/outline"
-import dynamic from "next/dynamic"
 import LoginForm from "../../../components/auth/LoginForm"
-
-// Import particle background for consistent homepage look
-const ParticleBackground = dynamic(() => import("../../../components/ParticleBackground"), {
-  ssr: false
-})
 
 export default function LoginPage() {
   const router = useRouter()
   const { isAuthenticated, loading } = useAuthStore()
-  const [isDemoMode, setIsDemoMode] = useState(false)
+  const [isLight, setIsLight] = useState(false)
 
   useEffect(() => {
-    // Check if coming from demo link
-    const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.get('demo') === 'true') {
-      setIsDemoMode(true)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!loading && isAuthenticated) {
-      router.push("/")
-    }
+    if (!loading && isAuthenticated) router.push("/")
   }, [isAuthenticated, loading, router])
 
-  const handleBackToHome = () => {
-    router.push("/homepage")
-  }
+  useEffect(() => {
+    const check = () => setIsLight(document.documentElement.classList.contains("light"))
+    check()
+    const obs = new MutationObserver(check)
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
+    return () => obs.disconnect()
+  }, [])
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center"
+        style={{ background: isLight ? "#f5f0eb" : "#020617" }}>
+        <div style={{ color: isLight ? "#1e293b" : "#F1F5F9" }} className="font-mono">Loading...</div>
       </div>
     )
   }
 
-  if (isAuthenticated) {
-    return null // Will redirect to main app
-  }
+  if (isAuthenticated) return null
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white overflow-hidden relative">
+    <div className="h-screen flex items-center justify-center overflow-hidden p-4 relative"
+      style={{ background: isLight ? "#f5f0eb" : "#020617", transition: "background 0.2s" }}>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        
-        body {
-          font-family: 'Inter', sans-serif;
-          background: #0a0a0a;
+        body { font-family: var(--font-space-grotesk, system-ui, sans-serif); }
+        @keyframes login-pulse-glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(59,130,246,0.35); }
+          50%       { box-shadow: 0 0 32px rgba(59,130,246,0.65); }
         }
-        
-        .gradient-text {
-          background: linear-gradient(135deg, #00D4FF 0%, #FF6B35 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-        
-        .glass {
-          background: rgba(255, 255, 255, 0.05);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .auth-card {
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
-          50% { box-shadow: 0 0 30px rgba(0, 212, 255, 0.6); }
-        }
-        
-        .pulse-glow {
-          animation: pulse-glow 2s infinite;
-        }
+        .login-pulse { animation: login-pulse-glow 2s infinite; }
       `}</style>
 
-      {/* Background Particles */}
-      <ParticleBackground />
-
-      {/* Back to Home Button */}
-      <button 
-        onClick={handleBackToHome}
-        className="absolute top-6 left-6 z-50 flex items-center space-x-2 text-gray-400 hover:text-white transition-all duration-200 group"
+      {/* Back button */}
+      <button
+        onClick={() => router.push("/homepage")}
+        className="absolute top-6 left-6 z-50 flex items-center gap-2 transition-all duration-200 group"
+        style={{ color: isLight ? "#52525b" : "#9ca3af" }}
       >
-        <ArrowLeftIcon className="w-5 h-5 group-hover:transform group-hover:-translate-x-1 transition-transform" />
-        <span>Back to Home</span>
+        <ArrowLeftIcon className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+        <span className="text-sm font-mono">Back to Home</span>
       </button>
 
+      {/* Split-panel card */}
+      <div className="w-full max-w-4xl flex flex-col md:flex-row overflow-hidden shadow-2xl"
+        style={{ border: isLight ? "1px solid #e2e8f0" : "1px solid #1e293b", height: "min(640px, calc(100vh - 60px))" }}>
 
-      {/* Main Content */}
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          {/* Logo Section */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] rounded-2xl flex items-center justify-center">
-                <span className="text-white font-bold text-2xl">AF</span>
+        {/* Left: dark decorative panel */}
+        <div className="hidden md:flex md:w-1/2 relative flex-col justify-between overflow-hidden p-8"
+          style={{ background: "#000000" }}>
+
+          {/* Gradient overlay */}
+          <div className="absolute inset-0" style={{
+            background: "linear-gradient(to top, transparent 0%, rgba(0,0,0,0.75) 100%)",
+            zIndex: 2, pointerEvents: "none"
+          }} />
+
+          {/* Stripe pattern */}
+          <div className="absolute inset-0 flex opacity-20" style={{ zIndex: 1 }}>
+            {[...Array(8)].map((_, i) => (
+              <div key={i} style={{
+                flex: "0 0 12.5%",
+                background: "linear-gradient(90deg, transparent, #000 60%, rgba(255,255,255,0.15))"
+              }} />
+            ))}
+          </div>
+
+          {/* Blue glow blob */}
+          <div className="absolute" style={{
+            bottom: "-40px", left: "-20px",
+            width: "260px", height: "260px",
+            borderRadius: "50%", background: "#3b82f6",
+            filter: "blur(70px)", opacity: 0.4, zIndex: 1,
+          }} />
+          {/* Purple glow blob */}
+          <div className="absolute" style={{
+            top: "-30px", right: "-20px",
+            width: "180px", height: "180px",
+            borderRadius: "50%", background: "#8b5cf6",
+            filter: "blur(60px)", opacity: 0.35, zIndex: 1,
+          }} />
+
+          {/* Content */}
+          <div className="relative flex flex-col justify-between h-full" style={{ zIndex: 10 }}>
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg,#3B82F6,#8B5CF6)" }}>
+                <span className="text-white font-bold text-sm font-mono">AF</span>
               </div>
+              <span className="font-mono font-bold text-lg text-white">AutoFlow</span>
             </div>
-            <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
-            <p className="text-gray-400">Sign in to your AutoFlow workspace</p>
-          </div>
 
-          {/* Auth Form */}
-          <div className="auth-card rounded-2xl p-8 shadow-2xl">
-            <LoginForm onSwitchToSignup={() => router.push("/auth/signup")} />
-          </div>
+            {/* Tagline */}
+            <div>
+              <h1 className="text-2xl md:text-3xl font-medium leading-tight tracking-tight text-white mb-3">
+                Welcome back.<br />Pick up where you left off.
+              </h1>
+              <p className="text-sm" style={{ color: "#9ca3af" }}>
+                Sign in to access your workflows, runs, and integrations.
+              </p>
+            </div>
 
-          {/* Footer */}
-          <div className="mt-8 text-center text-gray-500 text-sm">
-            <p>&copy; 2024 AutoFlow. All rights reserved.</p>
+            {/* Feature bullets */}
+            <div className="flex flex-col gap-2">
+              {["All your workflows in one place", "Real-time execution logs", "Secure & encrypted credentials"].map(f => (
+                <div key={f} className="flex items-center gap-2 text-sm" style={{ color: "#9ca3af" }}>
+                  <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#3b82f6", flexShrink: 0 }} />
+                  {f}
+                </div>
+              ))}
+            </div>
           </div>
+        </div>
+
+        {/* Right: form panel */}
+        <div className="flex-1 flex flex-col justify-center overflow-y-auto p-8 md:p-12"
+          style={{ background: isLight ? "#ffffff" : "#020617", transition: "background 0.2s" }}>
+          <LoginForm
+            onSwitchToSignup={() => router.push("/auth/signup")}
+            isLight={isLight}
+          />
         </div>
       </div>
     </div>

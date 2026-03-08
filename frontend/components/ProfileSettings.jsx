@@ -358,7 +358,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
 
   return (
     <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-300`}>
-      <div className="bg-[#1a1a1a] border border-[#333333] rounded-xl w-full max-w-4xl h-[80vh] overflow-hidden">
+      <div className="bg-[#0f172a] border border-[#1e293b] rounded-xl w-full max-w-4xl h-[80vh] overflow-hidden">
         <style jsx>{`
           @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
@@ -371,19 +371,19 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
         `}</style>
         
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#333333]">
+        <div className="flex items-center justify-between p-6 border-b border-[#1e293b]">
           <h2 className="text-xl font-semibold text-white">Profile Settings</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#333333] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#1e293b] rounded-lg transition-colors"
           >
-            <XMarkIcon className="w-5 h-5 text-[#999999]" />
+            <XMarkIcon className="w-5 h-5 text-[#64748b]" />
           </button>
         </div>
 
         <div className="flex h-[calc(80vh-70px)]">
           {/* Sidebar */}
-          <div className="w-64 border-r border-[#333333] p-4">
+          <div className="w-64 border-r border-[#1e293b] p-4">
             <nav className="space-y-2">
               {tabs.map((tab) => (
                 <button
@@ -391,8 +391,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                   onClick={() => setCurrentTab(tab.id)}
                   className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-left ${
                     currentTab === tab.id
-                      ? "bg-[#00D4FF] text-white"
-                      : "text-[#cccccc] hover:bg-[#2a2a2a]"
+                      ? "bg-[#3B82F6] text-white"
+                      : "text-[#94a3b8] hover:bg-[#1e293b]"
                   }`}
                 >
                   <span className="text-lg">{tab.icon}</span>
@@ -412,15 +412,15 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-[#cccccc] mb-2">
+                      <label className="block text-sm font-medium text-[#94a3b8] mb-2">
                         Full Name *
                       </label>
                       <input
                         type="text"
                         value={profile.name}
                         onChange={(e) => handleInputChange("name", e.target.value)}
-                        className={`w-full bg-[#2a2a2a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent transition-all ${
-                          errors.name ? 'border-red-500' : 'border-[#444444]'
+                        className={`w-full bg-[#1e293b] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all ${
+                          errors.name ? 'border-red-500' : 'border-[#334155]'
                         }`}
                         placeholder="Enter your full name"
                       />
@@ -430,15 +430,15 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-[#cccccc] mb-2">
+                      <label className="block text-sm font-medium text-[#94a3b8] mb-2">
                         Email Address *
                       </label>
                       <input
                         type="email"
                         value={profile.email}
                         onChange={(e) => handleInputChange("email", e.target.value)}
-                        className={`w-full bg-[#2a2a2a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent transition-all ${
-                          errors.email ? 'border-red-500' : 'border-[#444444]'
+                        className={`w-full bg-[#1e293b] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all ${
+                          errors.email ? 'border-red-500' : 'border-[#334155]'
                         }`}
                         placeholder="Enter your email address"
                       />
@@ -448,15 +448,15 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-[#cccccc] mb-2">
+                      <label className="block text-sm font-medium text-[#94a3b8] mb-2">
                         Workspace Name *
                       </label>
                       <input
                         type="text"
                         value={profile.workspace}
                         onChange={(e) => handleInputChange("workspace", e.target.value)}
-                        className={`w-full bg-[#2a2a2a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent transition-all ${
-                          errors.workspace ? 'border-red-500' : 'border-[#444444]'
+                        className={`w-full bg-[#1e293b] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all ${
+                          errors.workspace ? 'border-red-500' : 'border-[#334155]'
                         }`}
                         placeholder="Enter workspace name"
                       />
@@ -466,13 +466,13 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-[#cccccc] mb-2">
+                      <label className="block text-sm font-medium text-[#94a3b8] mb-2">
                         Timezone
                       </label>
                       <select
                         value={profile.timezone}
                         onChange={(e) => handleInputChange("timezone", e.target.value)}
-                        className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                        className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                       >
                         <option value="UTC-5 (Eastern Time)">UTC-5 (Eastern Time)</option>
                         <option value="UTC-8 (Pacific Time)">UTC-8 (Pacific Time)</option>
@@ -486,11 +486,11 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                   </div>
                   
                   {/* Save Button for Profile Tab */}
-                  <div className="mt-6 pt-4 border-t border-[#333333]">
+                  <div className="mt-6 pt-4 border-t border-[#1e293b]">
                     <button 
                       onClick={saveChanges}
                       disabled={!hasChanges || saving || loading}
-                      className={`px-6 py-2 bg-[#00D4FF] hover:bg-[#00C4EF] text-white rounded-lg transition-colors ${
+                      className={`px-6 py-2 bg-[#3B82F6] hover:bg-[#2563eb] text-white rounded-lg transition-colors ${
                         !hasChanges || saving || loading ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
                     >
@@ -511,12 +511,12 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-4">API Keys</h3>
-                  <p className="text-[#999999] mb-6">Manage your API keys for external integrations</p>
+                  <p className="text-[#64748b] mb-6">Manage your API keys for external integrations</p>
                   
                   {apiKeysLoading ? (
                     <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00D4FF]"></div>
-                      <span className="ml-2 text-[#999999]">Loading API keys...</span>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3B82F6]"></div>
+                      <span className="ml-2 text-[#64748b]">Loading API keys...</span>
                     </div>
                   ) : (
                     <div className="space-y-6">
@@ -529,9 +529,9 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         <div className="space-y-4 ml-6">
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">OpenAI API Key</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">OpenAI API Key</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.openai.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.openai.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.openai.isActive ? "Active" : "Not Set"}
                               </span>
@@ -541,23 +541,23 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.openai.key}
                               onChange={(e) => handleApiKeyChange("openai", e.target.value)}
                               placeholder="sk-..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.openai.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.openai.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for OpenAI GPT models (GPT-4, GPT-3.5, DALL-E)
                             </p>
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">OpenRouter API Key</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">OpenRouter API Key</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.openrouter.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.openrouter.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.openrouter.isActive ? "Active" : "Not Set"}
                               </span>
@@ -567,23 +567,23 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.openrouter.key}
                               onChange={(e) => handleApiKeyChange("openrouter", e.target.value)}
                               placeholder="sk-or-v1-..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.openrouter.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.openrouter.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for accessing multiple AI models (Llama, Claude, Gemini, Mistral)
                             </p>
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">Google API Key</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">Google API Key</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.google.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.google.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.google.isActive ? "Active" : "Not Set"}
                               </span>
@@ -593,23 +593,23 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.google.key}
                               onChange={(e) => handleApiKeyChange("google", e.target.value)}
                               placeholder="AIza..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.google.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.google.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for Google Sheets integration, Google Drive, and Gemini AI models
                             </p>
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">Stability AI API Key</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">Stability AI API Key</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.stability.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.stability.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.stability.isActive ? "Active" : "Not Set"}
                               </span>
@@ -619,14 +619,14 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.stability.key}
                               onChange={(e) => handleApiKeyChange("stability", e.target.value)}
                               placeholder="sk-..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.stability.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.stability.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for Stable Diffusion image generation
                             </p>
                           </div>
@@ -642,9 +642,9 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         <div className="space-y-4 ml-6">
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">Discord Webhook URL</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">Discord Webhook URL</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.discord.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.discord.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.discord.isActive ? "Active" : "Not Set"}
                               </span>
@@ -654,23 +654,23 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.discord.key}
                               onChange={(e) => handleApiKeyChange("discord", e.target.value)}
                               placeholder="https://discord.com/api/webhooks/..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.discord.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.discord.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for Discord messaging integration
                             </p>
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">Twilio Account SID</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">Twilio Account SID</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twilio_sid.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.twilio_sid.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.twilio_sid.isActive ? "Active" : "Not Set"}
                               </span>
@@ -680,23 +680,23 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.twilio_sid.key}
                               onChange={(e) => handleApiKeyChange("twilio_sid", e.target.value)}
                               placeholder="AC..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.twilio_sid.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.twilio_sid.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for SMS and WhatsApp messaging via Twilio
                             </p>
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">Twilio Auth Token</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">Twilio Auth Token</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twilio_token.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.twilio_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.twilio_token.isActive ? "Active" : "Not Set"}
                               </span>
@@ -706,23 +706,23 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.twilio_token.key}
                               onChange={(e) => handleApiKeyChange("twilio_token", e.target.value)}
                               placeholder="Auth Token..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.twilio_token.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.twilio_token.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for SMS and WhatsApp messaging via Twilio
                             </p>
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">Twilio Phone Number</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">Twilio Phone Number</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twilio_phone.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.twilio_phone.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.twilio_phone.isActive ? "Active" : "Not Set"}
                               </span>
@@ -732,14 +732,14 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.twilio_phone.key}
                               onChange={(e) => handleApiKeyChange("twilio_phone", e.target.value)}
                               placeholder="+1234567890"
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.twilio_phone.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.twilio_phone.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Your Twilio phone number for sending SMS/WhatsApp
                             </p>
                           </div>
@@ -755,9 +755,9 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         <div className="space-y-4 ml-6">
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">Twitter API Key</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">Twitter API Key</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twitter_api_key.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.twitter_api_key.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.twitter_api_key.isActive ? "Active" : "Not Set"}
                               </span>
@@ -767,23 +767,23 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.twitter_api_key.key}
                               onChange={(e) => handleApiKeyChange("twitter_api_key", e.target.value)}
                               placeholder="API Key..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.twitter_api_key.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.twitter_api_key.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for Twitter/X posting automation
                             </p>
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">Twitter API Secret</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">Twitter API Secret</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twitter_api_secret.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.twitter_api_secret.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.twitter_api_secret.isActive ? "Active" : "Not Set"}
                               </span>
@@ -793,23 +793,23 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.twitter_api_secret.key}
                               onChange={(e) => handleApiKeyChange("twitter_api_secret", e.target.value)}
                               placeholder="API Secret..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.twitter_api_secret.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.twitter_api_secret.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for Twitter/X posting automation
                             </p>
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">Twitter Access Token</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">Twitter Access Token</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twitter_access_token.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.twitter_access_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.twitter_access_token.isActive ? "Active" : "Not Set"}
                               </span>
@@ -819,23 +819,23 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.twitter_access_token.key}
                               onChange={(e) => handleApiKeyChange("twitter_access_token", e.target.value)}
                               placeholder="Access Token..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.twitter_access_token.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.twitter_access_token.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for Twitter/X posting automation
                             </p>
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">Twitter Access Token Secret</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">Twitter Access Token Secret</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twitter_access_secret.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.twitter_access_secret.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.twitter_access_secret.isActive ? "Active" : "Not Set"}
                               </span>
@@ -845,23 +845,23 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.twitter_access_secret.key}
                               onChange={(e) => handleApiKeyChange("twitter_access_secret", e.target.value)}
                               placeholder="Access Token Secret..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.twitter_access_secret.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.twitter_access_secret.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for Twitter/X posting automation
                             </p>
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">LinkedIn Access Token</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">LinkedIn Access Token</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.linkedin_token.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.linkedin_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.linkedin_token.isActive ? "Active" : "Not Set"}
                               </span>
@@ -871,23 +871,23 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.linkedin_token.key}
                               onChange={(e) => handleApiKeyChange("linkedin_token", e.target.value)}
                               placeholder="LinkedIn Access Token..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.linkedin_token.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.linkedin_token.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for LinkedIn posting automation
                             </p>
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">Instagram Access Token</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">Instagram Access Token</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.instagram_token.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.instagram_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.instagram_token.isActive ? "Active" : "Not Set"}
                               </span>
@@ -897,14 +897,14 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.instagram_token.key}
                               onChange={(e) => handleApiKeyChange("instagram_token", e.target.value)}
                               placeholder="Instagram Access Token..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.instagram_token.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.instagram_token.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for Instagram posting automation
                             </p>
                           </div>
@@ -920,9 +920,9 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         <div className="space-y-4 ml-6">
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#cccccc]">GitHub Personal Access Token</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">GitHub Personal Access Token</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.github.isActive ? "bg-[#00D4FF]/20 text-[#00D4FF]" : "bg-[#666666]/20 text-[#999999]"
+                                apiKeys.github.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
                                 {apiKeys.github.isActive ? "Active" : "Not Set"}
                               </span>
@@ -932,14 +932,14 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                               value={apiKeys.github.key}
                               onChange={(e) => handleApiKeyChange("github", e.target.value)}
                               placeholder="ghp_..."
-                              className="w-full bg-[#2a2a2a] border border-[#444444] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent"
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
                             {apiKeys.github.key && (
-                              <div className="text-xs text-[#999999] mt-1">
+                              <div className="text-xs text-[#64748b] mt-1">
                                 Current: {maskApiKey(apiKeys.github.key)}
                               </div>
                             )}
-                            <p className="text-xs text-[#999999] mt-1">
+                            <p className="text-xs text-[#64748b] mt-1">
                               Required for GitHub actions and repository management
                             </p>
                           </div>
@@ -947,30 +947,30 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                       </div>
 
                       {/* API Keys Management Tips */}
-                      <div className="mt-8 p-4 bg-[#2a2a2a] rounded-lg border border-[#444444]">
+                      <div className="mt-8 p-4 bg-[#1e293b] rounded-lg border border-[#334155]">
                         <h4 className="text-white font-medium mb-3 flex items-center">
                           <span className="text-lg mr-2">💡</span>
                           API Keys Security Tips
                         </h4>
-                        <ul className="text-sm text-[#cccccc] space-y-2">
+                        <ul className="text-sm text-[#94a3b8] space-y-2">
                           <li className="flex items-start">
-                            <span className="text-[#00D4FF] mr-2 mt-1">•</span>
+                            <span className="text-[#3B82F6] mr-2 mt-1">•</span>
                             All API keys are encrypted and stored securely
                           </li>
                           <li className="flex items-start">
-                            <span className="text-[#00D4FF] mr-2 mt-1">•</span>
+                            <span className="text-[#3B82F6] mr-2 mt-1">•</span>
                             Keys are only decrypted when needed for workflow execution
                           </li>
                           <li className="flex items-start">
-                            <span className="text-[#00D4FF] mr-2 mt-1">•</span>
+                            <span className="text-[#3B82F6] mr-2 mt-1">•</span>
                             Ensure your API keys have minimal required permissions
                           </li>
                           <li className="flex items-start">
-                            <span className="text-[#00D4FF] mr-2 mt-1">•</span>
+                            <span className="text-[#3B82F6] mr-2 mt-1">•</span>
                             Regularly rotate your API keys for better security
                           </li>
                           <li className="flex items-start">
-                            <span className="text-[#00D4FF] mr-2 mt-1">•</span>
+                            <span className="text-[#3B82F6] mr-2 mt-1">•</span>
                             Monitor your API usage through respective service dashboards
                           </li>
                         </ul>
@@ -979,11 +979,11 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                   )}
 
                   {/* Save Button for API Keys */}
-                  <div className="mt-6 pt-4 border-t border-[#333333]">
+                  <div className="mt-6 pt-4 border-t border-[#1e293b]">
                     <button 
                       onClick={saveApiKeys}
                       disabled={!apiKeysHasChanges || apiKeysSaving || apiKeysLoading}
-                      className={`px-6 py-2 bg-[#00D4FF] hover:bg-[#00C4EF] text-white rounded-lg transition-colors ${
+                      className={`px-6 py-2 bg-[#3B82F6] hover:bg-[#2563eb] text-white rounded-lg transition-colors ${
                         !apiKeysHasChanges || apiKeysSaving || apiKeysLoading ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
                     >
@@ -1004,13 +1004,13 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-4">Notification Settings</h3>
-                  <p className="text-[#999999] mb-6">Manage how you receive notifications</p>
+                  <p className="text-[#64748b] mb-6">Manage how you receive notifications</p>
                   
                   <div className="space-y-6">
-                    <div className="flex items-center justify-between p-4 bg-[#2a2a2a] rounded-lg">
+                    <div className="flex items-center justify-between p-4 bg-[#1e293b] rounded-lg">
                       <div>
                         <h4 className="text-white font-medium">Email Notifications</h4>
-                        <p className="text-[#999999] text-sm">Receive updates about your account via email</p>
+                        <p className="text-[#64748b] text-sm">Receive updates about your account via email</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input 
@@ -1019,14 +1019,14 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           onChange={(e) => handleNotificationChange("email", e.target.checked)}
                           className="sr-only peer" 
                         />
-                        <div className="w-11 h-6 bg-[#444444] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00D4FF]"></div>
+                        <div className="w-11 h-6 bg-[#334155] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3B82F6]"></div>
                       </label>
                     </div>
                     
-                    <div className="flex items-center justify-between p-4 bg-[#2a2a2a] rounded-lg">
+                    <div className="flex items-center justify-between p-4 bg-[#1e293b] rounded-lg">
                       <div>
                         <h4 className="text-white font-medium">Workflow Notifications</h4>
-                        <p className="text-[#999999] text-sm">Get notified when workflows complete or fail</p>
+                        <p className="text-[#64748b] text-sm">Get notified when workflows complete or fail</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input 
@@ -1035,14 +1035,14 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           onChange={(e) => handleNotificationChange("workflow", e.target.checked)}
                           className="sr-only peer" 
                         />
-                        <div className="w-11 h-6 bg-[#444444] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00D4FF]"></div>
+                        <div className="w-11 h-6 bg-[#334155] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3B82F6]"></div>
                       </label>
                     </div>
                     
-                    <div className="flex items-center justify-between p-4 bg-[#2a2a2a] rounded-lg">
+                    <div className="flex items-center justify-between p-4 bg-[#1e293b] rounded-lg">
                       <div>
                         <h4 className="text-white font-medium">Error Alerts</h4>
-                        <p className="text-[#999999] text-sm">Receive alerts when critical errors occur</p>
+                        <p className="text-[#64748b] text-sm">Receive alerts when critical errors occur</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input 
@@ -1051,17 +1051,17 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           onChange={(e) => handleNotificationChange("errors", e.target.checked)}
                           className="sr-only peer" 
                         />
-                        <div className="w-11 h-6 bg-[#444444] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00D4FF]"></div>
+                        <div className="w-11 h-6 bg-[#334155] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3B82F6]"></div>
                       </label>
                     </div>
                   </div>
                   
                   {/* Save Button for Notifications */}
-                  <div className="mt-6 pt-4 border-t border-[#333333]">
+                  <div className="mt-6 pt-4 border-t border-[#1e293b]">
                     <button 
                       onClick={saveChanges}
                       disabled={!hasChanges || saving || loading}
-                      className={`px-6 py-2 bg-[#00D4FF] hover:bg-[#00C4EF] text-white rounded-lg transition-colors ${
+                      className={`px-6 py-2 bg-[#3B82F6] hover:bg-[#2563eb] text-white rounded-lg transition-colors ${
                         !hasChanges || saving || loading ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
                     >
@@ -1077,10 +1077,10 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-4">Security Settings</h3>
-                  <p className="text-[#999999] mb-6">Manage your account security</p>
+                  <p className="text-[#64748b] mb-6">Manage your account security</p>
                   
                   <div className="space-y-6">
-                    <div className="p-4 bg-[#2a2a2a] rounded-lg">
+                    <div className="p-4 bg-[#1e293b] rounded-lg">
                       <h4 className="text-white font-medium mb-4">Change Password</h4>
                       <div className="space-y-4">
                         {passwordErrors.general && (
@@ -1090,13 +1090,13 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         )}
                         
                         <div>
-                          <label className="block text-sm font-medium text-[#cccccc] mb-2">Current Password</label>
+                          <label className="block text-sm font-medium text-[#94a3b8] mb-2">Current Password</label>
                           <input
                             type="password"
                             value={passwordData.currentPassword}
                             onChange={(e) => handlePasswordChange("currentPassword", e.target.value)}
-                            className={`w-full bg-[#1a1a1a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent ${
-                              passwordErrors.currentPassword ? 'border-red-500' : 'border-[#444444]'
+                            className={`w-full bg-[#0f172a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent ${
+                              passwordErrors.currentPassword ? 'border-red-500' : 'border-[#334155]'
                             }`}
                           />
                           {passwordErrors.currentPassword && (
@@ -1105,13 +1105,13 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         </div>
                         
                         <div>
-                          <label className="block text-sm font-medium text-[#cccccc] mb-2">New Password</label>
+                          <label className="block text-sm font-medium text-[#94a3b8] mb-2">New Password</label>
                           <input
                             type="password"
                             value={passwordData.newPassword}
                             onChange={(e) => handlePasswordChange("newPassword", e.target.value)}
-                            className={`w-full bg-[#1a1a1a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent ${
-                              passwordErrors.newPassword ? 'border-red-500' : 'border-[#444444]'
+                            className={`w-full bg-[#0f172a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent ${
+                              passwordErrors.newPassword ? 'border-red-500' : 'border-[#334155]'
                             }`}
                           />
                           {passwordErrors.newPassword && (
@@ -1120,13 +1120,13 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         </div>
                         
                         <div>
-                          <label className="block text-sm font-medium text-[#cccccc] mb-2">Confirm New Password</label>
+                          <label className="block text-sm font-medium text-[#94a3b8] mb-2">Confirm New Password</label>
                           <input
                             type="password"
                             value={passwordData.confirmPassword}
                             onChange={(e) => handlePasswordChange("confirmPassword", e.target.value)}
-                            className={`w-full bg-[#1a1a1a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent ${
-                              passwordErrors.confirmPassword ? 'border-red-500' : 'border-[#444444]'
+                            className={`w-full bg-[#0f172a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent ${
+                              passwordErrors.confirmPassword ? 'border-red-500' : 'border-[#334155]'
                             }`}
                           />
                           {passwordErrors.confirmPassword && (
@@ -1138,7 +1138,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <button 
                             onClick={handleChangePassword}
                             disabled={changingPassword}
-                            className="bg-[#00D4FF] hover:bg-[#00C4EF] text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                            className="bg-[#3B82F6] hover:bg-[#2563eb] text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                           >
                             {changingPassword ? "Updating Password..." : "Update Password"}
                           </button>
@@ -1146,16 +1146,16 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                       </div>
                     </div>
                     
-                    <div className="p-4 bg-[#2a2a2a] rounded-lg">
+                    <div className="p-4 bg-[#1e293b] rounded-lg">
                       <h4 className="text-white font-medium mb-2">Active Sessions</h4>
-                      <p className="text-[#999999] text-sm mb-4">Manage your active login sessions</p>
+                      <p className="text-[#64748b] text-sm mb-4">Manage your active login sessions</p>
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between p-2 bg-[#1a1a1a] rounded-lg">
+                        <div className="flex items-center justify-between p-2 bg-[#0f172a] rounded-lg">
                           <div>
                             <div className="text-white text-sm">Current Session</div>
-                            <div className="text-[#999999] text-xs">Chrome on Windows • IP: 192.168.1.1</div>
+                            <div className="text-[#64748b] text-xs">Chrome on Windows • IP: 192.168.1.1</div>
                           </div>
-                          <span className="text-xs bg-[#00D4FF]/20 text-[#00D4FF] px-2 py-1 rounded">Active</span>
+                          <span className="text-xs bg-[#3B82F6]/20 text-[#3B82F6] px-2 py-1 rounded">Active</span>
                         </div>
                       </div>
                     </div>
@@ -1170,13 +1170,13 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-4">Billing & Subscription</h3>
                   
-                  <div className="p-4 bg-gradient-to-r from-[#00D4FF]/20 to-[#FF6B35]/20 rounded-lg border border-[#00D4FF]/20 mb-6">
+                  <div className="p-4 bg-gradient-to-r from-[#3B82F6]/20 to-[#8B5CF6]/20 rounded-lg border border-[#3B82F6]/20 mb-6">
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="text-white font-medium">Current Plan: Free</h4>
-                        <p className="text-[#cccccc] text-sm mt-1">5 workflows • 100 executions/month • Basic features</p>
+                        <p className="text-[#94a3b8] text-sm mt-1">5 workflows • 100 executions/month • Basic features</p>
                       </div>
-                      <button className="bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+                      <button className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
                         Upgrade
                       </button>
                     </div>
@@ -1184,89 +1184,89 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                   
                   <div className="space-y-6">
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="p-4 bg-[#2a2a2a] rounded-lg text-center">
-                        <div className="text-[#00D4FF] font-semibold text-2xl">3</div>
-                        <div className="text-[#999999] text-sm mt-1">Workflows Used</div>
-                        <div className="w-full h-2 bg-[#444444] rounded-full mt-2">
-                          <div className="h-full bg-[#00D4FF] rounded-full" style={{ width: '60%' }}></div>
+                      <div className="p-4 bg-[#1e293b] rounded-lg text-center">
+                        <div className="text-[#3B82F6] font-semibold text-2xl">3</div>
+                        <div className="text-[#64748b] text-sm mt-1">Workflows Used</div>
+                        <div className="w-full h-2 bg-[#334155] rounded-full mt-2">
+                          <div className="h-full bg-[#3B82F6] rounded-full" style={{ width: '60%' }}></div>
                         </div>
                         <div className="text-xs text-white mt-1">3 of 5</div>
                       </div>
                       
-                      <div className="p-4 bg-[#2a2a2a] rounded-lg text-center">
-                        <div className="text-[#00D4FF] font-semibold text-2xl">47</div>
-                        <div className="text-[#999999] text-sm mt-1">Executions Used</div>
-                        <div className="w-full h-2 bg-[#444444] rounded-full mt-2">
-                          <div className="h-full bg-[#00D4FF] rounded-full" style={{ width: '47%' }}></div>
+                      <div className="p-4 bg-[#1e293b] rounded-lg text-center">
+                        <div className="text-[#3B82F6] font-semibold text-2xl">47</div>
+                        <div className="text-[#64748b] text-sm mt-1">Executions Used</div>
+                        <div className="w-full h-2 bg-[#334155] rounded-full mt-2">
+                          <div className="h-full bg-[#3B82F6] rounded-full" style={{ width: '47%' }}></div>
                         </div>
                         <div className="text-xs text-white mt-1">47 of 100</div>
                       </div>
                       
-                      <div className="p-4 bg-[#2a2a2a] rounded-lg text-center">
-                        <div className="text-[#00D4FF] font-semibold text-2xl">∞</div>
-                        <div className="text-[#999999] text-sm mt-1">Days Remaining</div>
-                        <div className="text-xs text-[#cccccc] mt-3">Free plan never expires</div>
+                      <div className="p-4 bg-[#1e293b] rounded-lg text-center">
+                        <div className="text-[#3B82F6] font-semibold text-2xl">∞</div>
+                        <div className="text-[#64748b] text-sm mt-1">Days Remaining</div>
+                        <div className="text-xs text-[#94a3b8] mt-3">Free plan never expires</div>
                       </div>
                     </div>
                     
-                    <div className="p-4 bg-[#2a2a2a] rounded-lg">
+                    <div className="p-4 bg-[#1e293b] rounded-lg">
                       <h4 className="text-white font-medium mb-4">Available Plans</h4>
                       
                       <div className="space-y-4">
-                        <div className="p-4 border border-[#444444] rounded-lg bg-[#1a1a1a] relative">
-                          <div className="absolute top-0 right-0 bg-[#00D4FF] text-white text-xs px-2 py-1 rounded-bl-lg rounded-tr-lg">Current</div>
+                        <div className="p-4 border border-[#334155] rounded-lg bg-[#0f172a] relative">
+                          <div className="absolute top-0 right-0 bg-[#3B82F6] text-white text-xs px-2 py-1 rounded-bl-lg rounded-tr-lg">Current</div>
                           <h5 className="text-white font-medium">Free</h5>
-                          <div className="text-[#00D4FF] font-bold text-2xl mt-2">$0</div>
-                          <ul className="text-sm text-[#cccccc] space-y-2 mt-4">
+                          <div className="text-[#3B82F6] font-bold text-2xl mt-2">$0</div>
+                          <ul className="text-sm text-[#94a3b8] space-y-2 mt-4">
                             <li className="flex items-center">
-                              <span className="text-[#00D4FF] mr-2">✓</span> 5 workflows
+                              <span className="text-[#3B82F6] mr-2">✓</span> 5 workflows
                             </li>
                             <li className="flex items-center">
-                              <span className="text-[#00D4FF] mr-2">✓</span> 100 executions/month
+                              <span className="text-[#3B82F6] mr-2">✓</span> 100 executions/month
                             </li>
                             <li className="flex items-center">
-                              <span className="text-[#00D4FF] mr-2">✓</span> Basic features
+                              <span className="text-[#3B82F6] mr-2">✓</span> Basic features
                             </li>
                           </ul>
                         </div>
                         
-                        <div className="p-4 border border-[#00D4FF] rounded-lg bg-[#1a1a1a]">
+                        <div className="p-4 border border-[#3B82F6] rounded-lg bg-[#0f172a]">
                           <h5 className="text-white font-medium">Pro</h5>
-                          <div className="text-[#00D4FF] font-bold text-2xl mt-2">$19<span className="text-sm font-normal">/month</span></div>
-                          <ul className="text-sm text-[#cccccc] space-y-2 mt-4">
+                          <div className="text-[#3B82F6] font-bold text-2xl mt-2">$19<span className="text-sm font-normal">/month</span></div>
+                          <ul className="text-sm text-[#94a3b8] space-y-2 mt-4">
                             <li className="flex items-center">
-                              <span className="text-[#00D4FF] mr-2">✓</span> Unlimited workflows
+                              <span className="text-[#3B82F6] mr-2">✓</span> Unlimited workflows
                             </li>
                             <li className="flex items-center">
-                              <span className="text-[#00D4FF] mr-2">✓</span> 1,000 executions/month
+                              <span className="text-[#3B82F6] mr-2">✓</span> 1,000 executions/month
                             </li>
                             <li className="flex items-center">
-                              <span className="text-[#00D4FF] mr-2">✓</span> Advanced features
+                              <span className="text-[#3B82F6] mr-2">✓</span> Advanced features
                             </li>
                             <li className="flex items-center">
-                              <span className="text-[#00D4FF] mr-2">✓</span> Priority support
+                              <span className="text-[#3B82F6] mr-2">✓</span> Priority support
                             </li>
                           </ul>
-                          <button className="w-full bg-[#00D4FF] hover:bg-[#00C4EF] text-white py-2 rounded-lg mt-4 transition-colors">
+                          <button className="w-full bg-[#3B82F6] hover:bg-[#2563eb] text-white py-2 rounded-lg mt-4 transition-colors">
                             Upgrade to Pro
                           </button>
                         </div>
                         
-                        <div className="p-4 border border-[#444444] rounded-lg bg-[#1a1a1a]">
+                        <div className="p-4 border border-[#334155] rounded-lg bg-[#0f172a]">
                           <h5 className="text-white font-medium">Enterprise</h5>
-                          <div className="text-[#00D4FF] font-bold text-2xl mt-2">Custom</div>
-                          <ul className="text-sm text-[#cccccc] space-y-2 mt-4">
+                          <div className="text-[#3B82F6] font-bold text-2xl mt-2">Custom</div>
+                          <ul className="text-sm text-[#94a3b8] space-y-2 mt-4">
                             <li className="flex items-center">
-                              <span className="text-[#00D4FF] mr-2">✓</span> Unlimited everything
+                              <span className="text-[#3B82F6] mr-2">✓</span> Unlimited everything
                             </li>
                             <li className="flex items-center">
-                              <span className="text-[#00D4FF] mr-2">✓</span> Custom integrations
+                              <span className="text-[#3B82F6] mr-2">✓</span> Custom integrations
                             </li>
                             <li className="flex items-center">
-                              <span className="text-[#00D4FF] mr-2">✓</span> Dedicated support
+                              <span className="text-[#3B82F6] mr-2">✓</span> Dedicated support
                             </li>
                             <li className="flex items-center">
-                              <span className="text-[#00D4FF] mr-2">✓</span> SLA guarantees
+                              <span className="text-[#3B82F6] mr-2">✓</span> SLA guarantees
                             </li>
                           </ul>
                           <button className="w-full bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg mt-4 transition-colors">
@@ -1284,10 +1284,10 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
 
 
       {/* Footer */}
-      <div className="border-t border-[#333333] p-6 flex justify-end space-x-3">
+      <div className="border-t border-[#1e293b] p-6 flex justify-end space-x-3">
         <button
           onClick={onClose}
-          className="px-4 py-2 bg-[#444444] hover:bg-[#555555] text-white rounded-lg transition-colors"
+          className="px-4 py-2 bg-[#334155] hover:bg-[#334155] text-white rounded-lg transition-colors"
         >
           Close
         </button>

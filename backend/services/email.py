@@ -203,46 +203,77 @@ async def run_email_node(email_data):
             msg += f" via {via}"
             return msg
 
-        # Determine whether body is HTML
-        is_html = "<html>" in body.lower() or "<p>" in body.lower() or "**" in body
+        # Extract built body from the MIME message object
+        def _get_body_content():
+            for part in message.walk():
+                ct = part.get_content_type()
+                if ct in ("text/html", "text/plain") and not part.get_filename():
+                    return part.get_payload(decode=True).decode("utf-8", errors="replace"), ct == "text/html"
+            return body, False
 
-        # ── SendGrid (works on HF Spaces / any cloud that blocks SMTP) ──────────
+        email_body_content, is_html = _get_body_content()
+
+        import aiohttp, json as _json
+
+        # ── 1. Resend (recommended — free 3000/mo, works on HF Spaces) ───────
+        resend_key = os.getenv("RESEND_API_KEY")
+        if resend_key:
+            print("📤 Sending via Resend API...")
+            try:
+                resend_payload = {
+                    "from": "AutoFlow <onboarding@resend.dev>",
+                    "to": [to_email],
+                    "subject": subject,
+                }
+                resend_payload["html" if is_html else "text"] = email_body_content
+                if cc_email:
+                    resend_payload["cc"] = [cc_email]
+                if bcc_email:
+                    resend_payload["bcc"] = [bcc_email]
+
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        "https://api.resend.com/emails",
+                        json=resend_payload,
+                        headers={"Authorization": f"Bearer {resend_key}",
+                                 "Content-Type": "application/json"},
+                        timeout=aiohttp.ClientTimeout(total=30)
+                    ) as resp:
+                        resp_json = await resp.json()
+                        if resp.status in (200, 201):
+                            print("✅ Email sent via Resend!")
+                            return _success_msg("Resend")
+                        else:
+                            err = resp_json.get("message", str(resp_json))
+                            print(f"❌ Resend error {resp.status}: {err}")
+                            return f"Error: Resend failed ({resp.status}): {err}"
+            except Exception as e:
+                print(f"❌ Resend exception: {e}")
+                return f"Error: Resend failed - {str(e)}"
+
+        # ── 2. SendGrid fallback ───────────────────────────────────────────────
         sendgrid_key = os.getenv("SENDGRID_API_KEY")
         if sendgrid_key:
-            print("📤 Sending via SendGrid HTTP API...")
+            print("📤 Sending via SendGrid API...")
             try:
-                import aiohttp, json as _json
                 personalizations = [{"to": [{"email": to_email}]}]
                 if cc_email:
                     personalizations[0]["cc"] = [{"email": cc_email}]
                 if bcc_email:
                     personalizations[0]["bcc"] = [{"email": bcc_email}]
-
-                # Get the already-built body from the message object
-                email_body_content = ""
-                for part in message.walk():
-                    ct = part.get_content_type()
-                    if ct in ("text/html", "text/plain") and not part.get_filename():
-                        email_body_content = part.get_payload(decode=True).decode("utf-8", errors="replace")
-                        is_html = ct == "text/html"
-                        break
-
                 sg_payload = {
                     "personalizations": personalizations,
                     "from": {"email": email_user},
                     "subject": subject,
                     "content": [{"type": "text/html" if is_html else "text/plain",
-                                 "value": email_body_content or body}]
-                }
-                sg_headers = {
-                    "Authorization": f"Bearer {sendgrid_key}",
-                    "Content-Type": "application/json"
+                                 "value": email_body_content}]
                 }
                 async with aiohttp.ClientSession() as session:
                     async with session.post(
                         "https://api.sendgrid.com/v3/mail/send",
                         data=_json.dumps(sg_payload),
-                        headers=sg_headers,
+                        headers={"Authorization": f"Bearer {sendgrid_key}",
+                                 "Content-Type": "application/json"},
                         timeout=aiohttp.ClientTimeout(total=30)
                     ) as resp:
                         if resp.status in (200, 202):
@@ -251,13 +282,12 @@ async def run_email_node(email_data):
                         else:
                             err_text = await resp.text()
                             print(f"❌ SendGrid error {resp.status}: {err_text}")
-                            return f"Error: SendGrid returned {resp.status}: {err_text}"
+                            # Don't return error — fall through to SMTP
             except Exception as e:
-                print(f"❌ SendGrid failed: {e}")
-                return f"Error: SendGrid failed - {str(e)}"
+                print(f"❌ SendGrid exception: {e}")
 
-        # ── SMTP fallback (local dev) ─────────────────────────────────────────
-        print("🔌 Connecting via SMTP (local)...")
+        # ── 3. SMTP fallback (local dev) ──────────────────────────────────────
+        print("🔌 Connecting via SMTP...")
         try:
             context = ssl.create_default_context()
             context.check_hostname = False
@@ -282,8 +312,8 @@ async def run_email_node(email_data):
             return "Error: SMTP connection timed out."
         except OSError as e:
             if e.errno == 101:
-                return ("Error: Network unreachable — SMTP is blocked in this environment. "
-                        "Set SENDGRID_API_KEY as a secret to send emails from Hugging Face Spaces.")
+                return ("Error: Network unreachable — SMTP is blocked on this server. "
+                        "Set RESEND_API_KEY as a secret in your HF Space settings.")
             return f"Error: OS error - {str(e)}"
         except Exception as e:
             return f"Error: Unexpected SMTP error - {str(e)}"

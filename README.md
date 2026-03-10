@@ -1,4 +1,13 @@
 
+---
+title: AutoFlow
+emoji: 🚀
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
 # 🚀 AutoFlow - Visual Workflow Automation Platform
 
 <div align="center">

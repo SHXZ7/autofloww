@@ -13,7 +13,7 @@ import {
   StopCircleIcon,
 } from "@heroicons/react/24/outline"
 
-const API_BASE_URL = "http://127.0.0.1:8000"
+const API_BASE_URL = 'https://shxz7-autoflow.hf.space'
 
 // ── Toolbar button base styles ──────────────────────────────────────────────
 function TBtn({ children, onClick, disabled, accent, success, danger, title, style, light }) {

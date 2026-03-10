@@ -25,7 +25,7 @@ export default function NodeSidebar() {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
     return () => observer.disconnect()
   }, [])
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+  const API_BASE_URL = 'https://shxz7-autoflow.hf.space'
 
   const runWorkflow = async () => {
     try {

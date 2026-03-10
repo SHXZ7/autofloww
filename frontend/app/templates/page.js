@@ -16,7 +16,7 @@ const GLOBAL_CSS = `
   .pill-active { background: rgba(59,130,246,0.15) !important; color: #3B82F6 !important; border-color: rgba(59,130,246,0.3) !important; }
 `
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_BASE_URL = 'https://shxz7-autoflow.hf.space'
 
 // Helper: build edge
 const edge = (id, source, target) => ({ id, source, target })

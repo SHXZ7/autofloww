@@ -4,7 +4,7 @@ import { useState } from "react"
 import { CogIcon } from "@heroicons/react/24/outline"
 import { useFlowStore } from "../stores/flowStore"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_BASE_URL = 'https://shxz7-autoflow.hf.space'
 
 export default function CustomNode({ data, id }) {
   const [isEditing, setIsEditing] = useState(false)

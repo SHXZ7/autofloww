@@ -24,7 +24,7 @@ const STATUS_STYLES = {
   pending: { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', icon: ClockIcon,      label: 'Pending' },
 }
 
-const API_BASE_URL = 'http://127.0.0.1:8000'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 function formatDuration(ms) {
   if (!ms && ms !== 0) return '—'

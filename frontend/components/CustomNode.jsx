@@ -4,6 +4,8 @@ import { useState } from "react"
 import { CogIcon } from "@heroicons/react/24/outline"
 import { useFlowStore } from "../stores/flowStore"
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
 export default function CustomNode({ data, id }) {
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState(data)
@@ -156,7 +158,7 @@ export default function CustomNode({ data, id }) {
               value={formData.webhook_url || ""}
               onChange={(e) => setFormData({ ...formData, webhook_url: e.target.value })}
               className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
-              placeholder={`http://localhost:8000/webhook/trigger/${id}`}
+              placeholder={`${API_BASE_URL}/webhook/trigger/${id}`}
             />
             <div className="text-xs text-[#64748b] mt-1">
               ℹ Webhook URL will be auto-registered when workflow runs
@@ -600,7 +602,7 @@ export default function CustomNode({ data, id }) {
                     const token = localStorage.getItem("token")
                     const headers = token ? { "Authorization": `Bearer ${token}` } : {}
                     
-                    const response = await fetch('http://localhost:8000/upload', {
+                    const response = await fetch(`${API_BASE_URL}/upload`, {
                       method: 'POST',
                       headers: headers,
                       body: uploadFormData,
@@ -728,7 +730,7 @@ export default function CustomNode({ data, id }) {
                     const fd = new FormData()
                     fd.append('file', file)
                     const token = localStorage.getItem('token')
-                    const res = await fetch('http://localhost:8000/upload', {
+                    const res = await fetch(`${API_BASE_URL}/upload`, {
                       method: 'POST',
                       headers: token ? { Authorization: `Bearer ${token}` } : {},
                       body: fd,

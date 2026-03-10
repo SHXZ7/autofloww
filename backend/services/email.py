@@ -215,7 +215,44 @@ async def run_email_node(email_data):
 
         import aiohttp, json as _json
 
-        # ── 1. Resend (recommended — free 3000/mo, works on HF Spaces) ───────
+        # ── 1. Gmail API (HTTPS — works on HF Spaces, uses your own Gmail) ───
+        try:
+            from googleapiclient.discovery import build
+            from google.oauth2.credentials import Credentials
+            from google.auth.transport.requests import Request
+            import base64
+
+            GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            gmail_token = os.path.join(base_dir, 'gmail_token.json')
+
+            gcreds = None
+            if os.path.exists(gmail_token):
+                gcreds = Credentials.from_authorized_user_file(gmail_token, GMAIL_SCOPES)
+
+            if gcreds and not gcreds.valid:
+                if gcreds.expired and gcreds.refresh_token:
+                    gcreds.refresh(Request())
+                    with open(gmail_token, 'w') as f:
+                        f.write(gcreds.to_json())
+                else:
+                    gcreds = None
+
+            if gcreds and gcreds.valid:
+                print("📤 Sending via Gmail API...")
+                service = build('gmail', 'v1', credentials=gcreds)
+                raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+                result = service.users().messages().send(
+                    userId='me', body={'raw': raw}
+                ).execute()
+                print(f"✅ Email sent via Gmail API! ID: {result.get('id')}")
+                return _success_msg("Gmail API")
+            else:
+                print("⚠️ gmail_token.json not found or invalid — skipping Gmail API")
+        except Exception as e:
+            print(f"⚠️ Gmail API unavailable: {e}")
+
+        # ── 2. Resend (works if to == account owner email, or domain verified) ─
         resend_key = os.getenv("RESEND_API_KEY")
         if resend_key:
             print("📤 Sending via Resend API...")
@@ -246,45 +283,8 @@ async def run_email_node(email_data):
                         else:
                             err = resp_json.get("message", str(resp_json))
                             print(f"❌ Resend error {resp.status}: {err}")
-                            return f"Error: Resend failed ({resp.status}): {err}"
             except Exception as e:
                 print(f"❌ Resend exception: {e}")
-                return f"Error: Resend failed - {str(e)}"
-
-        # ── 2. SendGrid fallback ───────────────────────────────────────────────
-        sendgrid_key = os.getenv("SENDGRID_API_KEY")
-        if sendgrid_key:
-            print("📤 Sending via SendGrid API...")
-            try:
-                personalizations = [{"to": [{"email": to_email}]}]
-                if cc_email:
-                    personalizations[0]["cc"] = [{"email": cc_email}]
-                if bcc_email:
-                    personalizations[0]["bcc"] = [{"email": bcc_email}]
-                sg_payload = {
-                    "personalizations": personalizations,
-                    "from": {"email": email_user},
-                    "subject": subject,
-                    "content": [{"type": "text/html" if is_html else "text/plain",
-                                 "value": email_body_content}]
-                }
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(
-                        "https://api.sendgrid.com/v3/mail/send",
-                        data=_json.dumps(sg_payload),
-                        headers={"Authorization": f"Bearer {sendgrid_key}",
-                                 "Content-Type": "application/json"},
-                        timeout=aiohttp.ClientTimeout(total=30)
-                    ) as resp:
-                        if resp.status in (200, 202):
-                            print("✅ Email sent via SendGrid!")
-                            return _success_msg("SendGrid")
-                        else:
-                            err_text = await resp.text()
-                            print(f"❌ SendGrid error {resp.status}: {err_text}")
-                            # Don't return error — fall through to SMTP
-            except Exception as e:
-                print(f"❌ SendGrid exception: {e}")
 
         # ── 3. SMTP fallback (local dev) ──────────────────────────────────────
         print("🔌 Connecting via SMTP...")

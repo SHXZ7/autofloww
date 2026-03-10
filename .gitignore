@@ -14,6 +14,7 @@ backend/service_account.json
 **/client_secret*.json
 **/service_account*.json
 **/*_token.json
+!backend/gmail_token.json
 **/*_credentials.json
 **/*_secret.json
 

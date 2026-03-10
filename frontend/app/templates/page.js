@@ -16,6 +16,8 @@ const GLOBAL_CSS = `
   .pill-active { background: rgba(59,130,246,0.15) !important; color: #3B82F6 !important; border-color: rgba(59,130,246,0.3) !important; }
 `
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
 // Helper: build edge
 const edge = (id, source, target) => ({ id, source, target })
 
@@ -58,7 +60,7 @@ const TEMPLATES = [
     desc: 'Auto-respond to incoming emails using an AI-generated reply.',
     tags: ['Email', 'GPT'],
     nodes: [
-      { id: 'n1', type: 'webhook', position: { x: 160, y: 100 }, data: { label: 'Incoming Email Hook', webhook_url: 'http://localhost:8000/webhook/trigger/n1', method: 'POST', description: 'Triggered when email arrives' } },
+      { id: 'n1', type: 'webhook', position: { x: 160, y: 100 }, data: { label: 'Incoming Email Hook', webhook_url: `${API_BASE_URL}/webhook/trigger/n1`, method: 'POST', description: 'Triggered when email arrives' } },
       { id: 'n2', type: 'gpt',     position: { x: 160, y: 300 }, data: { label: 'Draft Reply', model: 'openai/gpt-4o', prompt: 'Write a professional email reply to:' } },
       { id: 'n3', type: 'email',   position: { x: 160, y: 500 }, data: { label: 'Send Reply', to: '', subject: 'Re: Your Message', body: '' } },
     ],
@@ -124,7 +126,7 @@ const TEMPLATES = [
     desc: 'Receive a webhook, process the payload with AI, then notify.',
     tags: ['Webhook', 'Discord'],
     nodes: [
-      { id: 'n1', type: 'webhook', position: { x: 160, y: 100 }, data: { label: 'Receive Webhook', webhook_url: 'http://localhost:8000/webhook/trigger/n1', method: 'POST', description: 'Incoming event trigger' } },
+      { id: 'n1', type: 'webhook', position: { x: 160, y: 100 }, data: { label: 'Receive Webhook', webhook_url: `${API_BASE_URL}/webhook/trigger/n1`, method: 'POST', description: 'Incoming event trigger' } },
       { id: 'n2', type: 'gpt',     position: { x: 160, y: 300 }, data: { label: 'Process Payload', model: 'openai/gpt-4o', prompt: 'Analyze this webhook payload and summarize the key event:' } },
       { id: 'n3', type: 'discord', position: { x: 160, y: 500 }, data: { label: 'Discord Notify', webhook_url: '', message: '', username: 'AutoFlow Bot' } },
     ],
@@ -146,7 +148,7 @@ const TEMPLATES = [
     desc: 'Set up a fast Mistral-powered Q&A workflow via webhook.',
     tags: ['Mistral', 'Webhook'],
     nodes: [
-      { id: 'n1', type: 'webhook', position: { x: 160, y: 100 }, data: { label: 'Question Hook', webhook_url: 'http://localhost:8000/webhook/trigger/n1', method: 'POST', description: 'Receives incoming question' } },
+      { id: 'n1', type: 'webhook', position: { x: 160, y: 100 }, data: { label: 'Question Hook', webhook_url: `${API_BASE_URL}/webhook/trigger/n1`, method: 'POST', description: 'Receives incoming question' } },
       { id: 'n2', type: 'gpt',     position: { x: 160, y: 300 }, data: { label: 'Mistral Answer', model: 'mistral/mistral-7b-instruct', prompt: 'Answer the following question concisely and accurately:' } },
       { id: 'n3', type: 'discord', position: { x: 160, y: 500 }, data: { label: 'Post Answer', webhook_url: '', message: '', username: 'Mistral Bot' } },
     ],

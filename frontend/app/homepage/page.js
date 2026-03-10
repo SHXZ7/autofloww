@@ -198,14 +198,14 @@ export default function Homepage() {
           pauseOnHover
           showBlur={false}
           logos={[
-            <span className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><DocumentTextIcon className="w-4 h-4" />Document Intelligence</span>,
-            <span className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><PencilSquareIcon className="w-4 h-4" />Content Creation</span>,
-            <span className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><CircleStackIcon className="w-4 h-4" />Data Pipelines</span>,
-            <span className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><DocumentChartBarIcon className="w-4 h-4" />AI Report Generation</span>,
-            <span className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><MegaphoneIcon className="w-4 h-4" />Social Media Automation</span>,
-            <span className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><EnvelopeIcon className="w-4 h-4" />Email Campaigns</span>,
-            <span className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><LinkIcon className="w-4 h-4" />Webhook Triggers</span>,
-            <span className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><ClockIcon className="w-4 h-4" />Scheduled AI Tasks</span>,
+            <span key="doc-intel" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><DocumentTextIcon className="w-4 h-4" />Document Intelligence</span>,
+            <span key="content" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><PencilSquareIcon className="w-4 h-4" />Content Creation</span>,
+            <span key="data" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><CircleStackIcon className="w-4 h-4" />Data Pipelines</span>,
+            <span key="report" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><DocumentChartBarIcon className="w-4 h-4" />AI Report Generation</span>,
+            <span key="social" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><MegaphoneIcon className="w-4 h-4" />Social Media Automation</span>,
+            <span key="email" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><EnvelopeIcon className="w-4 h-4" />Email Campaigns</span>,
+            <span key="webhook" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><LinkIcon className="w-4 h-4" />Webhook Triggers</span>,
+            <span key="scheduled" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><ClockIcon className="w-4 h-4" />Scheduled AI Tasks</span>,
           ]}
         />
       </section>

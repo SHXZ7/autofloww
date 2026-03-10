@@ -191,93 +191,102 @@ async def run_email_node(email_data):
         if bcc_email:
             recipients.append(bcc_email)
         
-        # RENDER-SPECIFIC EMAIL SENDING (Simplified approach)
-        print("🔌 Connecting to SMTP server for Render deployment...")
-        
+        # Build success message helper
+        def _success_msg(via: str) -> str:
+            msg = f"Email sent successfully to {to_email}"
+            if cc_email:
+                msg += f" (CC: {cc_email})"
+            if bcc_email:
+                msg += f" (BCC: {bcc_email})"
+            if attachment_count > 0:
+                msg += f" with {attachment_count} attachment(s)"
+            msg += f" via {via}"
+            return msg
+
+        # Determine whether body is HTML
+        is_html = "<html>" in body.lower() or "<p>" in body.lower() or "**" in body
+
+        # ── SendGrid (works on HF Spaces / any cloud that blocks SMTP) ──────────
+        sendgrid_key = os.getenv("SENDGRID_API_KEY")
+        if sendgrid_key:
+            print("📤 Sending via SendGrid HTTP API...")
+            try:
+                import aiohttp, json as _json
+                personalizations = [{"to": [{"email": to_email}]}]
+                if cc_email:
+                    personalizations[0]["cc"] = [{"email": cc_email}]
+                if bcc_email:
+                    personalizations[0]["bcc"] = [{"email": bcc_email}]
+
+                # Get the already-built body from the message object
+                email_body_content = ""
+                for part in message.walk():
+                    ct = part.get_content_type()
+                    if ct in ("text/html", "text/plain") and not part.get_filename():
+                        email_body_content = part.get_payload(decode=True).decode("utf-8", errors="replace")
+                        is_html = ct == "text/html"
+                        break
+
+                sg_payload = {
+                    "personalizations": personalizations,
+                    "from": {"email": email_user},
+                    "subject": subject,
+                    "content": [{"type": "text/html" if is_html else "text/plain",
+                                 "value": email_body_content or body}]
+                }
+                sg_headers = {
+                    "Authorization": f"Bearer {sendgrid_key}",
+                    "Content-Type": "application/json"
+                }
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        "https://api.sendgrid.com/v3/mail/send",
+                        data=_json.dumps(sg_payload),
+                        headers=sg_headers,
+                        timeout=aiohttp.ClientTimeout(total=30)
+                    ) as resp:
+                        if resp.status in (200, 202):
+                            print("✅ Email sent via SendGrid!")
+                            return _success_msg("SendGrid")
+                        else:
+                            err_text = await resp.text()
+                            print(f"❌ SendGrid error {resp.status}: {err_text}")
+                            return f"Error: SendGrid returned {resp.status}: {err_text}"
+            except Exception as e:
+                print(f"❌ SendGrid failed: {e}")
+                return f"Error: SendGrid failed - {str(e)}"
+
+        # ── SMTP fallback (local dev) ─────────────────────────────────────────
+        print("🔌 Connecting via SMTP (local)...")
         try:
-            # Use a single, reliable connection method for Render
-            print("🔄 Using optimized SMTP connection for Render...")
-            
-            # Create SSL context for better compatibility
             context = ssl.create_default_context()
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE
-            
-            # Connect using STARTTLS (most compatible with Render)
+
             with smtplib.SMTP(smtp_server, smtp_port, timeout=60) as server:
-                print("🔌 Connected to SMTP server")
-                
-                # Enable debug for troubleshooting
-                server.set_debuglevel(1)
-                
-                print("🔐 Starting TLS...")
                 server.starttls(context=context)
-                print("✅ TLS started successfully")
-                
-                print("🔐 Logging in...")
                 server.login(email_user, email_password)
-                print("✅ Login successful")
-                
-                print("📤 Sending message...")
                 server.send_message(message, to_addrs=recipients)
-                print("✅ Email sent successfully!")
-                
-                # Build success message
-                success_msg = f"Email sent successfully to {to_email}"
-                if cc_email:
-                    success_msg += f" (CC: {cc_email})"
-                if bcc_email:
-                    success_msg += f" (BCC: {bcc_email})"
-                if attachment_count > 0:
-                    success_msg += f" with {attachment_count} attachment(s)"
-                success_msg += " from Render"
-                
-                return success_msg
-                
+                print("✅ Email sent via SMTP!")
+                return _success_msg("SMTP")
+
         except smtplib.SMTPAuthenticationError as e:
-            error_msg = f"Gmail authentication failed: {str(e)}"
-            print(f"❌ {error_msg}")
-            print("💡 Check your Gmail App Password:")
-            print("   1. Go to Google Account settings")
-            print("   2. Security > 2-Step Verification")
-            print("   3. App passwords > Generate new app password")
-            print("   4. Use the generated password in EMAIL_PASSWORD")
-            return f"Error: {error_msg}"
-            
+            return f"Error: Gmail authentication failed - check your App Password: {str(e)}"
         except smtplib.SMTPRecipientsRefused as e:
-            error_msg = f"Recipients refused: {str(e)}"
-            print(f"❌ {error_msg}")
-            return f"Error: Email recipient '{to_email}' was refused by Gmail: {str(e)}"
-            
+            return f"Error: Recipient '{to_email}' refused: {str(e)}"
         except smtplib.SMTPServerDisconnected as e:
-            error_msg = f"Gmail server disconnected: {str(e)}"
-            print(f"❌ {error_msg}")
-            return f"Error: Gmail server disconnected: {str(e)}"
-            
+            return f"Error: SMTP server disconnected: {str(e)}"
         except smtplib.SMTPConnectError as e:
-            error_msg = f"Cannot connect to Gmail: {str(e)}"
-            print(f"❌ {error_msg}")
-            return f"Error: Cannot connect to Gmail SMTP server: {str(e)}"
-            
-        except socket.timeout as e:
-            error_msg = f"Gmail connection timeout: {str(e)}"
-            print(f"❌ {error_msg}")
-            return f"Error: Gmail connection timeout. This may be a Render network issue."
-            
+            return f"Error: Cannot connect to SMTP server: {str(e)}"
+        except socket.timeout:
+            return "Error: SMTP connection timed out."
         except OSError as e:
-            if e.errno == 101:  # Network is unreachable
-                error_msg = f"Network unreachable from Render: {str(e)}"
-                print(f"❌ {error_msg}")
-                return f"Error: Network unreachable from Render. Check if Render can access external SMTP servers."
-            else:
-                error_msg = f"OS error on Render: {str(e)}"
-                print(f"❌ {error_msg}")
-                return f"Error: System error on Render - {str(e)}"
-                    
+            if e.errno == 101:
+                return ("Error: Network unreachable — SMTP is blocked in this environment. "
+                        "Set SENDGRID_API_KEY as a secret to send emails from Hugging Face Spaces.")
+            return f"Error: OS error - {str(e)}"
         except Exception as e:
-            error_msg = f"Unexpected Gmail error: {str(e)}"
-            print(f"❌ {error_msg}")
-            return f"Error: Unexpected error - {str(e)}"
+            return f"Error: Unexpected SMTP error - {str(e)}"
         
     except Exception as e:
         error_msg = f"Email failed: {str(e)}"

@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '../../stores/authStore'
 import TopNav from '../../components/TopNav'
 import ProfileSettings from '../../components/ProfileSettings'
@@ -91,7 +91,6 @@ const MOBILE_NAV_ITEMS = [
 export default function SettingsPage() {
   const router = useRouter()
   const pathname = usePathname()
-  const searchParams = useSearchParams()
   const { isAuthenticated, loading, checkAuth, user } = useAuthStore()
   const [modalOpen, setModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('profile')
@@ -125,10 +124,13 @@ export default function SettingsPage() {
   }, [loading, isAuthenticated, router])
 
   useEffect(() => {
-    const status = searchParams.get('google_connect')
+    if (typeof window === 'undefined') return
+
+    const params = new URLSearchParams(window.location.search)
+    const status = params.get('google_connect')
     if (!status) return
 
-    const message = searchParams.get('message')
+    const message = params.get('message')
     const isSuccess = status === 'success'
 
     setConnectNotice({
@@ -144,7 +146,7 @@ export default function SettingsPage() {
 
     router.replace('/settings')
     return () => clearTimeout(timeout)
-  }, [searchParams, router])
+  }, [router])
 
   const openTab = (tab) => {
     if (tab === 'billing') return

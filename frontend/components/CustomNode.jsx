@@ -12,6 +12,7 @@ export default function CustomNode({ data, id }) {
   const [isDocUploading, setIsDocUploading] = useState(false)
   const updateNodeData = useFlowStore((s) => s.updateNodeData)
 
+  
   const CATEGORY_COLORS = {
     AI:            { accent: "#8B5CF6", bg: "rgba(139,92,246,0.12)",  border: "rgba(139,92,246,0.3)"  },
     Integration:   { accent: "#3B82F6", bg: "rgba(59,130,246,0.12)",  border: "rgba(59,130,246,0.3)"  },

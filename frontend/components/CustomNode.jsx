@@ -164,7 +164,7 @@ export default function CustomNode({ data, id }) {
               placeholder={`${API_BASE_URL}/webhook/trigger/${id}`}
             />
             <div className="text-xs text-[#64748b] mt-1">
-              ?è Webhook URL will be auto-registered when workflow runs
+              Webhook URL will be auto-registered when workflow runs
             </div>
           </div>
           <div>
@@ -434,7 +434,7 @@ export default function CustomNode({ data, id }) {
           case 'daily': return `Runs daily at ${fmtTime(scheduleHour, scheduleMinute)}`
           case 'weekly': return `Runs every ${DAY_FULL[scheduleDay] || 'week'} at ${fmtTime(scheduleHour, scheduleMinute)}`
           case 'monthly': return `Runs on the ${scheduleDay}${['','st','nd','rd'][scheduleDay] || 'th'} of each month at ${fmtTime(scheduleHour, scheduleMinute)}`
-          default: return `Custom: ${formData.cron || 'ó'}`
+          default: return `Custom: ${formData.cron || 'ÔøΩ'}`
         }
       }
 
@@ -553,7 +553,7 @@ export default function CustomNode({ data, id }) {
                 className="w-full bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6]"
                 placeholder="0 9 * * *"
               />
-              <div className="text-xs text-[#475569] mt-1">Format: minute ∑ hour ∑ day ∑ month ∑ weekday</div>
+              <div className="text-xs text-[#475569] mt-1">Format: minute ÔøΩ hour ÔøΩ day ÔøΩ month ÔøΩ weekday</div>
             </div>
           )}
 
@@ -748,7 +748,7 @@ export default function CustomNode({ data, id }) {
                 : 'border-[#3B82F6]/50 text-[#3B82F6] bg-[#1e40af]/10 hover:bg-[#1e40af]/20 hover:border-[#3B82F6]'
             }`}>
               {isDocUploading ? (
-                <><span className="animate-spin text-base">?</span> UploadingÖ</>
+                <><span className="animate-spin text-base">?</span> UploadingÔøΩ</>
               ) : (
                 <><span>??</span> Choose file to upload</>
               )}
@@ -785,7 +785,7 @@ export default function CustomNode({ data, id }) {
 
           <div className="bg-[#0f172a] rounded-lg px-3 py-2">
             <p className="text-[#475569] text-xs font-semibold uppercase tracking-wide mb-1">Supported formats</p>
-            <p className="text-[#64748b] text-xs">PDF ∑ Word (.docx) ∑ Excel (.xlsx) ∑ Text (.txt/.md) ∑ CSV</p>
+            <p className="text-[#64748b] text-xs">PDF ÔøΩ Word (.docx) ÔøΩ Excel (.xlsx) ÔøΩ Text (.txt/.md) ÔøΩ CSV</p>
           </div>
 
           {/* Tip for scheduled workflows */}

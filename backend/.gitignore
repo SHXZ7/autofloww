@@ -9,6 +9,8 @@ __pycache__/
 uploads/
 *.upload
 
+gmail_token.json
+
 # Generated content
 generated_images/
 generated_reports/

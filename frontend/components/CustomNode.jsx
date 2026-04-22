@@ -4,11 +4,12 @@ import { useState } from "react"
 import { CogIcon } from "@heroicons/react/24/outline"
 import { useFlowStore } from "../stores/flowStore"
 
-const API_BASE_URL = 'https://shxz7-autoflow.hf.space'
+const API_BASE_URL = 'http://172.20.10.2:8000'
 
 export default function CustomNode({ data, id }) {
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState(data)
+  const [isDocUploading, setIsDocUploading] = useState(false)
   const updateNodeData = useFlowStore((s) => s.updateNodeData)
 
   const CATEGORY_COLORS = {
@@ -36,12 +37,13 @@ export default function CustomNode({ data, id }) {
       mistral:          { icon: '/images/gpt.png',              category: 'AI'            },
       email:            { icon: '/images/email.png',            category: 'Communication' },
       discord:          { icon: '/images/discord.png',          category: 'Communication' },
-      twilio:           { icon: '/images/sms.png',              category: 'Communication' },
+      whatsapp:         { icon: '/images/sms.png',              category: 'Communication' },
       social_media:     { icon: '/images/sms.png',              category: 'Communication' },
       webhook:          { icon: '/images/webhook.png',          category: 'Integration'   },
       google_sheets:    { icon: '/images/google_sheets.png',    category: 'Integration'   },
       file_upload:      { icon: '/images/file_upload.png',      category: 'Integration'   },
       schedule:         { icon: '/images/schedule.png',         category: 'Automation'    },
+      gmail_trigger:    { icon: '/images/email.png',            category: 'Automation'    },
       delay:            { icon: '/images/delay.png',            category: 'Automation'    },
       image_generation: { icon: '/images/gemini.png',           category: 'Automation'    },
       document_parser:  { icon: '/images/document_parser.png',  category: 'Data'          },
@@ -67,8 +69,9 @@ export default function CustomNode({ data, id }) {
     else if (data.webhook_url !== undefined && data.username !== undefined && !data.method) nodeType = "discord"
     else if (data.spreadsheet_id !== undefined) nodeType = "google_sheets"
     else if (data.cron !== undefined) nodeType = "schedule"
+    else if (data.query !== undefined && data.label_filter !== undefined && data.poll_interval !== undefined) nodeType = "gmail_trigger"
     else if (data.service !== undefined || data.path !== undefined) nodeType = "file_upload"
-    else if (data.mode !== undefined || (data.message !== undefined && data.to !== undefined)) nodeType = "twilio"
+    else if (data.message !== undefined && data.to !== undefined && data.subject === undefined && data.body === undefined) nodeType = "whatsapp"
     else if (data.prompt !== undefined && data.provider !== undefined) nodeType = "image_generation"
     else if (data.supported_types !== undefined || data.file_path !== undefined) nodeType = "document_parser"
     else if (data.title !== undefined && data.format !== undefined) nodeType = "report_generator"
@@ -281,6 +284,7 @@ export default function CustomNode({ data, id }) {
             >
               <option value="openai">OpenAI DALL-E</option>
               <option value="stability">Stability AI</option>
+              <option value="huggingface">Hugging Face</option>
             </select>
           </div>
           <div>
@@ -308,21 +312,10 @@ export default function CustomNode({ data, id }) {
           </div>
         </div>
       )
-    } else if (data.mode !== undefined || (data.message !== undefined && data.to !== undefined)) {
-      // Twilio Node
+    } else if (data.message !== undefined && data.to !== undefined && data.subject === undefined && data.body === undefined) {
+      // WhatsApp Node
       return (
         <div className="p-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Mode</label>
-            <select
-              value={formData.mode || "whatsapp"}
-              onChange={(e) => setFormData({ ...formData, mode: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
-            >
-              <option value="whatsapp">WhatsApp</option>
-              <option value="sms">SMS</option>
-            </select>
-          </div>
           <div>
             <label className="block text-sm font-medium text-[#94a3b8] mb-2">Phone Number</label>
             <input
@@ -576,6 +569,49 @@ export default function CustomNode({ data, id }) {
           </div>
         </div>
       )
+    } else if (data.query !== undefined && data.label_filter !== undefined && data.poll_interval !== undefined) {
+      // Gmail Trigger Node
+      return (
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Search Query (optional)</label>
+            <input
+              type="text"
+              value={formData.query || ""}
+              onChange={(e) => setFormData({ ...formData, query: e.target.value })}
+              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+              placeholder="from:client@company.com subject:invoice"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Label Filter</label>
+            <select
+              value={formData.label_filter || "INBOX"}
+              onChange={(e) => setFormData({ ...formData, label_filter: e.target.value })}
+              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+            >
+              <option value="INBOX">INBOX</option>
+              <option value="IMPORTANT">IMPORTANT</option>
+              <option value="CATEGORY_PRIMARY">CATEGORY_PRIMARY</option>
+              <option value="UNREAD">UNREAD</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Poll Interval (minutes)</label>
+            <input
+              type="number"
+              min="1"
+              max="60"
+              value={formData.poll_interval || 1}
+              onChange={(e) => setFormData({ ...formData, poll_interval: Math.max(1, Number(e.target.value) || 1) })}
+              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+            />
+            <div className="text-xs text-[#64748b] mt-1">
+              This checks the logged-in user's Gmail OAuth token and triggers workflow on new emails.
+            </div>
+          </div>
+        </div>
+      )
     } else if (data.service !== undefined || data.path !== undefined) {
       // File Upload Node
       return (
@@ -680,7 +716,6 @@ export default function CustomNode({ data, id }) {
       )
     } else if (data.supported_types !== undefined || data.file_path !== undefined) {
       // Document Parser Node
-      const [uploading, setUploading] = useState(false)
       return (
         <div className="p-4 space-y-3">
           {/* Current file status */}
@@ -708,11 +743,11 @@ export default function CustomNode({ data, id }) {
               {formData.filename ? 'Replace Document' : 'Upload Document'}
             </label>
             <label className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-dashed cursor-pointer transition-all text-sm font-medium ${
-              uploading
+              isDocUploading
                 ? 'border-[#334155] text-[#475569] bg-[#0f172a] cursor-not-allowed'
                 : 'border-[#3B82F6]/50 text-[#3B82F6] bg-[#1e40af]/10 hover:bg-[#1e40af]/20 hover:border-[#3B82F6]'
             }`}>
-              {uploading ? (
+              {isDocUploading ? (
                 <><span className="animate-spin text-base">⏳</span> Uploading…</>
               ) : (
                 <><span>📁</span> Choose file to upload</>
@@ -721,11 +756,11 @@ export default function CustomNode({ data, id }) {
                 type="file"
                 accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.md,.csv"
                 className="hidden"
-                disabled={uploading}
+                disabled={isDocUploading}
                 onChange={async (e) => {
                   const file = e.target.files[0]
                   if (!file) return
-                  setUploading(true)
+                  setIsDocUploading(true)
                   try {
                     const fd = new FormData()
                     fd.append('file', file)
@@ -741,7 +776,7 @@ export default function CustomNode({ data, id }) {
                   } catch (err) {
                     alert('Upload failed: ' + err.message)
                   } finally {
-                    setUploading(false)
+                    setIsDocUploading(false)
                   }
                 }}
               />

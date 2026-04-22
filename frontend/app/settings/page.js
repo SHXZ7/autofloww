@@ -1,9 +1,10 @@
 "use client"
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useAuthStore } from '../../stores/authStore'
 import TopNav from '../../components/TopNav'
 import ProfileSettings from '../../components/ProfileSettings'
+import MobileBottomNav from '../../components/MobileBottomNav'
 import {
   UserCircleIcon,
   KeyIcon,
@@ -12,6 +13,11 @@ import {
   CreditCardIcon,
   SunIcon,
   MoonIcon,
+  BoltIcon,
+  RectangleStackIcon,
+  DocumentDuplicateIcon,
+  PlayCircleIcon,
+  Cog6ToothIcon,
 } from '@heroicons/react/24/outline'
 
 const GLOBAL_CSS = `
@@ -47,7 +53,7 @@ const SETTINGS_SECTIONS = [
     id: 'api',
     icon: KeyIcon,
     title: 'API Keys',
-    desc: 'Manage API keys for Groq, Google Sheets, Discord, Twilio, and more',
+    desc: 'Manage API keys for Groq, Google Sheets, Discord, WhatsApp, and more',
     tab: 'api',
   },
   {
@@ -74,12 +80,31 @@ const SETTINGS_SECTIONS = [
   },
 ]
 
+const MOBILE_NAV_ITEMS = [
+  { href: '/', label: 'Flow', icon: BoltIcon },
+  { href: '/workflows', label: 'Workflows', icon: RectangleStackIcon },
+  { href: '/templates', label: 'Templates', icon: DocumentDuplicateIcon },
+  { href: '/runs', label: 'Runs', icon: PlayCircleIcon },
+  { href: '/settings', label: 'Settings', icon: Cog6ToothIcon },
+]
+
 export default function SettingsPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { isAuthenticated, loading, checkAuth, user } = useAuthStore()
   const [modalOpen, setModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('profile')
   const [theme, setTheme] = useState('dark')
+  const [connectNotice, setConnectNotice] = useState({ type: '', text: '' })
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 900)
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   useEffect(() => {
     const saved = localStorage.getItem('theme') ||
@@ -99,6 +124,28 @@ export default function SettingsPage() {
     if (!loading && isAuthenticated === false) router.push('/homepage')
   }, [loading, isAuthenticated, router])
 
+  useEffect(() => {
+    const status = searchParams.get('google_connect')
+    if (!status) return
+
+    const message = searchParams.get('message')
+    const isSuccess = status === 'success'
+
+    setConnectNotice({
+      type: isSuccess ? 'success' : 'error',
+      text: message || (isSuccess ? 'Google account connected successfully.' : 'Google connection failed.'),
+    })
+    setActiveTab('api')
+    setModalOpen(true)
+
+    const timeout = setTimeout(() => {
+      setConnectNotice({ type: '', text: '' })
+    }, 5000)
+
+    router.replace('/settings')
+    return () => clearTimeout(timeout)
+  }, [searchParams, router])
+
   const openTab = (tab) => {
     if (tab === 'billing') return
     setActiveTab(tab)
@@ -108,13 +155,27 @@ export default function SettingsPage() {
   if (loading || !isAuthenticated) return null
 
   return (
-    <div className="settings-page-bg" style={{ display: 'flex', flexDirection: 'row', height: '100vh', background: '#020617', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)" }}>
+    <div className="settings-page-bg" style={{ display: 'flex', flexDirection: 'row', height: isMobile ? '100dvh' : '100vh', background: '#020617', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", overflow: 'hidden' }}>
       <style jsx global>{GLOBAL_CSS}</style>
-      <TopNav />
+      {!isMobile && <TopNav />}
 
-      <div style={{ flex: 1, overflow: 'auto', padding: '32px 40px' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '18px 12px 96px' : '32px 40px' }}>
+        {connectNotice.text && (
+          <div style={{
+            marginBottom: '16px',
+            borderRadius: '10px',
+            padding: '10px 12px',
+            fontSize: '12px',
+            border: connectNotice.type === 'success' ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(239,68,68,0.35)',
+            background: connectNotice.type === 'success' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+            color: connectNotice.type === 'success' ? '#22c55e' : '#f87171',
+          }}>
+            {connectNotice.text}
+          </div>
+        )}
+
         {/* Header */}
-        <div style={{ marginBottom: '36px' }}>
+        <div style={{ marginBottom: isMobile ? '22px' : '36px' }}>
           <h1 className="settings-heading" style={{ fontSize: '22px', fontWeight: '700', color: '#F1F5F9', margin: 0, letterSpacing: '-0.4px' }}>Settings</h1>
           <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0' }}>
             Manage your account, API keys, and workspace preferences
@@ -124,8 +185,8 @@ export default function SettingsPage() {
         {/* Account card */}
         <div className="settings-acc-card" style={{
           background: '#0f172a', border: '1px solid #1e293b',
-          borderRadius: '12px', padding: '20px 24px', marginBottom: '28px',
-          display: 'flex', alignItems: 'center', gap: '16px',
+          borderRadius: '12px', padding: isMobile ? '16px' : '20px 24px', marginBottom: '28px',
+          display: 'flex', alignItems: 'center', gap: '16px', flexWrap: isMobile ? 'wrap' : 'nowrap',
         }}>
           <div style={{
             width: '48px', height: '48px', flexShrink: 0, borderRadius: '50%',
@@ -207,7 +268,7 @@ export default function SettingsPage() {
                 onClick={() => openTab(section.tab)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '16px',
-                  padding: '18px 24px',
+                  padding: isMobile ? '16px 14px' : '18px 24px',
                   borderBottom: isLast ? 'none' : '1px solid #1e293b',
                   cursor: section.tab === 'billing' ? 'default' : 'pointer',
                   opacity: section.tab === 'billing' ? 0.45 : 1,
@@ -241,6 +302,15 @@ export default function SettingsPage() {
             )
           })}
         </div>
+
+        {isMobile && (
+          <MobileBottomNav
+            items={MOBILE_NAV_ITEMS}
+            pathname={pathname}
+            onNavigate={(href) => router.push(href)}
+            isLight={theme === 'light'}
+          />
+        )}
       </div>
 
       {/* ProfileSettings modal */}

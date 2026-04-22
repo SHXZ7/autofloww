@@ -28,7 +28,6 @@ client_secret*.json
 
 # Google OAuth and API files
 *_token.json
-!gmail_token.json
 *_credentials.json
 *_secret.json
 

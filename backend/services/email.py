@@ -9,8 +9,22 @@ from email import encoders
 import mimetypes
 import socket
 import ssl
-from typing import List, Dict, Any
+import json
+from typing import List, Dict, Any, Optional
 import asyncio
+
+
+def _is_truthy(value: Optional[str]) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _require_user_owned_keys() -> bool:
+    explicit = os.getenv("ALLOW_SERVER_KEY_FALLBACK")
+    if explicit is not None:
+        return not _is_truthy(explicit)
+
+    app_env = os.getenv("APP_ENV", "development").strip().lower()
+    return app_env in {"prod", "production"}
 
 async def run_email_node(email_data):
     try:
@@ -25,9 +39,12 @@ async def run_email_node(email_data):
         print(f"   SMTP Port: {smtp_port}")
         print(f"   Email User: {email_user[:10]}..." if email_user else "   Email User: Not configured")
         print(f"   Password: {'*' * len(email_password) if email_password else 'Not configured'}")
-        
-        if not email_user or not email_password:
-            return "Error: Email credentials not configured. Please set EMAIL_USER and EMAIL_PASSWORD environment variables"
+
+        strict_mode = _require_user_owned_keys()
+        user_google_token_json = email_data.get("google_token_json") or email_data.get("gmail_token_json")
+
+        if strict_mode and not user_google_token_json:
+            return "Error: Missing user Google token. Add google_token_json in Settings > API Keys."
         
         # Get email details with better validation
         to_email = email_data.get("to", "").strip()
@@ -213,9 +230,9 @@ async def run_email_node(email_data):
 
         email_body_content, is_html = _get_body_content()
 
-        import aiohttp, json as _json
+        import aiohttp
 
-        # ── 1. Gmail API (HTTPS — works on HF Spaces, uses your own Gmail) ───
+        # 1. Gmail API (per-user token in production)
         try:
             from googleapiclient.discovery import build
             from google.oauth2.credentials import Credentials
@@ -223,18 +240,22 @@ async def run_email_node(email_data):
             import base64
 
             GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.send']
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            gmail_token = os.path.join(base_dir, 'gmail_token.json')
-
             gcreds = None
-            if os.path.exists(gmail_token):
-                gcreds = Credentials.from_authorized_user_file(gmail_token, GMAIL_SCOPES)
+            if user_google_token_json:
+                token_data = json.loads(user_google_token_json) if isinstance(user_google_token_json, str) else user_google_token_json
+                gcreds = Credentials.from_authorized_user_info(token_data, GMAIL_SCOPES)
+            elif not strict_mode:
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                gmail_token = os.path.join(base_dir, 'gmail_token.json')
+                if os.path.exists(gmail_token):
+                    gcreds = Credentials.from_authorized_user_file(gmail_token, GMAIL_SCOPES)
 
             if gcreds and not gcreds.valid:
                 if gcreds.expired and gcreds.refresh_token:
                     gcreds.refresh(Request())
-                    with open(gmail_token, 'w') as f:
-                        f.write(gcreds.to_json())
+                    if not user_google_token_json and not strict_mode:
+                        with open(gmail_token, 'w') as f:
+                            f.write(gcreds.to_json())
                 else:
                     gcreds = None
 
@@ -248,9 +269,12 @@ async def run_email_node(email_data):
                 print(f"✅ Email sent via Gmail API! ID: {result.get('id')}")
                 return _success_msg("Gmail API")
             else:
-                print("⚠️ gmail_token.json not found or invalid — skipping Gmail API")
+                print("⚠️ Google token unavailable or invalid — skipping Gmail API")
         except Exception as e:
             print(f"⚠️ Gmail API unavailable: {e}")
+
+        if strict_mode:
+            return "Error: Unable to send via user Gmail token. Reconnect Google account and grant gmail.send scope."
 
         # ── 2. Resend (works if to == account owner email, or domain verified) ─
         resend_key = os.getenv("RESEND_API_KEY")
@@ -288,6 +312,8 @@ async def run_email_node(email_data):
 
         # ── 3. SMTP fallback (local dev) ──────────────────────────────────────
         print("🔌 Connecting via SMTP...")
+        if not email_user or not email_password:
+            return "Error: Email credentials not configured. Please set EMAIL_USER and EMAIL_PASSWORD environment variables"
         try:
             context = ssl.create_default_context()
             context.check_hostname = False

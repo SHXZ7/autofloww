@@ -1,9 +1,17 @@
 "use client"
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '../../stores/authStore'
 import TopNav from '../../components/TopNav'
 import ProfileSettings from '../../components/ProfileSettings'
+import MobileBottomNav from '../../components/MobileBottomNav'
+import {
+  BoltIcon,
+  RectangleStackIcon,
+  DocumentDuplicateIcon,
+  PlayCircleIcon,
+  Cog6ToothIcon,
+} from '@heroicons/react/24/outline'
 
 const GLOBAL_CSS = `
     *, *::before, *::after { box-sizing: border-box; }
@@ -69,13 +77,13 @@ const INTEGRATIONS = [
     settingsTab: 'api',
   },
   {
-    id: 'twilio',
-    name: 'Twilio',
-    desc: 'Send SMS and WhatsApp messages programmatically via Twilio.',
+    id: 'whatsapp',
+    name: 'WhatsApp Cloud API',
+    desc: 'Send WhatsApp messages directly through Meta WhatsApp Cloud API.',
     icon: '📱',
     color: '#fb7185',
     category: 'Communication',
-    docsUrl: 'https://www.twilio.com/docs',
+    docsUrl: 'https://developers.facebook.com/docs/whatsapp/cloud-api',
     settingsTab: 'api',
   },
   {
@@ -102,11 +110,37 @@ const INTEGRATIONS = [
 
 const CATEGORIES = ['All', 'AI', 'Communication', 'Data', 'Automation']
 
+const MOBILE_NAV_ITEMS = [
+  { href: '/', label: 'Flow', icon: BoltIcon },
+  { href: '/workflows', label: 'Workflows', icon: RectangleStackIcon },
+  { href: '/templates', label: 'Templates', icon: DocumentDuplicateIcon },
+  { href: '/runs', label: 'Runs', icon: PlayCircleIcon },
+  { href: '/settings', label: 'Settings', icon: Cog6ToothIcon },
+]
+
 export default function IntegrationsPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const { isAuthenticated, loading, checkAuth } = useAuthStore()
   const [filter, setFilter] = useState('All')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [isLight, setIsLight] = useState(false)
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 900)
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    const update = () => setIsLight(document.documentElement.classList.contains('light'))
+    update()
+    const observer = new MutationObserver(update)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => { checkAuth() }, [checkAuth])
   useEffect(() => {
@@ -118,13 +152,13 @@ export default function IntegrationsPage() {
   if (loading || !isAuthenticated) return null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', height: '100vh', background: '#020617', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)" }}>
+    <div style={{ display: 'flex', flexDirection: 'row', height: isMobile ? '100dvh' : '100vh', background: '#020617', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", overflow: 'hidden' }}>
       <style jsx global>{GLOBAL_CSS}</style>
-      <TopNav />
+      {!isMobile && <TopNav />}
 
-      <div style={{ flex: 1, overflow: 'auto', padding: '32px 40px' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '18px 12px 96px' : '32px 40px' }}>
         {/* Header */}
-        <div style={{ marginBottom: '28px' }}>
+        <div style={{ marginBottom: isMobile ? '18px' : '28px' }}>
           <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#F1F5F9', margin: 0, letterSpacing: '-0.4px' }}>Integrations</h1>
           <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0' }}>
             Connect external services — configure API keys in Settings → API Keys
@@ -153,14 +187,14 @@ export default function IntegrationsPage() {
         </div>
 
         {/* Integration grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
           {filtered.map(integration => (
             <div
               key={integration.id}
               className="int-card"
               style={{
                 background: '#0f172a', border: '1px solid #1e293b',
-                borderRadius: '12px', padding: '20px',
+                borderRadius: '12px', padding: isMobile ? '16px' : '20px',
               }}
             >
               {/* Icon + name row */}
@@ -207,6 +241,15 @@ export default function IntegrationsPage() {
             </div>
           ))}
         </div>
+
+        {isMobile && (
+          <MobileBottomNav
+            items={MOBILE_NAV_ITEMS}
+            pathname={pathname}
+            onNavigate={(href) => router.push(href)}
+            isLight={isLight}
+          />
+        )}
       </div>
 
       {/* Reuse ProfileSettings modal at API Keys tab */}

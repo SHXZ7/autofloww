@@ -55,21 +55,21 @@ export default function SignupForm({ onSwitchToLogin, isLight = false }) {
   })
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-[320px] md:max-w-md mx-auto">
       {/* Header */}
-      <div className="flex flex-col items-start mb-5">
+      <div className="flex flex-col items-start mb-3.5 md:mb-5">
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center"
+          <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center"
             style={{ background: "linear-gradient(135deg,#3B82F6,#8B5CF6)" }}>
             <span className="text-white font-bold text-sm font-mono">AF</span>
           </div>
           <span className="font-mono font-bold text-base" style={{ color: isLight ? "#111111" : "#F1F5F9" }}>AutoFlow</span>
         </div>
-        <h2 className="text-3xl font-mono font-bold mb-1 tracking-tight"
+        <h2 className="text-xl md:text-3xl font-mono font-bold mb-1 tracking-tight"
           style={{ color: isLight ? "#111111" : "#F1F5F9" }}>
           Create Account
         </h2>
-        <p className="text-sm font-mono" style={{ color: subTextColor }}>
+        <p className="text-[11px] md:text-sm font-mono" style={{ color: subTextColor }}>
           Join AutoFlow to start building workflows
         </p>
       </div>
@@ -85,11 +85,11 @@ export default function SignupForm({ onSwitchToLogin, isLight = false }) {
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 md:gap-3" noValidate>
 
         {/* Name */}
         <div>
-          <label className="block text-sm font-mono mb-1" style={{ color: labelColor }}>Full Name</label>
+          <label className="block text-xs md:text-sm font-mono mb-1" style={{ color: labelColor }}>Full Name</label>
           <input
             type="text"
             name="name"
@@ -105,7 +105,7 @@ export default function SignupForm({ onSwitchToLogin, isLight = false }) {
 
         {/* Email */}
         <div>
-          <label className="block text-sm font-mono mb-1" style={{ color: labelColor }}>Email</label>
+          <label className="block text-xs md:text-sm font-mono mb-1" style={{ color: labelColor }}>Email</label>
           <input
             type="email"
             name="email"
@@ -121,7 +121,7 @@ export default function SignupForm({ onSwitchToLogin, isLight = false }) {
 
         {/* Password */}
         <div>
-          <label className="block text-sm font-mono mb-1" style={{ color: labelColor }}>Password</label>
+          <label className="block text-xs md:text-sm font-mono mb-1" style={{ color: labelColor }}>Password</label>
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -147,7 +147,7 @@ export default function SignupForm({ onSwitchToLogin, isLight = false }) {
 
         {/* Confirm Password */}
         <div>
-          <label className="block text-sm font-mono mb-1" style={{ color: labelColor }}>Confirm Password</label>
+          <label className="block text-xs md:text-sm font-mono mb-1" style={{ color: labelColor }}>Confirm Password</label>
           <div className="relative">
             <input
               type={showConfirmPassword ? "text" : "password"}
@@ -175,7 +175,7 @@ export default function SignupForm({ onSwitchToLogin, isLight = false }) {
         <button
           type="submit"
           disabled={loading || !passwordValid || !passwordsMatch}
-          className="signup-pulse w-full text-white font-mono font-bold py-2.5 px-4 transition-all duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed mt-1"
+          className="signup-pulse w-full text-white font-mono font-bold py-2.5 px-4 transition-all duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed mt-0.5 md:mt-1"
           style={{ background: accentColor, fontSize: "15px" }}
           onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = accentHover)}
           onMouseLeave={e => (e.currentTarget.style.background = accentColor)}
@@ -194,7 +194,7 @@ export default function SignupForm({ onSwitchToLogin, isLight = false }) {
         </div>
 
         {/* Switch to login */}
-        <div className="text-center text-sm font-mono" style={{ color: subTextColor }}>
+        <div className="text-center text-xs md:text-sm font-mono" style={{ color: subTextColor }}>
           Already have an account?{" "}
           <button
             type="button"

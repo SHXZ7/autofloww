@@ -3,9 +3,11 @@ import { useState, useEffect } from "react"
 import { XMarkIcon, UserCircleIcon, KeyIcon, CreditCardIcon, ShieldCheckIcon, ShieldExclamationIcon } from "@heroicons/react/24/outline"
 import { useAuthStore } from "../stores/authStore"
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://172.20.10.2:8000"
+
 export default function ProfileSettings({ isOpen, onClose, activeTab = "profile" }) {
   const [currentTab, setCurrentTab] = useState(activeTab)
-  const { user, updateUserProfile, changePassword, updateApiKeys, getApiKeys, loading } = useAuthStore()
+  const { user, updateUserProfile, changePassword, updateApiKeys, getApiKeys, loading, logout } = useAuthStore()
   
   const [profile, setProfile] = useState({
     name: "",
@@ -21,13 +23,16 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
   
   const [apiKeys, setApiKeys] = useState({
     openai: { key: "", isActive: false },
+    groq: { key: "", isActive: false },
     openrouter: { key: "", isActive: false },
     google: { key: "", isActive: false },
+    google_token_json: { key: "", isActive: false },
+    gmail_token_json: { key: "", isActive: false },
     discord: { key: "", isActive: false },
     github: { key: "", isActive: false },
-    twilio_sid: { key: "", isActive: false },
-    twilio_token: { key: "", isActive: false },
-    twilio_phone: { key: "", isActive: false },
+    whatsapp_token: { key: "", isActive: false },
+    whatsapp_phone_number_id: { key: "", isActive: false },
+    whatsapp_sender_number: { key: "", isActive: false },
     stability: { key: "", isActive: false },
     twitter_api_key: { key: "", isActive: false },
     twitter_api_secret: { key: "", isActive: false },
@@ -40,6 +45,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
   const [apiKeysLoading, setApiKeysLoading] = useState(false)
   const [apiKeysSaving, setApiKeysSaving] = useState(false)
   const [apiKeysHasChanges, setApiKeysHasChanges] = useState(false)
+  const [connectingGoogle, setConnectingGoogle] = useState(false)
 
   // Password state
   const [passwordData, setPasswordData] = useState({
@@ -54,6 +60,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [changingPassword, setChangingPassword] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   
   // Always define ALL useEffect hooks in the same order, regardless of conditions
   // Update profile when user data changes
@@ -97,6 +104,13 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
       setChangingPassword(false)
     }
   }, [isOpen])
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 900)
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   // Load API keys when component mounts or user changes
   useEffect(() => {
@@ -328,6 +342,34 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
     }
   }
 
+  const connectGoogleOneClick = async () => {
+    setConnectingGoogle(true)
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) {
+        showNotification("Please log in again to connect Google", "error")
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/google/oauth/start`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      })
+
+      const data = await response.json()
+      if (!response.ok || !data?.auth_url) {
+        throw new Error(data?.detail || "Could not start Google connect flow")
+      }
+
+      window.location.href = data.auth_url
+    } catch (error) {
+      showNotification(error?.message || "Failed to connect Google", "error")
+      setConnectingGoogle(false)
+    }
+  }
+
   const showNotification = (message, type = 'success') => {
     const notification = document.createElement('div')
     notification.className = `fixed bottom-4 right-4 ${
@@ -348,6 +390,11 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
     return key.substring(0, 4) + '•'.repeat(Math.max(0, key.length - 8)) + key.substring(key.length - 4)
   }
 
+  const handleLogout = () => {
+    onClose()
+    logout()
+  }
+
   const tabs = [
     { id: "profile", label: "Profile", icon: "👤" },
     { id: "security", label: "Security", icon: "🔒" },
@@ -357,8 +404,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
   ]
 
   return (
-    <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-300`}>
-      <div className="bg-[#0f172a] border border-[#1e293b] rounded-xl w-full max-w-4xl h-[80vh] overflow-hidden">
+    <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[120] flex ${isMobile ? 'items-end justify-center p-1.5 pb-[78px]' : 'items-center justify-center'} ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-300`}>
+      <div className={`bg-[#0f172a] border border-[#1e293b] w-full overflow-hidden flex flex-col ${isMobile ? 'rounded-2xl h-[76dvh] max-h-[calc(100dvh-96px)] max-w-[380px] ps-mobile' : 'rounded-xl max-w-4xl h-[80vh]'}`}>
         <style jsx>{`
           @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
@@ -368,42 +415,125 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
           .animate-fade-in {
             animation: fadeIn 0.3s ease forwards;
           }
+
+          .ps-mobile h3 {
+            font-size: 0.92rem;
+            line-height: 1.2rem;
+          }
+
+          .ps-mobile h4 {
+            font-size: 0.82rem;
+            line-height: 1.1rem;
+          }
+
+          .ps-mobile label,
+          .ps-mobile p,
+          .ps-mobile li,
+          .ps-mobile span,
+          .ps-mobile div {
+            letter-spacing: 0;
+          }
+
+          .ps-mobile input,
+          .ps-mobile select,
+          .ps-mobile textarea {
+            padding: 0.42rem 0.58rem;
+            font-size: 0.88rem;
+          }
+
+          .ps-mobile .text-sm {
+            font-size: 0.78rem !important;
+            line-height: 1.05rem;
+          }
+
+          .ps-mobile .text-xs {
+            font-size: 0.7rem !important;
+            line-height: 1rem;
+          }
+
+          .ps-mobile .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 0.9rem;
+          }
+
+          .ps-mobile .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 0.6rem;
+          }
+
+          .ps-mobile .mobile-tight {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+          }
+
+          .ps-mobile .mobile-small {
+            font-size: 0.78rem;
+          }
         `}</style>
         
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#1e293b]">
-          <h2 className="text-xl font-semibold text-white">Profile Settings</h2>
+        <div className={`flex items-center justify-between border-b border-[#1e293b] ${isMobile ? 'pl-3 pr-4 py-2.5' : 'p-6'}`}>
+          <h2 className={`${isMobile ? 'text-[15px]' : 'text-xl'} font-semibold text-white`}>Profile Settings</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#1e293b] rounded-lg transition-colors"
+            className={`${isMobile ? 'w-8 h-8' : 'p-2'} flex items-center justify-center shrink-0 hover:bg-[#1e293b] rounded-lg transition-colors`}
+            aria-label="Close settings"
           >
-            <XMarkIcon className="w-5 h-5 text-[#64748b]" />
+            <XMarkIcon className={`${isMobile ? 'w-[18px] h-[18px]' : 'w-5 h-5'} text-[#64748b]`} />
           </button>
         </div>
 
-        <div className="flex h-[calc(80vh-70px)]">
-          {/* Sidebar */}
-          <div className="w-64 border-r border-[#1e293b] p-4">
-            <nav className="space-y-2">
-              {tabs.map((tab) => (
+        <div className="flex flex-1 min-h-0">
+          {/* Sidebar / Mobile Tabs */}
+          {isMobile ? (
+            <div className="w-[50px] border-r border-[#1e293b] px-1 py-1.5">
+              <nav className="flex flex-col gap-1.5 items-center">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setCurrentTab(tab.id)}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+                      currentTab === tab.id
+                        ? "bg-[#3B82F6] text-white"
+                        : "text-[#94a3b8] hover:bg-[#1e293b]"
+                    }`}
+                    title={tab.label}
+                    aria-label={tab.label}
+                  >
+                    <span className="text-sm leading-none">{tab.icon}</span>
+                  </button>
+                ))}
                 <button
-                  key={tab.id}
-                  onClick={() => setCurrentTab(tab.id)}
-                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-left ${
-                    currentTab === tab.id
-                      ? "bg-[#3B82F6] text-white"
-                      : "text-[#94a3b8] hover:bg-[#1e293b]"
-                  }`}
+                  onClick={handleLogout}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-red-300 hover:bg-red-500/15 transition-colors mt-0.5"
+                  title="Logout"
+                  aria-label="Logout"
                 >
-                  <span className="text-lg">{tab.icon}</span>
-                  <span className="text-sm">{tab.label}</span>
+                  <span className="text-sm leading-none">↩</span>
                 </button>
-              ))}
-            </nav>
-          </div>
+              </nav>
+            </div>
+          ) : (
+            <div className="w-64 border-r border-[#1e293b] p-4">
+              <nav className="space-y-2">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setCurrentTab(tab.id)}
+                    className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-left ${
+                      currentTab === tab.id
+                        ? "bg-[#3B82F6] text-white"
+                        : "text-[#94a3b8] hover:bg-[#1e293b]"
+                    }`}
+                  >
+                    <span className="text-lg">{tab.icon}</span>
+                    <span className="text-sm">{tab.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          )}
 
           {/* Content */}
-          <div className="flex-1 p-6 overflow-y-auto animate-fade-in">
+          <div className={`flex-1 overflow-y-auto animate-fade-in ${isMobile ? 'p-2 pb-3' : 'p-6'}`}>
             {/* Profile Tab */}
             {currentTab === "profile" && (
               <div className="space-y-6">
@@ -508,10 +638,66 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
 
             {/* API Keys Tab */}
             {currentTab === "api" && (
-              <div className="space-y-6">
+              <div className={isMobile ? "space-y-3" : "space-y-6"}>
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-4">API Keys</h3>
-                  <p className="text-[#64748b] mb-6">Manage your API keys for external integrations</p>
+                  <h3 className={`${isMobile ? "text-base mb-2" : "text-lg mb-4"} font-semibold text-white`}>API Keys</h3>
+                  <p className={`text-[#64748b] ${isMobile ? "text-xs mb-3" : "mb-6"}`}>Manage your API keys for external integrations</p>
+                  <div className={`bg-[#172554] border border-[#1d4ed8] rounded-lg ${isMobile ? "p-2.5 mb-3" : "p-4 mb-6"}`}>
+                    <div className={`${isMobile ? "text-xs mb-2" : "text-sm mb-3"} font-semibold text-[#bfdbfe]`}>Google Connection Setup (2 minutes)</div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={connectGoogleOneClick}
+                        disabled={connectingGoogle}
+                        className={`${isMobile ? "px-2.5 py-1.5 text-[11px]" : "px-3 py-2 text-xs"} rounded-md font-semibold text-white transition-colors ${connectingGoogle ? "bg-[#1e40af] opacity-70 cursor-not-allowed" : "bg-[#2563eb] hover:bg-[#1d4ed8]"}`}
+                      >
+                        {connectingGoogle ? "Connecting..." : "Connect Google (One Click)"}
+                      </button>
+                      <span className="text-[11px] text-[#bfdbfe]">Recommended for all users</span>
+                    </div>
+                    <div className="grid gap-2">
+                      <div className={`bg-[#1e3a8a]/40 border border-[#1d4ed8]/40 rounded-md text-[#dbeafe] ${isMobile ? "p-2 text-[11px]" : "p-3 text-xs"}`}>
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B82F6] text-white font-bold mr-2">1</span>
+                        Copy your Google OAuth token JSON from your connect flow.
+                      </div>
+                      <div className={`bg-[#1e3a8a]/40 border border-[#1d4ed8]/40 rounded-md text-[#dbeafe] ${isMobile ? "p-2 text-[11px]" : "p-3 text-xs"}`}>
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B82F6] text-white font-bold mr-2">2</span>
+                        Paste it in <span className="font-semibold text-white">Google OAuth Token JSON</span> and click <span className="font-semibold text-white">Save API Keys</span>.
+                      </div>
+                      <div className={`bg-[#1e3a8a]/40 border border-[#1d4ed8]/40 rounded-md text-[#dbeafe] ${isMobile ? "p-2 text-[11px]" : "p-3 text-xs"}`}>
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B82F6] text-white font-bold mr-2">3</span>
+                        Done. Gmail, Sheets, and Drive nodes will run from your account.
+                      </div>
+                    </div>
+                    {!isMobile && (
+                      <div className="mt-3 p-3 rounded-md bg-[#0f172a] border border-[#334155]">
+                        <div className="text-[11px] text-[#94a3b8] mb-1">Token JSON should look like:</div>
+                        <pre className="text-[11px] text-[#cbd5e1] whitespace-pre-wrap font-mono">{"{\"refresh_token\":\"...\",\"client_id\":\"...\",\"client_secret\":\"...\",\"token_uri\":\"https://oauth2.googleapis.com/token\"}"}</pre>
+                      </div>
+                    )}
+                    <div className={`mt-3 rounded-md bg-[#111827] border border-[#374151] ${isMobile ? "p-2" : "p-3"}`}>
+                      <div className={`${isMobile ? "text-[11px] mb-1.5" : "text-xs mb-2"} font-semibold text-white`}>Where do I get this token?</div>
+                      <div className={`${isMobile ? "text-[11px] space-y-1.5" : "text-xs space-y-2"} text-[#cbd5e1]`}>
+                        <div>
+                          Option A (recommended): Ask your workspace admin for the AutoFlow Google connect link and sign in with your Google account.
+                        </div>
+                        <div>
+                          Option B (self-serve): Use Google OAuth Playground to generate a refresh token.
+                          <a
+                            href="https://developers.google.com/oauthplayground"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="ml-1 text-[#60a5fa] underline"
+                          >
+                            Open OAuth Playground
+                          </a>
+                        </div>
+                        <div>
+                          Required scopes: gmail.send, gmail.readonly, spreadsheets, drive.file.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   
                   {apiKeysLoading ? (
                     <div className="flex items-center justify-center py-8">
@@ -519,14 +705,14 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                       <span className="ml-2 text-[#64748b]">Loading API keys...</span>
                     </div>
                   ) : (
-                    <div className="space-y-6">
+                    <div className={isMobile ? "space-y-4" : "space-y-6"}>
                       {/* AI Services Section */}
                       <div>
-                        <h4 className="text-white font-medium mb-4 flex items-center">
+                        <h4 className={`${isMobile ? "text-sm mb-2" : "mb-4"} text-white font-medium flex items-center`}>
                           <span className="text-lg mr-2">🤖</span>
                           AI & Language Models
                         </h4>
-                        <div className="space-y-4 ml-6">
+                        <div className={`${isMobile ? "space-y-3 ml-0" : "space-y-4 ml-6"}`}>
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">OpenAI API Key</label>
@@ -550,6 +736,32 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                             )}
                             <p className="text-xs text-[#64748b] mt-1">
                               Required for OpenAI GPT models (GPT-4, GPT-3.5, DALL-E)
+                            </p>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#94a3b8]">Groq API Key</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.groq?.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                              }`}>
+                                {apiKeys.groq?.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.groq?.key || ""}
+                              onChange={(e) => handleApiKeyChange("groq", e.target.value)}
+                              placeholder="gsk_..."
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
+                            />
+                            {(apiKeys.groq?.key) && (
+                              <div className="text-xs text-[#64748b] mt-1">
+                                Current: {maskApiKey(apiKeys.groq.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#64748b] mt-1">
+                              Required for AI text generation in your current workflow runner.
                             </p>
                           </div>
 
@@ -635,11 +847,11 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
 
                       {/* Communication Services Section */}
                       <div>
-                        <h4 className="text-white font-medium mb-4 flex items-center">
+                        <h4 className={`${isMobile ? "text-sm mb-2" : "mb-4"} text-white font-medium flex items-center`}>
                           <span className="text-lg mr-2">💬</span>
                           Communication & Messaging
                         </h4>
-                        <div className="space-y-4 ml-6">
+                        <div className={`${isMobile ? "space-y-3 ml-0" : "space-y-4 ml-6"}`}>
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">Discord Webhook URL</label>
@@ -668,79 +880,112 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#94a3b8]">Twilio Account SID</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">Google OAuth Token JSON</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twilio_sid.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                apiKeys.google_token_json.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
-                                {apiKeys.twilio_sid.isActive ? "Active" : "Not Set"}
+                                {apiKeys.google_token_json.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
-                            <input
-                              type="password"
-                              value={apiKeys.twilio_sid.key}
-                              onChange={(e) => handleApiKeyChange("twilio_sid", e.target.value)}
-                              placeholder="AC..."
+                            <textarea
+                              value={apiKeys.google_token_json.key}
+                              onChange={(e) => handleApiKeyChange("google_token_json", e.target.value)}
+                              placeholder=""
                               className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
+                              rows={isMobile ? 3 : 4}
                             />
-                            {apiKeys.twilio_sid.key && (
+                            {apiKeys.google_token_json.key && (
                               <div className="text-xs text-[#64748b] mt-1">
-                                Current: {maskApiKey(apiKeys.twilio_sid.key)}
+                                Current: {maskApiKey(apiKeys.google_token_json.key)}
                               </div>
                             )}
                             <p className="text-xs text-[#64748b] mt-1">
-                              Required for SMS and WhatsApp messaging via Twilio
+                              Required for Gmail Trigger, Email send, Google Sheets, and Google Drive using your own account.
+                            </p>
+                          </div>
+
+                          <div className="rounded-lg border border-[#334155] bg-[#0f172a] p-3">
+                            <p className="text-xs text-[#94a3b8]">
+                              Gmail OAuth token is now managed via <span className="text-white font-medium">Google OAuth Token JSON</span>.
+                              The old Gmail token field is hidden to avoid confusion.
                             </p>
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#94a3b8]">Twilio Auth Token</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">WhatsApp Access Token</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twilio_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                apiKeys.whatsapp_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
-                                {apiKeys.twilio_token.isActive ? "Active" : "Not Set"}
+                                {apiKeys.whatsapp_token.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
                             <input
                               type="password"
-                              value={apiKeys.twilio_token.key}
-                              onChange={(e) => handleApiKeyChange("twilio_token", e.target.value)}
-                              placeholder="Auth Token..."
+                              value={apiKeys.whatsapp_token.key}
+                              onChange={(e) => handleApiKeyChange("whatsapp_token", e.target.value)}
+                              placeholder="EAAG..."
                               className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
-                            {apiKeys.twilio_token.key && (
+                            {apiKeys.whatsapp_token.key && (
                               <div className="text-xs text-[#64748b] mt-1">
-                                Current: {maskApiKey(apiKeys.twilio_token.key)}
+                                Current: {maskApiKey(apiKeys.whatsapp_token.key)}
                               </div>
                             )}
                             <p className="text-xs text-[#64748b] mt-1">
-                              Required for SMS and WhatsApp messaging via Twilio
+                              Required for Meta WhatsApp Cloud API requests
                             </p>
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="text-sm font-medium text-[#94a3b8]">Twilio Phone Number</label>
+                              <label className="text-sm font-medium text-[#94a3b8]">WhatsApp Phone Number ID</label>
                               <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twilio_phone.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                apiKeys.whatsapp_phone_number_id.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
                               }`}>
-                                {apiKeys.twilio_phone.isActive ? "Active" : "Not Set"}
+                                {apiKeys.whatsapp_phone_number_id.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
                             <input
                               type="password"
-                              value={apiKeys.twilio_phone.key}
-                              onChange={(e) => handleApiKeyChange("twilio_phone", e.target.value)}
-                              placeholder="+1234567890"
+                              value={apiKeys.whatsapp_phone_number_id.key}
+                              onChange={(e) => handleApiKeyChange("whatsapp_phone_number_id", e.target.value)}
+                              placeholder="123456789012345"
                               className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
                             />
-                            {apiKeys.twilio_phone.key && (
+                            {apiKeys.whatsapp_phone_number_id.key && (
                               <div className="text-xs text-[#64748b] mt-1">
-                                Current: {maskApiKey(apiKeys.twilio_phone.key)}
+                                Current: {maskApiKey(apiKeys.whatsapp_phone_number_id.key)}
                               </div>
                             )}
                             <p className="text-xs text-[#64748b] mt-1">
-                              Your Twilio phone number for sending SMS/WhatsApp
+                              Required sender phone number ID from Meta app dashboard
+                            </p>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium text-[#94a3b8]">WhatsApp Sender Number (Optional)</label>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                apiKeys.whatsapp_sender_number.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                              }`}>
+                                {apiKeys.whatsapp_sender_number.isActive ? "Active" : "Not Set"}
+                              </span>
+                            </div>
+                            <input
+                              type="password"
+                              value={apiKeys.whatsapp_sender_number.key}
+                              onChange={(e) => handleApiKeyChange("whatsapp_sender_number", e.target.value)}
+                              placeholder="+91..."
+                              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
+                            />
+                            {apiKeys.whatsapp_sender_number.key && (
+                              <div className="text-xs text-[#64748b] mt-1">
+                                Current: {maskApiKey(apiKeys.whatsapp_sender_number.key)}
+                              </div>
+                            )}
+                            <p className="text-xs text-[#64748b] mt-1">
+                              Optional display reference for your business WhatsApp number
                             </p>
                           </div>
                         </div>
@@ -748,11 +993,11 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
 
                       {/* Social Media Services Section */}
                       <div>
-                        <h4 className="text-white font-medium mb-4 flex items-center">
+                        <h4 className={`${isMobile ? "text-sm mb-2" : "mb-4"} text-white font-medium flex items-center`}>
                           <span className="text-lg mr-2">📱</span>
                           Social Media Platforms
                         </h4>
-                        <div className="space-y-4 ml-6">
+                        <div className={`${isMobile ? "space-y-3 ml-0" : "space-y-4 ml-6"}`}>
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">Twitter API Key</label>
@@ -1273,6 +1518,15 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                             Contact Sales
                           </button>
                         </div>
+
+                        {isMobile && (
+                          <button
+                            onClick={handleLogout}
+                            className="w-full bg-red-500/15 border border-red-500/30 hover:bg-red-500/25 text-red-200 py-2 rounded-lg mt-1 transition-colors"
+                          >
+                            Logout
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1284,10 +1538,10 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
 
 
       {/* Footer */}
-      <div className="border-t border-[#1e293b] p-6 flex justify-end space-x-3">
+      <div className={`border-t border-[#1e293b] ${isMobile ? 'p-2.5' : 'p-6'} flex ${isMobile ? 'justify-stretch' : 'justify-end'} space-x-3`}>
         <button
           onClick={onClose}
-          className="px-4 py-2 bg-[#334155] hover:bg-[#334155] text-white rounded-lg transition-colors"
+          className={`px-4 py-2 bg-[#334155] hover:bg-[#334155] text-white rounded-lg transition-colors ${isMobile ? 'w-full text-[13px]' : ''}`}
         >
           Close
         </button>

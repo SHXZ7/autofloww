@@ -23,8 +23,9 @@ const nodeTypes = {
   webhook: CustomNode,
   google_sheets: CustomNode,
   schedule: CustomNode,
+  gmail_trigger: CustomNode,
   file_upload: CustomNode,
-  twilio: CustomNode,
+  whatsapp: CustomNode,
   image_generation: CustomNode,
   document_parser: CustomNode,
   discord: CustomNode,
@@ -104,9 +105,9 @@ export default function FlowCanvas() {
             nodeColor={(node) => {
               const nodeTypeColors = {
                 gpt: "#8B5CF6", claude: "#8B5CF6", llama: "#8B5CF6", gemini: "#8B5CF6", mistral: "#8B5CF6",
-                email: "#22C55E", discord: "#22C55E", twilio: "#22C55E", social_media: "#22C55E",
+                email: "#22C55E", discord: "#22C55E", whatsapp: "#22C55E", social_media: "#22C55E",
                 webhook: "#3B82F6", google_sheets: "#3B82F6", file_upload: "#3B82F6",
-                schedule: "#F59E0B", image_generation: "#F59E0B",
+                schedule: "#F59E0B", gmail_trigger: "#F59E0B", image_generation: "#F59E0B",
                 document_parser: "#06B6D4", report_generator: "#06B6D4",
               }
               return nodeTypeColors[node.type] || "#64748b"

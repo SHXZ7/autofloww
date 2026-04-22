@@ -25,7 +25,7 @@ export default function NodeSidebar() {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
     return () => observer.disconnect()
   }, [])
-  const API_BASE_URL = 'https://shxz7-autoflow.hf.space'
+  const API_BASE_URL = 'http://172.20.10.2:8000'
 
   const runWorkflow = async () => {
     try {
@@ -196,15 +196,15 @@ export default function NodeSidebar() {
           },
         },
         {
-          type: "twilio",
-          label: "SMS",
+          type: "whatsapp",
+          label: "WhatsApp",
           icon: "/images/sms.png",
           color: "bg-[#6c5ce7]",
           config: {
             id: Date.now().toString(),
-            type: "twilio",
+            type: "whatsapp",
             position: { x: 0, y: 0 },
-            data: { label: "SMS Node", mode: "sms", to: "", message: "" },
+            data: { label: "WhatsApp Node", to: "", message: "" },
           },
         },
       ],
@@ -227,6 +227,18 @@ export default function NodeSidebar() {
           },
         },
         {
+          type: "gmail_trigger",
+          label: "Gmail Trigger",
+          icon: "/images/email.png",
+          color: "bg-[#9b59b6]",
+          config: {
+            id: Date.now().toString(),
+            type: "gmail_trigger",
+            position: { x: 0, y: 0 },
+            data: { label: "Gmail Trigger Node", query: "", label_filter: "INBOX", poll_interval: 1 },
+          },
+        },
+        {
           type: "delay",
           label: "Delay",
           icon: "/images/delay.png",
@@ -245,6 +257,24 @@ export default function NodeSidebar() {
       icon: "/images/utilities.png",
       accent: "#06B6D4",
       nodes: [
+        {
+          type: "image_generation",
+          label: "Image Generation",
+          icon: "/images/gemini.png",
+          color: "bg-[#1abc9c]",
+          config: {
+            id: Date.now().toString(),
+            type: "image_generation",
+            position: { x: 0, y: 0 },
+            data: {
+              label: "Image Generation Node",
+              prompt: "",
+              provider: "openai",
+              size: "1024x1024",
+              quality: "standard",
+            },
+          },
+        },
         {
           type: "document_parser",
           label: "Document Parser",

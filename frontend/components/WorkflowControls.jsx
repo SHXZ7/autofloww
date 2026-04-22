@@ -13,7 +13,21 @@ import {
   StopCircleIcon,
 } from "@heroicons/react/24/outline"
 
-const API_BASE_URL = 'https://shxz7-autoflow.hf.space'
+const API_BASE_URL = 'http://172.20.10.2:8000'
+
+const GOOGLE_REQUIRED_NODE_TYPES = new Set([
+  'gmail_trigger',
+  'email',
+  'google_sheets',
+  'file_upload',
+])
+
+const NODE_LABELS = {
+  gmail_trigger: 'Gmail Trigger',
+  email: 'Email',
+  google_sheets: 'Google Sheets',
+  file_upload: 'Google Drive Upload',
+}
 
 // ── Toolbar button base styles ──────────────────────────────────────────────
 function TBtn({ children, onClick, disabled, accent, success, danger, title, style, light }) {
@@ -89,14 +103,24 @@ export default function WorkflowControls() {
   const [stopping, setStopping]                     = useState(false)
   const [editingName, setEditingName]             = useState(false)
   const [nameInput, setNameInput]                 = useState("")
+  const [showSetupModal, setShowSetupModal]       = useState(false)
+  const [setupMissingNodes, setSetupMissingNodes] = useState([])
   const nameRef = useRef(null)
   const [isLight, setIsLight] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
     const update = () => setIsLight(document.documentElement.classList.contains('light'))
     update()
     const observer = new MutationObserver(update)
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
     return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 900)
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   }, [])
 
   useEffect(() => { loadWorkflows() }, [loadWorkflows])
@@ -157,6 +181,42 @@ export default function WorkflowControls() {
     if (nodes.length === 0) { alert("No nodes to run."); return }
     const token = localStorage.getItem("token")
     if (!token) { alert("Authentication required."); return }
+
+    const requiredNodes = nodes
+      .filter((node) => GOOGLE_REQUIRED_NODE_TYPES.has(node.type))
+      .map((node) => ({
+        id: node.id,
+        type: node.type,
+        label: node.data?.label || NODE_LABELS[node.type] || node.type,
+      }))
+
+    const requiresGoogleToken = requiredNodes.length > 0
+    if (requiresGoogleToken) {
+      try {
+        const keyRes = await fetch(`${API_BASE_URL}/api/user/api-keys`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        const keyData = await keyRes.json()
+        const keys = keyData?.apiKeys || {}
+        const hasGoogleToken = Boolean(
+          keys.google_token_json?.isActive ||
+          keys.gmail_token_json?.isActive ||
+          keys.google?.isActive
+        )
+
+        if (!hasGoogleToken) {
+          setSetupMissingNodes(requiredNodes)
+          setShowSetupModal(true)
+          return
+        }
+      } catch (e) {
+        setSetupMissingNodes(requiredNodes)
+        setShowSetupModal(true)
+        return
+      }
+    }
+
     setRunning(true)
     try {
       const res = await fetch(`${API_BASE_URL}/run`, {
@@ -198,25 +258,29 @@ export default function WorkflowControls() {
 
       {/* ── LEFT: workflow name ─────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-        {/* New workflow */}
-        <button
-          onClick={newWorkflow}
-          title="New Workflow"
-          style={{
-            display:'flex', alignItems:'center', justifyContent:'center',
-            width:'28px', height:'28px', borderRadius:'7px',
-            border: isLight ? '1px solid #e2e8f0' : 'none',
-            background: isLight ? '#f1f5f9' : 'rgba(30,41,59,0.6)', color:'#64748b', cursor:'pointer',
-            flexShrink:0, transition:'background 0.13s, color 0.13s',
-          }}
-          onMouseEnter={e=>{e.currentTarget.style.background=isLight?'#e2e8f0':'#1e293b';e.currentTarget.style.color=isLight?'#334155':'#94a3b8'}}
-          onMouseLeave={e=>{e.currentTarget.style.background=isLight?'#f1f5f9':'rgba(30,41,59,0.6)';e.currentTarget.style.color='#64748b'}}
-        >
-          <PlusIcon style={{width:'14px',height:'14px'}} />
-        </button>
+        {!isMobile && (
+          <>
+            {/* New workflow */}
+            <button
+              onClick={newWorkflow}
+              title="New Workflow"
+              style={{
+                display:'flex', alignItems:'center', justifyContent:'center',
+                width:'28px', height:'28px', borderRadius:'7px',
+                border: isLight ? '1px solid #e2e8f0' : 'none',
+                background: isLight ? '#f1f5f9' : 'rgba(30,41,59,0.6)', color:'#64748b', cursor:'pointer',
+                flexShrink:0, transition:'background 0.13s, color 0.13s',
+              }}
+              onMouseEnter={e=>{e.currentTarget.style.background=isLight?'#e2e8f0':'#1e293b';e.currentTarget.style.color=isLight?'#334155':'#94a3b8'}}
+              onMouseLeave={e=>{e.currentTarget.style.background=isLight?'#f1f5f9':'rgba(30,41,59,0.6)';e.currentTarget.style.color='#64748b'}}
+            >
+              <PlusIcon style={{width:'14px',height:'14px'}} />
+            </button>
 
-        {/* Divider */}
-        <div style={{width:'1px', height:'18px', background: isLight ? '#e2e8f0' : '#1e293b', flexShrink:0}} />
+            {/* Divider */}
+            <div style={{width:'1px', height:'18px', background: isLight ? '#e2e8f0' : '#1e293b', flexShrink:0}} />
+          </>
+        )}
 
         {/* Workflow name pill */}
         <div style={{
@@ -225,7 +289,7 @@ export default function WorkflowControls() {
           borderRadius:'8px',
           background: isLight ? 'rgba(248,250,252,0.9)' : 'rgba(30,41,59,0.5)',
           border: isLight ? '1px solid #e2e8f0' : '1px solid #334155',
-          minWidth:0, maxWidth:'220px',
+          minWidth:0, maxWidth: isMobile ? '150px' : '220px',
         }}>
           <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#3B82F6',flexShrink:0,
             boxShadow:'0 0 6px rgba(59,130,246,0.6)'}} />
@@ -257,7 +321,7 @@ export default function WorkflowControls() {
               {currentName || 'Untitled Workflow'}
             </span>
           )}
-          {currentWorkflowId && !editingName && (
+          {currentWorkflowId && !editingName && !isMobile && (
             <PencilIcon
               onClick={startEditName}
               style={{width:'11px',height:'11px',color:'#475569',cursor:'pointer',flexShrink:0,marginLeft:'2px'}}
@@ -267,7 +331,41 @@ export default function WorkflowControls() {
       </div>
 
       {/* ── CENTER / RIGHT: action buttons ─────────────────────────────── */}
-      <div style={{ display:'flex', alignItems:'center', gap:'6px', flexShrink:0 }}>
+      <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '4px' : '6px', flexShrink:0 }}>
+
+        {isMobile ? (
+          <>
+            <TBtn
+              onClick={() => setShowSaveDialog(true)}
+              disabled={saving}
+              success
+              title="Save workflow"
+              style={{ width:'32px', height:'32px', padding:'0', justifyContent:'center' }}
+            >
+              <CheckIcon style={{width:'14px',height:'14px'}} />
+            </TBtn>
+
+            <TBtn
+              onClick={() => setShowLoadDialog(true)}
+              title="Load workflow"
+              light={isLight}
+              style={{ width:'32px', height:'32px', padding:'0', justifyContent:'center' }}
+            >
+              <FolderOpenIcon style={{width:'14px',height:'14px'}} />
+            </TBtn>
+
+            <TBtn
+              onClick={handleRun}
+              disabled={running}
+              accent
+              title="Run workflow"
+              style={{ width:'32px', height:'32px', padding:'0', justifyContent:'center' }}
+            >
+              <PlayIcon style={{width:'14px',height:'14px'}} />
+            </TBtn>
+          </>
+        ) : (
+          <>
 
         {/* Save */}
         <TBtn onClick={() => setShowSaveDialog(true)} disabled={saving} success title="Save workflow">
@@ -324,6 +422,8 @@ export default function WorkflowControls() {
           <PlayIcon style={{width:'13px',height:'13px'}} />
           {running ? 'Running…' : 'Run'}
         </TBtn>
+          </>
+        )}
       </div>
 
       {/* ── Version History panel (inline dropdown) ────────────────────── */}
@@ -361,6 +461,115 @@ export default function WorkflowControls() {
               </div>
             ))
           }
+        </div>
+      )}
+
+      {/* ── Google Setup Required Dialog ─────────────────────────────── */}
+      {showSetupModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div
+            className="glass p-6 rounded-xl w-[560px] max-w-[95vw] shadow-xl"
+            style={{
+              border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
+              background: isLight ? '#ffffff' : undefined,
+            }}
+          >
+            <div style={{display:'flex', alignItems:'start', justifyContent:'space-between', gap:'12px', marginBottom:'14px'}}>
+              <div>
+                <h3 style={{fontSize:'18px', fontWeight:'700', margin:'0 0 4px 0', color: isLight ? '#1e293b' : '#F1F5F9'}}>
+                  One-Time Google Setup Needed
+                </h3>
+                <p style={{fontSize:'13px', margin:0, color: isLight ? '#64748b' : '#94a3b8'}}>
+                  This workflow uses Google actions and must be connected to your own account first.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSetupModal(false)}
+                style={{background:'none', border:'none', cursor:'pointer', fontSize:'20px', color: isLight ? '#94a3b8' : '#64748b', lineHeight:1}}
+                aria-label="Close"
+              >
+                x
+              </button>
+            </div>
+
+            <div style={{
+              background: isLight ? '#f8fafc' : 'rgba(15,23,42,0.7)',
+              border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
+              borderRadius: '10px',
+              padding: '12px',
+              marginBottom: '14px',
+            }}>
+              <div style={{fontSize:'12px', fontWeight:'600', color: isLight ? '#334155' : '#cbd5e1', marginBottom:'8px'}}>
+                Nodes in this workflow that require Google connection
+              </div>
+              <div style={{display:'flex', flexWrap:'wrap', gap:'8px'}}>
+                {setupMissingNodes.map((node) => (
+                  <span
+                    key={`${node.id}-${node.type}`}
+                    style={{
+                      fontSize:'11px',
+                      padding:'5px 9px',
+                      borderRadius:'999px',
+                      background:'rgba(59,130,246,0.12)',
+                      border:'1px solid rgba(59,130,246,0.35)',
+                      color:'#60a5fa',
+                    }}
+                  >
+                    {node.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div style={{display:'grid', gap:'8px', marginBottom:'16px'}}>
+              <div style={{display:'flex', gap:'10px', alignItems:'start'}}>
+                <div style={{width:'20px', height:'20px', borderRadius:'50%', background:'#3B82F6', color:'#fff', fontSize:'11px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700'}}>1</div>
+                <div style={{fontSize:'13px', color: isLight ? '#334155' : '#cbd5e1'}}>Open Settings and go to API Keys.</div>
+              </div>
+              <div style={{display:'flex', gap:'10px', alignItems:'start'}}>
+                <div style={{width:'20px', height:'20px', borderRadius:'50%', background:'#3B82F6', color:'#fff', fontSize:'11px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700'}}>2</div>
+                <div style={{fontSize:'13px', color: isLight ? '#334155' : '#cbd5e1'}}>Paste your token in Google OAuth Token JSON.</div>
+              </div>
+              <div style={{display:'flex', gap:'10px', alignItems:'start'}}>
+                <div style={{width:'20px', height:'20px', borderRadius:'50%', background:'#3B82F6', color:'#fff', fontSize:'11px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700'}}>3</div>
+                <div style={{fontSize:'13px', color: isLight ? '#334155' : '#cbd5e1'}}>Save API Keys and run this workflow again.</div>
+              </div>
+            </div>
+
+            <div style={{display:'flex', gap:'10px'}}>
+              <button
+                onClick={() => { window.location.href = '/settings' }}
+                style={{
+                  flex:1,
+                  background:'#3B82F6',
+                  color:'#fff',
+                  border:'none',
+                  borderRadius:'8px',
+                  padding:'10px 12px',
+                  fontSize:'13px',
+                  fontWeight:'600',
+                  cursor:'pointer',
+                }}
+              >
+                Open Settings
+              </button>
+              <button
+                onClick={() => setShowSetupModal(false)}
+                style={{
+                  flex:1,
+                  background: isLight ? '#f1f5f9' : '#1e293b',
+                  border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
+                  color: isLight ? '#475569' : '#94a3b8',
+                  borderRadius:'8px',
+                  padding:'10px 12px',
+                  fontSize:'13px',
+                  cursor:'pointer',
+                }}
+              >
+                Not Now
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

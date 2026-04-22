@@ -1,4 +1,5 @@
 import { Space_Grotesk } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -16,10 +17,22 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme');if(t==='light')document.documentElement.classList.add('light');})();` }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+              try {
+                var t = localStorage.getItem('theme');
+                if (t === 'light') {
+                  document.documentElement.classList.add('light');
+                }
+              } catch (e) {}
+            })();`,
+          }}
+        />
       </head>
       <body
         className={`${spaceGrotesk.variable} antialiased`}
+        suppressHydrationWarning
       >
         {children}
       </body>

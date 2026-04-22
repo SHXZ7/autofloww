@@ -1,16 +1,28 @@
 from fastapi import FastAPI, File, UploadFile, Depends, HTTPException
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-from typing import List, Dict
+from pydantic import BaseModel, ValidationError
+from typing import List, Dict, Optional, Any
 from dotenv import load_dotenv
 import os
+import json
+import re
+import asyncio
+from urllib.parse import quote_plus
 
 # Load .env from the backend directory regardless of where uvicorn is launched from
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 from .models.workflow import Node, Edge, Workflow
+from .prompts.workflow_prompt import (
+    SYSTEM_PROMPT,
+    MODIFY_SYSTEM_PROMPT,
+    ALLOWED_GENERATION_NODE_TYPES,
+    NODE_DATA_FIELDS,
+)
 from .models.webhook import WebhookTrigger
 from .core.runner import run_workflow_engine
+from services.gpt import run_gpt_node
 from fastapi.middleware.cors import CORSMiddleware
 from services.scheduler import schedule_workflow
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -25,6 +37,9 @@ from .database.workflow_operations import save_workflow, get_user_workflows, upd
 from datetime import datetime, timedelta
 import uuid
 from .auth.email_service import send_password_reset_email
+from services.api_key_manager import get_user_api_manager
+from services.gmail_trigger import fetch_latest_email_event
+from google_auth_oauthlib.flow import Flow
 # Add fallback import for encryption
 try:
     from .utils.encryption import encrypt_api_key, decrypt_api_key
@@ -44,7 +59,10 @@ app = FastAPI(title="AutoFlow API", description="Visual Workflow Automation Plat
 @app.on_event("startup")
 async def startup_event():
     """Initialize database connection on startup"""
+    global listener_event_loop
     try:
+        listener_event_loop = asyncio.get_running_loop()
+
         # Check if we should force in-memory mode
         if os.getenv("FORCE_IN_MEMORY_DB", "").lower() == "true":
             print("⚠️ FORCE_IN_MEMORY_DB is set to true")
@@ -122,9 +140,12 @@ app.add_middleware(
 
 scheduler = BackgroundScheduler()
 scheduler.start()
+listener_event_loop: Optional[asyncio.AbstractEventLoop] = None
 
 # Store workflows temporarily (in production, use a database)
 stored_workflows: Dict[str, Workflow] = {}
+gmail_trigger_state: Dict[str, str] = {}
+google_oauth_state_store: Dict[str, Dict[str, Any]] = {}
 
 # File directories - Use /tmp for cloud deployment compatibility
 BASE_DIR = "/tmp"
@@ -137,10 +158,284 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(REPORTS_DIR, exist_ok=True)
 os.makedirs(IMAGES_DIR, exist_ok=True)
 
+GOOGLE_OAUTH_SCOPES = [
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive.file",
+]
+
+
+def _google_oauth_credentials_path() -> str:
+    return os.getenv(
+        "GOOGLE_OAUTH_CLIENT_SECRETS_FILE",
+        os.path.join(os.path.dirname(__file__), "..", "credentials.json"),
+    )
+
+
+def _google_oauth_redirect_uri() -> str:
+    return os.getenv("GOOGLE_OAUTH_REDIRECT_URI", "http://127.0.0.1:8000/api/google/oauth/callback")
+
+
+def _frontend_base_url() -> str:
+    return os.getenv("FRONTEND_BASE_URL", "http://127.0.0.1:3000")
+
+
+def _build_google_oauth_flow(state: Optional[str] = None) -> Flow:
+    return Flow.from_client_secrets_file(
+        _google_oauth_credentials_path(),
+        scopes=GOOGLE_OAUTH_SCOPES,
+        state=state,
+        redirect_uri=_google_oauth_redirect_uri(),
+    )
+
+
+def _cleanup_google_oauth_states() -> None:
+    now_ts = time.time()
+    expired = [
+        key for key, value in google_oauth_state_store.items()
+        if (now_ts - float(value.get("created_at", 0))) > 600
+    ]
+    for key in expired:
+        google_oauth_state_store.pop(key, None)
+
 # Mount static files to serve uploaded files and generated content
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 app.mount("/reports", StaticFiles(directory=REPORTS_DIR), name="reports")
 app.mount("/images", StaticFiles(directory=IMAGES_DIR), name="images")
+
+
+def _validate_workflow_payload(workflow_data: dict) -> Workflow:
+    """Validate workflow payload and normalize through Pydantic schema."""
+    try:
+        if hasattr(Workflow, "model_validate"):
+            return Workflow.model_validate(workflow_data)
+        return Workflow.parse_obj(workflow_data)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+
+def _sanitize_workflow_payload(raw_workflow: dict) -> dict:
+    """Normalize potentially noisy React Flow payload to strict workflow schema."""
+    raw_nodes = raw_workflow.get("nodes", []) if isinstance(raw_workflow, dict) else []
+    raw_edges = raw_workflow.get("edges", []) if isinstance(raw_workflow, dict) else []
+
+    nodes = []
+    for node in raw_nodes:
+        if not isinstance(node, dict):
+            continue
+        nodes.append(
+            {
+                "id": node.get("id"),
+                "type": "whatsapp" if node.get("type") in {"twilio", "sms"} else node.get("type"),
+                "position": node.get("position"),
+                "data": node.get("data") or {},
+            }
+        )
+
+    edges = []
+    for edge in raw_edges:
+        if not isinstance(edge, dict):
+            continue
+        edges.append(
+            {
+                "id": edge.get("id"),
+                "source": edge.get("source"),
+                "target": edge.get("target"),
+                "type": edge.get("type"),
+                "animated": edge.get("animated"),
+                "style": edge.get("style"),
+                "markerEnd": edge.get("markerEnd"),
+            }
+        )
+
+    sanitized = {"nodes": nodes, "edges": edges}
+
+    if isinstance(raw_workflow, dict):
+        if "name" in raw_workflow:
+            sanitized["name"] = raw_workflow.get("name")
+        if "workflow_id" in raw_workflow:
+            sanitized["workflow_id"] = raw_workflow.get("workflow_id")
+
+    return sanitized
+
+
+def _extract_json_from_llm_output(raw_output: str) -> dict:
+    """Extract JSON object from LLM output text."""
+    cleaned = raw_output.strip()
+
+    # First try direct JSON parsing.
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+
+    # Then try fenced code blocks.
+    fenced_match = re.search(r"```(?:json)?\\s*(\{.*\})\\s*```", cleaned, re.DOTALL)
+    if fenced_match:
+        try:
+            return json.loads(fenced_match.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # Last resort: parse from first '{' to last '}'.
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        snippet = cleaned[start:end + 1]
+        try:
+            return json.loads(snippet)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(status_code=422, detail=f"Model returned invalid JSON: {str(exc)}") from exc
+
+    raise HTTPException(status_code=422, detail="Model output did not contain a valid JSON object")
+
+
+def _validate_generated_workflow_rules(workflow: Workflow) -> None:
+    """Apply additional strict generation-time business rules."""
+    node_ids = {node.id for node in workflow.nodes}
+
+    for node in workflow.nodes:
+        if node.type not in ALLOWED_GENERATION_NODE_TYPES:
+            raise HTTPException(status_code=422, detail=f"Invalid generated node type: {node.type}")
+
+        if node.position is None:
+            raise HTTPException(status_code=422, detail=f"Node '{node.id}' is missing required position")
+
+        allowed_fields = NODE_DATA_FIELDS.get(node.type, set())
+        actual_fields = set(node.data.keys())
+        if actual_fields - allowed_fields:
+            unexpected = sorted(actual_fields - allowed_fields)
+            raise HTTPException(
+                status_code=422,
+                detail=f"Node '{node.id}' has unsupported data fields: {unexpected}",
+            )
+
+    for edge in workflow.edges:
+        expected_edge_id = f"e_{edge.source}_{edge.target}"
+        if edge.id != expected_edge_id:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Edge id must be '{expected_edge_id}' for {edge.source}->{edge.target}",
+            )
+
+        if edge.source not in node_ids or edge.target not in node_ids:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Edge {edge.id} references unknown node ids",
+            )
+
+
+class WorkflowGenerateRequest(BaseModel):
+    request: Optional[str] = None
+    user_request: Optional[str] = None
+    model: str = "llama-3.3-70b-versatile"
+    max_retries: int = 3
+
+
+class WorkflowModifyRequest(BaseModel):
+    instruction: str
+    workflow: dict
+    model: str = "llama-3.3-70b-versatile"
+    max_retries: int = 3
+
+
+async def _generate_valid_workflow_with_retries(
+    request_text: str,
+    model: str,
+    max_retries: int,
+    system_prompt: str = SYSTEM_PROMPT,
+) -> Workflow:
+    """Generate a workflow using the LLM with retry on invalid output."""
+    attempts = max(1, min(max_retries, 5))
+    llm_prompt = f"{system_prompt}\\n\\nUser: {request_text}\\nOutput:"
+    last_error = "Unknown generation failure"
+
+    for attempt in range(1, attempts + 1):
+        llm_output = await run_gpt_node(llm_prompt, model)
+
+        if isinstance(llm_output, str) and llm_output.startswith("Error:"):
+            last_error = llm_output
+            continue
+
+        try:
+            generated_json = _extract_json_from_llm_output(llm_output)
+            workflow = _validate_workflow_payload(generated_json)
+            _validate_generated_workflow_rules(workflow)
+            return workflow
+        except HTTPException as exc:
+            last_error = str(exc.detail)
+            continue
+        except Exception as exc:
+            last_error = str(exc)
+            continue
+
+    raise HTTPException(
+        status_code=422,
+        detail=f"Failed to generate valid workflow after {attempts} attempts: {last_error}",
+    )
+
+
+@app.post("/workflows/generate")
+async def generate_workflow_from_prompt(
+    payload: WorkflowGenerateRequest,
+    current_user_id: str = Depends(get_current_user),
+):
+    """Generate workflow JSON from natural language user request."""
+    request_text = (payload.request or payload.user_request or "").strip()
+    if not request_text:
+        raise HTTPException(status_code=400, detail="request (or user_request) must not be empty")
+
+    workflow = await _generate_valid_workflow_with_retries(
+        request_text=request_text,
+        model=payload.model,
+        max_retries=payload.max_retries,
+    )
+
+    return {
+        "nodes": [node.dict() for node in workflow.nodes],
+        "edges": [edge.dict() for edge in workflow.edges],
+        "generated_by": "llm",
+        "requested_by": current_user_id,
+    }
+
+
+@app.post("/workflows/modify")
+async def modify_workflow_from_prompt(
+    payload: WorkflowModifyRequest,
+    current_user_id: str = Depends(get_current_user),
+):
+    """Modify an existing workflow using a natural language instruction."""
+    instruction = payload.instruction.strip()
+    if not instruction:
+        raise HTTPException(status_code=400, detail="instruction must not be empty")
+
+    sanitized_workflow = _sanitize_workflow_payload(payload.workflow)
+    existing_workflow = _validate_workflow_payload(sanitized_workflow)
+    workflow_json = {
+        "nodes": [node.dict() for node in existing_workflow.nodes],
+        "edges": [edge.dict() for edge in existing_workflow.edges],
+    }
+
+    request_text = (
+        f"Current workflow JSON:\n{json.dumps(workflow_json, ensure_ascii=False)}\n\n"
+        f"Modification instruction: {instruction}\n"
+        "Return the full updated workflow JSON."
+    )
+
+    workflow = await _generate_valid_workflow_with_retries(
+        request_text=request_text,
+        model=payload.model,
+        max_retries=payload.max_retries,
+        system_prompt=MODIFY_SYSTEM_PROMPT,
+    )
+
+    return {
+        "nodes": [node.dict() for node in workflow.nodes],
+        "edges": [edge.dict() for edge in workflow.edges],
+        "generated_by": "llm-modify",
+        "requested_by": current_user_id,
+    }
 
 def run_scheduled_workflow(workflow_id):
     """Execute a scheduled workflow"""
@@ -150,6 +445,92 @@ def run_scheduled_workflow(workflow_id):
         workflow = stored_workflows[workflow_id]
         asyncio.run(run_workflow_engine(workflow.nodes, workflow.edges))
 
+
+def _gmail_state_key(user_id: str, workflow_id: str, node_id: str) -> str:
+    return f"{user_id}:{workflow_id}:{node_id}"
+
+
+async def _run_gmail_listener_once(workflow_id: str, node_id: str, user_id: str):
+    """Poll Gmail for new email and run workflow only on new messages."""
+    try:
+        workflow = stored_workflows.get(workflow_id)
+        if not workflow:
+            return
+
+        trigger_node = next((n for n in workflow.nodes if n.id == node_id and n.type == "gmail_trigger"), None)
+        if not trigger_node:
+            return
+
+        api_manager = await get_user_api_manager(user_id)
+        token_json = await api_manager.get_gmail_token_json() if api_manager else None
+
+        # Gmail trigger should listen to the logged-in user's connected mailbox only.
+        # Do not fall back to env/file tokens here to avoid cross-account behavior.
+        if not token_json:
+            print(f"⚠️ Gmail listener skipped for user {user_id}: no user Gmail token connected")
+            return
+
+        query = (trigger_node.data or {}).get("query", "")
+        label_filter = (trigger_node.data or {}).get("label_filter", "INBOX")
+
+        event = await fetch_latest_email_event(token_json=token_json, query=query, label=label_filter)
+        if not event:
+            return
+
+        state_key = _gmail_state_key(user_id, workflow_id, node_id)
+        latest_message_id = event.get("message_id", "")
+        previous_message_id = gmail_trigger_state.get(state_key)
+
+        # Bootstrap state without firing historical emails.
+        if not previous_message_id:
+            gmail_trigger_state[state_key] = latest_message_id
+            print(f"📩 Gmail trigger initialized for {state_key}")
+            return
+
+        if previous_message_id == latest_message_id:
+            return
+
+        gmail_trigger_state[state_key] = latest_message_id
+
+        flow_payload = {
+            "name": workflow.name,
+            "workflow_id": workflow.workflow_id,
+            "nodes": [n.dict() for n in workflow.nodes],
+            "edges": [e.dict() for e in workflow.edges],
+        }
+
+        for node in flow_payload["nodes"]:
+            if node.get("id") == node_id:
+                node.setdefault("data", {})["trigger_payload"] = event
+                break
+
+        validated_flow = _validate_workflow_payload(_sanitize_workflow_payload(flow_payload))
+        result = await run_workflow_engine(validated_flow.nodes, validated_flow.edges, user_id)
+        print(f"✅ Gmail trigger fired workflow {workflow_id}: {result}")
+
+    except Exception as e:
+        print(f"❌ Gmail listener error for workflow {workflow_id}: {str(e)}")
+
+
+def run_gmail_listener_job(workflow_id: str, node_id: str, user_id: str):
+    global listener_event_loop
+
+    try:
+        if listener_event_loop and listener_event_loop.is_running():
+            future = asyncio.run_coroutine_threadsafe(
+                _run_gmail_listener_once(workflow_id, node_id, user_id),
+                listener_event_loop,
+            )
+            # Keep timeout under poll interval to avoid overlapping executions.
+            future.result(timeout=50)
+        else:
+            print(
+                f"⚠️ Gmail listener loop unavailable for workflow {workflow_id}; "
+                "skipping this poll cycle"
+            )
+    except Exception as e:
+        print(f"❌ Gmail listener dispatch error for workflow {workflow_id}: {str(e)}")
+
 @app.post("/workflows/save")
 async def save_user_workflow(
     workflow_data: dict, 
@@ -157,9 +538,10 @@ async def save_user_workflow(
 ):
     """Save a workflow to MongoDB"""
     try:
-        workflow_name = workflow_data.get("name", f"Workflow_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
-        nodes = workflow_data.get("nodes", [])
-        edges = workflow_data.get("edges", [])
+        validated_workflow = _validate_workflow_payload(_sanitize_workflow_payload(workflow_data))
+        workflow_name = validated_workflow.name or f"Workflow_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        nodes = [node.dict() for node in validated_workflow.nodes]
+        edges = [edge.dict() for edge in validated_workflow.edges]
         
         workflow_id = await save_workflow(current_user_id, workflow_name, nodes, edges)
         
@@ -167,7 +549,8 @@ async def save_user_workflow(
             "message": "Workflow saved successfully",
             "workflow_id": workflow_id
         }
-        
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ Save workflow error: {str(e)}")
         return {"error": f"Failed to save workflow: {str(e)}"}
@@ -191,8 +574,9 @@ async def update_user_workflow(
 ):
     """Update an existing workflow"""
     try:
-        nodes = workflow_data.get("nodes", [])
-        edges = workflow_data.get("edges", [])
+        validated_workflow = _validate_workflow_payload(_sanitize_workflow_payload(workflow_data))
+        nodes = [node.dict() for node in validated_workflow.nodes]
+        edges = [edge.dict() for edge in validated_workflow.edges]
         
         success = await update_workflow(workflow_id, nodes, edges)
         
@@ -200,7 +584,8 @@ async def update_user_workflow(
             return {"message": "Workflow updated successfully"}
         else:
             return {"error": "Workflow not found or update failed"}
-            
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ Update workflow error: {str(e)}")
         return {"error": f"Failed to update workflow: {str(e)}"}
@@ -258,12 +643,15 @@ async def permanently_delete_workflow(
         return {"error": f"Failed to permanently delete workflow: {str(e)}"}
 
 @app.post("/run")
-async def run_workflow(flow: Workflow, current_user_id: str = Depends(get_current_user)):
+async def run_workflow(flow_data: dict, current_user_id: str = Depends(get_current_user)):
     """Execute workflow with user tracking and history saving"""
+    flow = _validate_workflow_payload(_sanitize_workflow_payload(flow_data))
     print(f"Received workflow with {len(flow.nodes)} nodes")
     print(f"Node types: {[node.type for node in flow.nodes]}")
     print(f"Edges: {len(flow.edges)}")
     print(f"User: {current_user_id}")
+
+    has_gmail_trigger = any(node.type == "gmail_trigger" for node in flow.nodes)
 
     # Check for schedule nodes and register them
     for node in flow.nodes:
@@ -278,6 +666,29 @@ async def run_workflow(flow: Workflow, current_user_id: str = Depends(get_curren
                 id=workflow_id,
                 replace_existing=True
             )
+        elif node.type == "gmail_trigger":
+            workflow_id = flow.workflow_id or f"gmail_{current_user_id}_{node.id}"
+            stored_workflows[workflow_id] = flow
+
+            poll_interval = max(1, int(node.data.get("poll_interval", 1)))
+            job_id = f"gmail_listener_{workflow_id}_{node.id}"
+
+            scheduler.add_job(
+                run_gmail_listener_job,
+                "interval",
+                minutes=poll_interval,
+                args=[workflow_id, node.id, current_user_id],
+                id=job_id,
+                replace_existing=True,
+            )
+            print(f"📩 Registered Gmail trigger listener: {job_id} (every {poll_interval} min)")
+
+    # Gmail trigger workflows are event-driven. Register listeners and exit without immediate execution.
+    if has_gmail_trigger:
+        return {
+            "message": "Gmail trigger listener registered and armed",
+            "listener_registered": True,
+        }
 
     workflow_name = flow.name or "Unnamed Workflow"
     # If a saved workflow_id was passed, try to resolve its name from DB
@@ -309,7 +720,15 @@ async def run_workflow(flow: Workflow, current_user_id: str = Depends(get_curren
         for node in flow.nodes:
             node_dict = {"id": node.id, "type": node.type, "data": node.data}
             if hasattr(node, 'position') and node.position is not None:
-                node_dict["position"] = node.position
+                if hasattr(node.position, "model_dump"):
+                    node_dict["position"] = node.position.model_dump()
+                elif hasattr(node.position, "dict"):
+                    node_dict["position"] = node.position.dict()
+                else:
+                    node_dict["position"] = {
+                        "x": getattr(node.position, "x", 0),
+                        "y": getattr(node.position, "y", 0),
+                    }
             else:
                 node_dict["position"] = {"x": 0, "y": 0}
             nodes_dict.append(node_dict)
@@ -883,6 +1302,110 @@ async def reset_password(reset_data: dict):
         print(f"❌ Password reset error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to reset password")
 
+
+@app.post("/api/google/oauth/start")
+async def start_google_oauth(current_user_id: str = Depends(get_current_user)):
+    """Generate Google OAuth consent URL for one-click account connection."""
+    try:
+        credentials_path = _google_oauth_credentials_path()
+        if not os.path.exists(credentials_path):
+            raise HTTPException(
+                status_code=500,
+                detail="Google OAuth is not configured on server (credentials.json missing).",
+            )
+
+        _cleanup_google_oauth_states()
+        flow = _build_google_oauth_flow()
+        auth_url, state = flow.authorization_url(
+            access_type="offline",
+            include_granted_scopes="true",
+            prompt="consent",
+        )
+
+        google_oauth_state_store[state] = {
+            "user_id": current_user_id,
+            "created_at": time.time(),
+        }
+
+        return {"auth_url": auth_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Google OAuth start error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to start Google OAuth flow")
+
+
+@app.get("/api/google/oauth/callback")
+async def google_oauth_callback(state: Optional[str] = None, code: Optional[str] = None, error: Optional[str] = None):
+    """Handle Google OAuth callback and persist token JSON to user's API keys."""
+    frontend_base = _frontend_base_url().rstrip("/")
+
+    def _redirect(status: str, message: str = "") -> RedirectResponse:
+        target = f"{frontend_base}/settings?google_connect={quote_plus(status)}"
+        if message:
+            target += f"&message={quote_plus(message)}"
+        return RedirectResponse(url=target)
+
+    try:
+        if error:
+            return _redirect("error", f"Google returned: {error}")
+
+        if not state or not code:
+            return _redirect("error", "Missing OAuth state or code")
+
+        state_payload = google_oauth_state_store.pop(state, None)
+        if not state_payload:
+            return _redirect("error", "OAuth session expired. Please connect again")
+
+        if (time.time() - float(state_payload.get("created_at", 0))) > 600:
+            return _redirect("error", "OAuth session timed out. Please connect again")
+
+        user_id = state_payload.get("user_id")
+        if not user_id:
+            return _redirect("error", "User session missing for OAuth callback")
+
+        flow = _build_google_oauth_flow(state=state)
+        flow.fetch_token(code=code)
+        creds = flow.credentials
+
+        if not creds or not creds.refresh_token:
+            return _redirect("error", "No refresh token received. Reconnect and approve all scopes")
+
+        token_payload = {
+            "type": "authorized_user",
+            "client_id": creds.client_id,
+            "client_secret": creds.client_secret,
+            "refresh_token": creds.refresh_token,
+            "token_uri": creds.token_uri,
+            "scopes": GOOGLE_OAUTH_SCOPES,
+        }
+
+        user = await get_user_by_id(user_id)
+        if not user:
+            return _redirect("error", "User not found while saving Google connection")
+
+        current_api_keys = user.get("api_keys", {})
+        token_json_text = json.dumps(token_payload)
+        encrypted_token = encrypt_api_key(token_json_text)
+        if not encrypted_token:
+            return _redirect("error", "Failed to encrypt Google token")
+
+        updated_api_keys = {
+            **current_api_keys,
+            "google_token_json": encrypted_token,
+            # Keep backward compatibility for nodes still reading gmail_token_json.
+            "gmail_token_json": encrypted_token,
+        }
+
+        success = await update_user(user_id, {"api_keys": updated_api_keys})
+        if not success:
+            return _redirect("error", "Failed to save Google token")
+
+        return _redirect("success", "Google account connected successfully")
+    except Exception as e:
+        print(f"❌ Google OAuth callback error: {str(e)}")
+        return _redirect("error", "Google connect failed. Please try again")
+
 @app.get("/api/user/api-keys")
 async def get_user_api_keys(current_user_id: str = Depends(get_current_user)):
     """Get user's API keys (masked for security)"""
@@ -896,8 +1419,9 @@ async def get_user_api_keys(current_user_id: str = Depends(get_current_user)):
         # Return masked API keys
         masked_keys = {}
         service_keys = [
-            "openai", "openrouter", "google", "discord", "github", 
-            "twilio_sid", "twilio_token", "twilio_phone", "stability",
+            "openai", "groq", "openrouter", "google", "google_token_json", "discord", "github", 
+            "gmail_token_json",
+            "whatsapp_token", "whatsapp_phone_number_id", "whatsapp_sender_number", "stability",
             "twitter_api_key", "twitter_api_secret", "twitter_access_token", 
             "twitter_access_secret", "linkedin_token", "instagram_token"
         ]
@@ -938,8 +1462,9 @@ async def update_user_api_keys(
         updated_api_keys = {}
         
         service_keys = [
-            "openai", "openrouter", "google", "discord", "github", 
-            "twilio_sid", "twilio_token", "twilio_phone", "stability",
+            "openai", "groq", "openrouter", "google", "google_token_json", "discord", "github", 
+            "gmail_token_json",
+            "whatsapp_token", "whatsapp_phone_number_id", "whatsapp_sender_number", "stability",
             "twitter_api_key", "twitter_api_secret", "twitter_access_token", 
             "twitter_access_secret", "linkedin_token", "instagram_token"
         ]

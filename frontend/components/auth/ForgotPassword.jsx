@@ -8,7 +8,7 @@ export default function ForgotPassword({ onBack }) {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
 
-  const API_BASE_URL = 'https://shxz7-autoflow.hf.space'
+  const API_BASE_URL = 'http://172.20.10.2:8000'
 
 
   const handleSubmit = async (e) => {

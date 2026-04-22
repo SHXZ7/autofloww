@@ -82,21 +82,21 @@ export default function LoginForm({ onSwitchToSignup, isLight = false }) {
   })
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-[320px] md:max-w-md mx-auto">
       {/* Header */}
-      <div className="flex flex-col items-start mb-8">
+      <div className="flex flex-col items-start mb-5 md:mb-8">
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center"
+          <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center"
             style={{ background: "linear-gradient(135deg,#3B82F6,#8B5CF6)" }}>
             <span className="text-white font-bold text-sm font-mono">AF</span>
           </div>
           <span className="font-mono font-bold text-base" style={{ color: isLight ? "#111111" : "#F1F5F9" }}>AutoFlow</span>
         </div>
-        <h2 className="text-3xl font-mono font-bold mb-0.5 tracking-tight"
+        <h2 className="text-xl md:text-3xl font-mono font-bold mb-0.5 tracking-tight"
           style={{ color: isLight ? "#111111" : "#F1F5F9" }}>
           Welcome Back
         </h2>
-        <p className="text-sm font-mono" style={{ color: subTextColor }}>
+        <p className="text-[11px] md:text-sm font-mono" style={{ color: subTextColor }}>
           Sign in to your AutoFlow workspace
         </p>
       </div>
@@ -122,10 +122,10 @@ export default function LoginForm({ onSwitchToSignup, isLight = false }) {
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3 md:gap-4" noValidate>
         {/* Email */}
         <div>
-          <label className="block text-sm font-mono mb-1" style={{ color: labelColor }}>Email</label>
+          <label className="block text-xs md:text-sm font-mono mb-1" style={{ color: labelColor }}>Email</label>
           <input
             type="email"
             name="email"
@@ -142,9 +142,9 @@ export default function LoginForm({ onSwitchToSignup, isLight = false }) {
         {/* Password */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-mono" style={{ color: labelColor }}>Password</label>
+            <label className="block text-xs md:text-sm font-mono" style={{ color: labelColor }}>Password</label>
             <button type="button" onClick={() => setCurrentView("forgot-password")}
-              className="text-xs font-mono transition-colors"
+              className="text-[11px] md:text-xs font-mono transition-colors"
               style={{ color: accentColor }}
               onMouseEnter={e => (e.currentTarget.style.color = accentHover)}
               onMouseLeave={e => (e.currentTarget.style.color = accentColor)}
@@ -176,7 +176,7 @@ export default function LoginForm({ onSwitchToSignup, isLight = false }) {
         <button
           type="submit"
           disabled={loading}
-          className="login-pulse w-full text-white font-mono font-bold py-3 px-4 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+          className="login-pulse w-full text-white font-mono font-bold py-2.5 md:py-3 px-4 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-1.5 md:mt-2"
           style={{ background: accentColor, fontSize: "15px" }}
           onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = accentHover)}
           onMouseLeave={e => (e.currentTarget.style.background = accentColor)}
@@ -195,7 +195,7 @@ export default function LoginForm({ onSwitchToSignup, isLight = false }) {
         </div>
 
         {/* Switch to signup */}
-        <div className="text-center text-sm font-mono" style={{ color: subTextColor }}>
+        <div className="text-center text-xs md:text-sm font-mono" style={{ color: subTextColor }}>
           Don&apos;t have an account?{" "}
           <button
             type="button"

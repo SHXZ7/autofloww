@@ -89,13 +89,13 @@ export default function Homepage() {
 
       {/* Header */}
       <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${isScrolled ? "bg-[#020617]/80 backdrop-blur-md border-b border-[#1e293b]" : "bg-transparent"}`}>
-        <div className="container mx-auto px-6">
-          <div className="flex h-16 items-center justify-between">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="flex h-14 md:h-16 items-center justify-between">
             <a href="#" className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">AF</span>
               </div>
-              <span className="font-mono text-xl font-bold">AutoFlow</span>
+              <span className="font-mono text-lg md:text-xl font-bold">AutoFlow</span>
             </a>
 
             <nav className="hidden md:flex items-center space-x-8">
@@ -106,13 +106,13 @@ export default function Homepage() {
               ))}
             </nav>
 
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 md:space-x-3">
               <ThemeSwitch />
-              <button onClick={() => router.push("/auth/login")} className="px-4 py-2 text-sm font-mono text-[#94a3b8] hover:text-[#F1F5F9] transition-colors">
+              <button onClick={() => router.push("/auth/login")} className="hidden sm:inline-flex px-4 py-2 text-sm font-mono text-[#94a3b8] hover:text-[#F1F5F9] transition-colors">
                 LOGIN
               </button>
-              <button onClick={() => router.push("/auth/signup")} className="flex items-center gap-1.5 px-5 py-2 bg-[#3B82F6] hover:bg-[#2563eb] font-mono text-sm font-bold transition-colors">
-                GET STARTED <ArrowRightIcon className="w-4 h-4" />
+              <button onClick={() => router.push("/auth/signup")} className="flex items-center gap-1 px-3.5 py-1.5 md:px-5 md:py-2 bg-[#3B82F6] hover:bg-[#2563eb] font-mono text-[11px] md:text-sm font-bold transition-colors whitespace-nowrap">
+                START <ArrowRightIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
               </button>
             </div>
           </div>
@@ -120,13 +120,13 @@ export default function Homepage() {
       </header>
 
       {/* Hero */}
-      <section className="container mx-auto px-4 pt-36 pb-20">
+      <section className="container mx-auto px-4 pt-24 md:pt-36 pb-14 md:pb-20">
         <div className="flex flex-col items-center text-center">
           <motion.h1
             initial={{ filter: "blur(10px)", opacity: 0, y: 50 }}
             animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="relative font-mono text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl max-w-5xl mx-auto leading-tight"
+            className="relative font-mono text-2xl font-bold sm:text-4xl md:text-6xl lg:text-7xl max-w-5xl mx-auto leading-tight"
           >
             {titleWords.map((word, index) => (
               <motion.span
@@ -134,10 +134,10 @@ export default function Homepage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.12, duration: 0.5 }}
-                className="inline-block mx-2 md:mx-4"
+                className="inline-block mx-1 sm:mx-2 md:mx-4"
               >
                 {word === "AUTOMATION" ? (
-                  <Cover className="font-mono text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold">
+                  <Cover className="font-mono text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-bold">
                     {word}
                   </Cover>
                 ) : word}
@@ -149,7 +149,7 @@ export default function Homepage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9, duration: 0.6 }}
-            className="mx-auto mt-8 max-w-2xl text-lg font-mono text-[#94a3b8] leading-relaxed"
+            className="mx-auto mt-6 md:mt-8 max-w-2xl text-sm sm:text-base md:text-lg font-mono text-[#94a3b8] leading-relaxed"
           >
             We empower teams with cutting-edge visual automation — connect AI, APIs, and services to build powerful workflows without code.
           </motion.p>
@@ -158,7 +158,7 @@ export default function Homepage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.3, duration: 0.6 }}
-            className="mt-10 flex flex-wrap justify-center gap-8"
+            className="mt-7 md:mt-10 flex flex-wrap justify-center gap-3 sm:gap-5 md:gap-8"
           >
             {LABELS.map((item, index) => (
               <motion.div
@@ -168,8 +168,8 @@ export default function Homepage() {
                 transition={{ delay: 1.3 + index * 0.12, duration: 0.5, type: "spring", stiffness: 100, damping: 10 }}
                 className="flex items-center gap-2"
               >
-                <item.icon className="h-5 w-5 text-[#3B82F6]" />
-                <span className="text-sm font-mono text-[#94a3b8]">{item.label}</span>
+                <item.icon className="h-4 w-4 md:h-5 md:w-5 text-[#3B82F6]" />
+                <span className="text-xs md:text-sm font-mono text-[#94a3b8]">{item.label}</span>
               </motion.div>
             ))}
           </motion.div>
@@ -181,9 +181,9 @@ export default function Homepage() {
           >
             <button
               onClick={() => router.push("/auth/signup")}
-              className="mt-12 flex items-center gap-2 px-8 py-4 bg-[#3B82F6] hover:bg-[#2563eb] font-mono font-bold text-lg transition-colors"
+              className="mt-9 md:mt-12 flex items-center gap-2 px-6 py-3 md:px-8 md:py-4 bg-[#3B82F6] hover:bg-[#2563eb] font-mono font-bold text-sm md:text-lg transition-colors"
             >
-              GET STARTED <ArrowRightIcon className="w-5 h-5" />
+              GET STARTED <ArrowRightIcon className="w-4 h-4 md:w-5 md:h-5" />
             </button>
           </motion.div>
         </div>
@@ -192,32 +192,32 @@ export default function Homepage() {
 
 
       {/* Use Cases Slider */}
-      <section id="usecases" className="py-5"> 
+      <section id="usecases" className="py-3 md:py-5"> 
         <LogoSlider
           speed={40}
           pauseOnHover
           showBlur={false}
           logos={[
-            <span key="doc-intel" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><DocumentTextIcon className="w-4 h-4" />Document Intelligence</span>,
-            <span key="content" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><PencilSquareIcon className="w-4 h-4" />Content Creation</span>,
-            <span key="data" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><CircleStackIcon className="w-4 h-4" />Data Pipelines</span>,
-            <span key="report" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><DocumentChartBarIcon className="w-4 h-4" />AI Report Generation</span>,
-            <span key="social" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><MegaphoneIcon className="w-4 h-4" />Social Media Automation</span>,
-            <span key="email" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><EnvelopeIcon className="w-4 h-4" />Email Campaigns</span>,
-            <span key="webhook" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><LinkIcon className="w-4 h-4" />Webhook Triggers</span>,
-            <span key="scheduled" className="flex items-center gap-2 font-mono text-lg font-bold  px-2 py-2 whitespace-nowrap"><ClockIcon className="w-4 h-4" />Scheduled AI Tasks</span>,
+            <span key="doc-intel" className="flex items-center gap-1.5 md:gap-2 font-mono text-sm md:text-lg font-bold px-2 py-1.5 md:py-2 whitespace-nowrap"><DocumentTextIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />Document Intelligence</span>,
+            <span key="content" className="flex items-center gap-1.5 md:gap-2 font-mono text-sm md:text-lg font-bold px-2 py-1.5 md:py-2 whitespace-nowrap"><PencilSquareIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />Content Creation</span>,
+            <span key="data" className="flex items-center gap-1.5 md:gap-2 font-mono text-sm md:text-lg font-bold px-2 py-1.5 md:py-2 whitespace-nowrap"><CircleStackIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />Data Pipelines</span>,
+            <span key="report" className="flex items-center gap-1.5 md:gap-2 font-mono text-sm md:text-lg font-bold px-2 py-1.5 md:py-2 whitespace-nowrap"><DocumentChartBarIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />AI Report Generation</span>,
+            <span key="social" className="flex items-center gap-1.5 md:gap-2 font-mono text-sm md:text-lg font-bold px-2 py-1.5 md:py-2 whitespace-nowrap"><MegaphoneIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />Social Media Automation</span>,
+            <span key="email" className="flex items-center gap-1.5 md:gap-2 font-mono text-sm md:text-lg font-bold px-2 py-1.5 md:py-2 whitespace-nowrap"><EnvelopeIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />Email Campaigns</span>,
+            <span key="webhook" className="flex items-center gap-1.5 md:gap-2 font-mono text-sm md:text-lg font-bold px-2 py-1.5 md:py-2 whitespace-nowrap"><LinkIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />Webhook Triggers</span>,
+            <span key="scheduled" className="flex items-center gap-1.5 md:gap-2 font-mono text-sm md:text-lg font-bold px-2 py-1.5 md:py-2 whitespace-nowrap"><ClockIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />Scheduled AI Tasks</span>,
           ]}
         />
       </section>
 
       {/* Features */}
-      <section id="features" className="container mx-auto px-4 py-24" ref={featuresRef}>
+      <section id="features" className="container mx-auto px-4 py-12 md:py-24" ref={featuresRef}>
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center font-mono text-4xl font-bold mb-4"
+          className="text-center font-mono text-[22px] md:text-4xl font-bold mb-2.5 md:mb-4"
         >
           Unlock the Power of AI
         </motion.h2>
@@ -226,12 +226,12 @@ export default function Homepage() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="text-center font-mono text-[#94a3b8] mb-16"
+          className="text-center font-mono text-xs md:text-base text-[#94a3b8] mb-7 md:mb-16"
         >
           Everything you need to automate your workflows without writing code
         </motion.p>
         <div
-          className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto"
+          className="grid md:grid-cols-3 gap-2.5 md:gap-6 max-w-6xl mx-auto"
           onMouseEnter={() => setFeaturesOrder(prev => [...prev].sort(() => Math.random() - 0.5))}
           onTouchStart={() => setFeaturesOrder(prev => [...prev].sort(() => Math.random() - 0.5))}
         >
@@ -241,13 +241,13 @@ export default function Homepage() {
               layout
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 120, mass: 1.2 }}
-              className="flex flex-col items-center text-center p-8 border border-[#1e293b] hover:border-[#3B82F6] transition-colors duration-300 group"
+              className="flex flex-col items-center text-center p-4 md:p-8 border border-[#1e293b] hover:border-[#3B82F6] transition-colors duration-300 group"
             >
-              <div className="mb-6 rounded-full bg-[#3B82F6]/10 p-4 group-hover:bg-[#3B82F6]/20 transition-colors">
-                <feature.icon className="h-8 w-8 text-[#3B82F6]" />
+              <div className="mb-3 md:mb-6 rounded-full bg-[#3B82F6]/10 p-2.5 md:p-4 group-hover:bg-[#3B82F6]/20 transition-colors">
+                <feature.icon className="h-6 w-6 md:h-8 md:w-8 text-[#3B82F6]" />
               </div>
-              <h3 className="mb-4 font-mono text-lg font-bold text-[#F1F5F9]">{feature.label}</h3>
-              <p className="font-mono text-sm text-[#64748b] leading-relaxed">{feature.description}</p>
+              <h3 className="mb-1.5 md:mb-4 font-mono text-[15px] md:text-lg font-bold text-[#F1F5F9]">{feature.label}</h3>
+              <p className="font-mono text-[11px] md:text-sm text-[#64748b] leading-relaxed">{feature.description}</p>
             </motion.div>
           ))}
         </div>
@@ -256,17 +256,17 @@ export default function Homepage() {
 
 
       {/* Footer CTA */}
-      <section className="py-24">
+      <section className="py-12 md:py-24">
         <div className="container mx-auto px-4 max-w-3xl text-center">
-          <h2 className="font-mono text-4xl font-bold mb-4">Ready to Automate?</h2>
-          <p className="font-mono text-[#94a3b8] mb-10">Join teams building the future of automation with AutoFlow</p>
+          <h2 className="font-mono text-[22px] md:text-4xl font-bold mb-2.5 md:mb-4">Ready to Automate?</h2>
+          <p className="font-mono text-xs md:text-base text-[#94a3b8] mb-6 md:mb-10">Join teams building the future of automation with AutoFlow</p>
           <button
             onClick={() => router.push("/auth/signup")}
-            className="px-10 py-4 bg-[#3B82F6] hover:bg-[#2563eb] font-mono font-bold text-lg transition-colors"
+            className="w-full sm:w-auto px-6 py-3 md:px-10 md:py-4 bg-[#3B82F6] hover:bg-[#2563eb] font-mono font-bold text-sm md:text-lg transition-colors"
           >
             START BUILDING NOW
           </button>
-          <p className="font-mono text-xs text-[#475569] mt-4">No credit card required · Free forever plan available</p>
+          <p className="font-mono text-[11px] md:text-xs text-[#475569] mt-3 md:mt-4">No credit card required · Free forever plan available</p>
         </div>
       </section>
 
@@ -288,12 +288,12 @@ export default function Homepage() {
         `}</style>
 
         {/* Top row: Follow us + nav links */}
-        <div className="container mx-auto px-8 pt-8 pb-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="container mx-auto px-4 md:px-8 pt-6 md:pt-8 pb-5 md:pb-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6">
 
             {/* Follow us + social icons */}
-            <div className="flex items-center gap-3">
-              <span className="footer-follow text-sm text-[#64748b] font-medium">Follow us</span>
+            <div className="flex items-center justify-center flex-wrap gap-2 md:gap-3">
+              <span className="footer-follow text-xs md:text-sm text-[#64748b] font-medium">Follow us</span>
               {[
                 { href: "https://github.com/SHXZ7/autofloww.git", label: "GitHub",
                   svg: <svg viewBox="0 0 24 24" fill="currentColor" style={{width:'15px',height:'15px'}}><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.4-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.1.1 1.7 1.1 1.7 1.1 1 1.7 2.6 1.2 3.2.9.1-.7.4-1.2.7-1.5-2.5-.3-5.2-1.3-5.2-5.8 0-1.3.5-2.3 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.3 11.3 0 0 1 6 0C17.3 5.3 18.3 5.6 18.3 5.6c.6 1.7.2 2.9.1 3.2.8.9 1.2 1.9 1.2 3.2 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .4.2.7.8.6C20.2 21.4 23.5 17.1 23.5 12 23.5 5.7 18.3.5 12 .5z"/></svg> },
@@ -321,7 +321,7 @@ export default function Homepage() {
             </div>
 
             {/* Nav links */}
-            <nav className="flex flex-wrap justify-center md:justify-end items-center gap-x-6 gap-y-2">
+            <nav className="grid grid-cols-2 sm:flex flex-wrap justify-center md:justify-end items-center gap-x-3 md:gap-x-6 gap-y-1.5 md:gap-y-2 w-full md:w-auto text-center md:text-left">
               {[
                 { label: 'Pricing', href: '#' },
                 { label: 'Help', href: '#' },
@@ -333,7 +333,7 @@ export default function Homepage() {
                 { label: 'Partners Program', href: '#' },
               ].map(({ label, href }) => (
                 <a key={label} href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer"
-                  className="footer-nav-link font-mono text-sm text-[#64748b] hover:text-[#F1F5F9] transition-colors"
+                  className="footer-nav-link font-mono text-xs md:text-sm text-[#64748b] hover:text-[#F1F5F9] transition-colors"
                 >{label}</a>
               ))}
             </nav>
@@ -341,21 +341,21 @@ export default function Homepage() {
         </div>
 
         {/* Bottom row: logo + copyright */}
-        <div className="footer-divider container mx-auto px-8 pb-7 pt-5 border-t border-[#1e293b]">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-3">
+        <div className="footer-divider container mx-auto px-4 md:px-8 pb-6 md:pb-7 pt-4 md:pt-5 border-t border-[#1e293b]">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-2.5 md:gap-3">
 
             {/* Logo */}
             <div className="flex items-center gap-1">
               <span className="footer-logo-bar" style={{display:'inline-block', width:'14px', height:'3px', borderRadius:'2px', background:'#3B82F6', marginRight:'2px'}} />
-              <span className="footer-logo-text font-mono text-lg font-bold text-[#F1F5F9]" style={{letterSpacing:'-0.02em'}}>autoflow</span>
+              <span className="footer-logo-text font-mono text-base md:text-lg font-bold text-[#F1F5F9]" style={{letterSpacing:'-0.02em'}}>autoflow</span>
             </div>
 
             {/* Copyright + legal */}
-            <div className="flex flex-wrap justify-center md:justify-end items-center gap-x-4 gap-y-1">
-              <span className="footer-copy font-mono text-xs text-[#475569]">© 2026 AutoFlow Inc.</span>
+            <div className="flex flex-wrap justify-center md:justify-end items-center gap-x-3 md:gap-x-4 gap-y-1 text-center">
+              <span className="footer-copy font-mono text-[11px] md:text-xs text-[#475569]">© 2026 AutoFlow Inc.</span>
               {['Privacy Policy', 'Terms of Service', 'Legal'].map(item => (
                 <a key={item} href="#"
-                  className="footer-legal-link font-mono text-xs text-[#475569] hover:text-[#F1F5F9] transition-colors"
+                  className="footer-legal-link font-mono text-[11px] md:text-xs text-[#475569] hover:text-[#F1F5F9] transition-colors"
                 >{item}</a>
               ))}
             </div>

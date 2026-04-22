@@ -2,7 +2,7 @@
 import { create } from "zustand"
 import { nanoid } from "nanoid"
 
-const API_BASE_URL = 'https://shxz7-autoflow.hf.space'
+const API_BASE_URL = 'http://172.20.10.2:8000'
 
 
 export const useFlowStore = create((set, get) => ({
@@ -23,6 +23,7 @@ export const useFlowStore = create((set, get) => ({
     set({
       nodes: nodes.map((node) => ({
         ...node,
+        type: node.type === "twilio" || node.type === "sms" ? "whatsapp" : node.type,
         position: node.position || { x: 0, y: 0 },
         data: node.data || {},
       })),
@@ -110,6 +111,13 @@ export const useFlowStore = create((set, get) => ({
           label: "Schedule Node",
           cron: "0 9 * * *",
         }
+      } else if (type === "gmail_trigger") {
+        nodeData = {
+          label: "Gmail Trigger Node",
+          query: "",
+          label_filter: "INBOX",
+          poll_interval: 1,
+        }
       } else if (type === "file_upload") {
         nodeData = {
           label: "File Upload Node",
@@ -120,10 +128,9 @@ export const useFlowStore = create((set, get) => ({
           uploading: false,
           error: null
         }
-      } else if (type === "twilio") {
+      } else if (type === "whatsapp") {
         nodeData = {
-          label: "Twilio Node",
-          mode: "whatsapp",
+          label: "WhatsApp Node",
           to: "",
           message: "",
         }
@@ -164,7 +171,14 @@ export const useFlowStore = create((set, get) => ({
           image_path: "",
           webhook_url: "",
         }
-      } else {
+      } else if (type === "delay") {
+        nodeData = {
+          label: "Delay Node",
+          duration: 5,
+          unit: "seconds",
+        }
+      }
+      else {
         nodeData = {
           label: `${type.toUpperCase()} Node`,
           model: get().model,

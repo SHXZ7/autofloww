@@ -29,6 +29,7 @@ pinned: false
 ## 📋 Table of Contents
 
 - [Overview](#overview)
+- [Latest Updates (April 2026)](#-latest-updates-april-2026)
 - [Features](#features)
 - [Architecture](#architecture)
 - [Quick Start](#quick-start)
@@ -47,9 +48,40 @@ pinned: false
 
 AutoFlow is a powerful visual workflow automation platform that enables users to create sophisticated automation workflows using a drag-and-drop interface. Connect AI models, automate communications, process documents, and integrate with various services - all without writing code.
 
+## 🔄 Latest Updates (April 2026)
+
+### Mobile UX Improvements
+- **Main app mobile optimization** across builder pages (`/`, `/workflows`, `/templates`, `/runs`, `/settings`, `/integrations`)
+- **Unified mobile bottom navigation** component with consistent sizing, placement, and active state behavior
+- **5-item mobile nav** (Integrations removed from mobile quick nav)
+- **Improved control placement** for flow actions and zoom controls to prevent overlap on small screens
+
+### Settings & Profile Modal (Mobile)
+- Reworked into a compact mobile-friendly modal layout
+- Added a **left icon rail** for quick section switching on mobile
+- Reduced spacing/typography/input density for iPhone-size displays
+- Added **mobile logout action** in settings flow
+- Fixed modal clipping/overlap behavior above bottom navigation
+
+### Auth Pages (Mobile)
+- Login and Signup containers reduced for smaller screens
+- Tighter mobile form spacing and typography
+- Improved mobile scroll behavior to avoid clipped content
+- Desktop layout remains unchanged (`md` and above)
+
+### Frontend/Backend Connectivity
+- Frontend API base URL fallbacks were aligned to current LAN backend usage (`172.20.10.2:8000`) where configured
+- Existing environment-variable-based configuration (`NEXT_PUBLIC_API_URL`) remains supported
+
+### Text-to-Workflow
+- Added support for **Text-to-Workflow** creation flow
+- Users can describe automation in plain language and quickly convert it into a structured workflow draft
+- Designed to speed up first-time workflow creation before manual node fine-tuning
+
 ### 🌟 Key Highlights
 
 - **Visual Workflow Builder**: Intuitive drag-and-drop interface powered by React Flow
+- **Text-to-Workflow Generation**: Build workflow drafts from natural language prompts
 - **AI Integration**: Connect GPT-4, Claude, Gemini, Llama, and other AI models
 - **Multi-Channel Communication**: Email, Discord, SMS, social media automation
 - **Document Processing**: Advanced PDF, Excel, and document parsing capabilities
@@ -61,6 +93,7 @@ AutoFlow is a powerful visual workflow automation platform that enables users to
 
 ### 🤖 AI-Powered Automation
 - **Multiple AI Models**: GPT-4, Claude, Gemini, Llama, Mistral support
+- **Text-to-Workflow**: Convert plain-text automation requirements into editable workflow structures
 - **Context-Aware Processing**: Smart data flow between workflow nodes
 - **Custom Prompts**: Dynamic prompt generation with workflow context
 - **Model Switching**: Easy switching between different AI providers
@@ -137,13 +170,16 @@ npm install
 
 # Start development servers
 # Terminal 1 (Backend)
-cd backend && uvicorn app:app --reload --port 8000
+uvicorn backend.app.main:app --reload --port 8000
 
 # Terminal 2 (Frontend)
 cd frontend && npm run dev
 ```
 
-Visit `http://localhost:3000` to access AutoFlow!
+Visit `http://localhost:3000` to access AutoFlow.
+
+If you are testing on a phone in the same network, open:
+- `http://<your-machine-ip>:3000`
 
 ## 🛠️ Installation
 
@@ -171,7 +207,7 @@ cp .env.example .env
 
 4. **Start Backend Server**
 ```bash
-uvicorn app:app --reload --port 8000
+uvicorn backend.app.main:app --reload --port 8000
 ```
 
 #### Frontend Setup
@@ -198,7 +234,7 @@ npm run dev
 ### Creating Your First Workflow
 
 1. **Access Workflow Builder**
-   - Navigate to `/workflow` after logging in
+   - Navigate to `/` after logging in
    - Click "Create New Workflow"
 
 2. **Add Workflow Nodes**

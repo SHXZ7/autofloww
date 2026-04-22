@@ -4,6 +4,7 @@ import networkx as nx
 import sys
 import os
 import json
+import re
 import atexit
 import asyncio
 import time
@@ -26,13 +27,28 @@ from ..models.workflow import Node, Edge, Workflow
 from services.gpt import run_gpt_node
 from services.email import run_email_node
 from services.webhook import run_webhook_node
-from services.twilio_node import run_twilio_node
+from services.whatsapp import run_whatsapp_node
 from services.googlesheets import write_to_sheet
 from services.file_upload import upload_to_drive, download_from_drive
 from services.image_generation import run_image_generation_node
 from services.discord import run_discord_node
 from services.report_generator import run_report_generator_node
 from services.social_media import run_social_media_node
+from services.gmail_trigger import format_email_event
+
+
+def _is_truthy(value: Optional[str]) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _require_user_owned_keys() -> bool:
+    """Whether workflow nodes must use user-owned credentials only."""
+    explicit = os.getenv("ALLOW_SERVER_KEY_FALLBACK")
+    if explicit is not None:
+        return not _is_truthy(explicit)
+
+    app_env = os.getenv("APP_ENV", "development").strip().lower()
+    return app_env in {"prod", "production"}
 
 # Fix the import path for API manager
 try:
@@ -247,7 +263,14 @@ class AINodeExecutor(BaseNodeExecutor):
     
     async def execute(self, context: NodeExecutionContext) -> ExecutionResult:
         try:
-            await self._setup_ai_api_keys(context)
+            user_ai_key = await self._setup_ai_api_keys(context)
+
+            if _require_user_owned_keys() and not user_ai_key:
+                return ExecutionResult(
+                    False,
+                    None,
+                    "Missing user AI key. Add your Groq/OpenAI key in Settings > API Keys.",
+                )
             
             prompt = self._build_prompt(context)
             if not prompt:
@@ -261,17 +284,16 @@ class AINodeExecutor(BaseNodeExecutor):
         except Exception as e:
             return ExecutionResult(False, None, f"Error executing {context.node.type} node: {str(e)}")
     
-    async def _setup_ai_api_keys(self, context: NodeExecutionContext) -> None:
+    async def _setup_ai_api_keys(self, context: NodeExecutionContext) -> Optional[str]:
         """Setup API keys for AI models."""
         if not context.api_manager:
-            return
-        
-        node_type = context.node.type
-        model = context.node.data.get("model", "")
+            return None
         
         api_key = await context.api_manager.get_groq_key()
         if api_key:
             os.environ["GROQ_API_KEY"] = api_key
+
+        return api_key
     
     def _build_prompt(self, context: NodeExecutionContext) -> str:
         """Build prompt from node data and input context."""
@@ -283,6 +305,23 @@ class AINodeExecutor(BaseNodeExecutor):
                 enhanced_prompt = self._enhance_prompt_with_document(prompt, pred_result)
                 if enhanced_prompt:
                     return enhanced_prompt
+
+        # For trigger-driven flows (e.g., gmail_trigger -> AI), include predecessor text
+        # so extraction nodes can work without manual copy/paste wiring.
+        context_parts: List[str] = []
+        for pred_id, pred_result in context.input_data.items():
+            if not pred_result:
+                continue
+            pred_text = str(pred_result).strip()
+            if pred_text:
+                context_parts.append(f"[{pred_id}] {pred_text}")
+
+        if context_parts:
+            return (
+                f"{prompt}\n\n"
+                "Upstream workflow context:\n"
+                f"{chr(10).join(context_parts)}"
+            )
         
         return prompt
     
@@ -308,6 +347,23 @@ class EmailNodeExecutor(BaseNodeExecutor):
     async def execute(self, context: NodeExecutionContext) -> ExecutionResult:
         try:
             email_data = self._build_email_data(context)
+            user_google_token_json = None
+            if context.api_manager:
+                user_google_token_json = (
+                    await context.api_manager.get_google_token_json()
+                    or await context.api_manager.get_gmail_token_json()
+                )
+
+            if _require_user_owned_keys() and not user_google_token_json:
+                return ExecutionResult(
+                    False,
+                    None,
+                    "Missing user Google token. Add google_token_json in Settings > API Keys.",
+                )
+
+            if user_google_token_json:
+                email_data["google_token_json"] = user_google_token_json
+
             result = await run_email_node(email_data)
             return ExecutionResult(True, result)
             
@@ -438,27 +494,45 @@ class DiscordNodeExecutor(BaseNodeExecutor):
             report_path = pred_result.split("Report generated: ")[-1]
             return {
                 "title": "Report Generated",
-                "content": f"Report created: {os.path.basename(report_path)}",
+                "description": f"Report created: **{os.path.basename(report_path)}**",
                 "color": 3066993
             }
         elif "Document parsed:" in pred_result:
+            parsed_path = pred_result.split("Document parsed: ")[-1]
             return {
                 "title": "Document Processed",
-                "content": "Document has been parsed and analyzed",
+                "description": (
+                    "Document has been parsed and analyzed.\n"
+                    f"Output file: **{os.path.basename(parsed_path)}**"
+                ),
                 "color": 3447003
             }
         elif "Image generated:" in pred_result:
+            image_path = pred_result.split("Image generated: ")[-1]
             return {
                 "title": "Generated Image",
-                "content": f"Image created: {os.path.basename(pred_result.split('Image generated: ')[-1])}",
+                "description": f"Image created: **{os.path.basename(image_path)}**",
                 "color": 10181046
+            }
+        elif "File uploaded:" in pred_result:
+            file_url = pred_result.split("File uploaded: ")[-1].strip()
+            return {
+                "title": "File Uploaded",
+                "description": f"Uploaded file is available [here]({file_url})",
+                "color": 5763719
             }
         elif ContentProcessor._is_ai_content(pred_result):
             ai_model = ContentProcessor._determine_ai_model(pred_id)
             return {
                 "title": f"{ai_model} Response",
-                "content": pred_result[:1500] + "..." if len(pred_result) > 1500 else pred_result,
+                "description": pred_result[:1500] + "..." if len(pred_result) > 1500 else pred_result,
                 "color": 5814783
+            }
+        elif pred_result.strip():
+            return {
+                "title": f"Node Output ({pred_id})",
+                "description": pred_result[:1500] + "..." if len(pred_result) > 1500 else pred_result,
+                "color": 10070709
             }
         
         return None
@@ -475,8 +549,24 @@ class FileUploadNodeExecutor(BaseNodeExecutor):
             
             file_name = context.node.data.get("name") or os.path.basename(file_path)
             mime_type = self._get_mime_type(file_path, context.node.data.get("mime_type"))
+
+            user_google_token_json = None
+            if context.api_manager:
+                user_google_token_json = await context.api_manager.get_google_token_json()
+
+            if _require_user_owned_keys() and not user_google_token_json:
+                return ExecutionResult(
+                    False,
+                    None,
+                    "Missing user Google token. Add google_token_json in Settings > API Keys.",
+                )
             
-            result = await upload_to_drive(file_path, file_name, mime_type)
+            result = await upload_to_drive(
+                file_path,
+                file_name,
+                mime_type,
+                token_json=user_google_token_json,
+            )
             
             if result.get("success"):
                 return ExecutionResult(True, f"File uploaded: {result['file_url']}")
@@ -715,13 +805,17 @@ class WorkflowEngine:
                 print(f"Webhook node completed: {result}")
                 return result
                 
-            elif node.type in ["sms", "whatsapp", "twilio"]:
+            elif node.type == "whatsapp":
                 return await self._execute_messaging_node(context)
                 
             elif node.type == "google_sheets":
                 spreadsheet_id = node.data.get("spreadsheet_id")
                 range_name = node.data.get("range")
                 values = node.data.get("values", [])
+                user_google_token_json = await api_manager.get_google_token_json() if api_manager else None
+
+                if _require_user_owned_keys() and not user_google_token_json:
+                    return "Missing user Google token. Add google_token_json in Settings > API Keys."
                 
                 # Check for parsed document data
                 for pred_id, pred_result in input_data.items():
@@ -729,13 +823,25 @@ class WorkflowEngine:
                         values = self._extract_sheet_values_from_document(pred_result)
                         if values:
                             break
+
+                # If no explicit values are provided, use upstream outputs.
+                if not values:
+                    values = self._extract_sheet_values_from_upstream(input_data)
                 
-                result = write_to_sheet(spreadsheet_id, range_name, [values] if isinstance(values[0], str) else values)
+                result = write_to_sheet(
+                    spreadsheet_id,
+                    range_name,
+                    [values] if isinstance(values[0], str) else values,
+                    token_json=user_google_token_json,
+                )
                 return result
                 
             elif node.type == "schedule":
                 cron_expr = node.data.get("cron", "*/1 * * * *")
                 return f"Schedule set: {cron_expr}"
+
+            elif node.type == "gmail_trigger":
+                return await self._execute_gmail_trigger_node(context)
                 
             elif node.type == "document_parser":
                 file_path = self._get_document_parser_file_path(node, input_data)
@@ -743,7 +849,7 @@ class WorkflowEngine:
                 return await self._execute_document_parser(updated_data)
                 
             elif node.type == "report_generator":
-                return await self._execute_report_generator(node, input_data)
+                return await self._execute_report_generator(node, input_data, api_manager)
                 
             elif node.type == "social_media":
                 return await self._execute_social_media_node(node, input_data, api_manager)
@@ -752,6 +858,20 @@ class WorkflowEngine:
             
         except Exception as e:
             return f"Error executing {node.type} node {node.id}: {str(e)}"
+
+    async def _execute_gmail_trigger_node(self, context: NodeExecutionContext) -> str:
+        """Execute Gmail trigger node and return latest email event summary."""
+        node = context.node
+        node_data = node.data or {}
+
+        # Preferred path for scheduled listeners: payload injected by main listener job.
+        trigger_payload = node_data.get("trigger_payload")
+        if isinstance(trigger_payload, dict) and trigger_payload.get("message_id"):
+            return format_email_event(trigger_payload)
+
+        # Trigger nodes should not actively poll during normal /run calls.
+        # They are armed by scheduler in main.py and fired only by listener payload.
+        return "Gmail trigger armed and listening for new emails"
     
     def _extract_sheet_values_from_document(self, pred_result: str) -> Optional[List[List[str]]]:
         """Extract sheet values from parsed document."""
@@ -780,6 +900,128 @@ class WorkflowEngine:
         except Exception as e:
             print(f"Error reading parsed document for sheets: {str(e)}")
         return None
+
+    def _extract_sheet_values_from_upstream(self, input_data: Dict[str, Any]) -> List[List[str]]:
+        """Build sheet rows from upstream outputs with dynamic schema inference.
+
+        Priority:
+        1) Structured AI output (JSON object/list, JSON code fence)
+        2) Key-value text blocks ("field: value")
+        3) Generic source/output fallback
+        """
+        structured_tables: List[List[List[str]]] = []
+        fallback_rows: List[List[str]] = []
+
+        for pred_id, pred_result in input_data.items():
+            if pred_result is None:
+                continue
+
+            table = self._coerce_to_sheet_table(pred_result)
+            if table:
+                structured_tables.append(table)
+                continue
+
+            pred_text = str(pred_result).strip()
+            if pred_text:
+                fallback_rows.append([pred_id, pred_text])
+
+        if structured_tables:
+            # If multiple structured tables exist, prefer the latest one
+            # (typically closest predecessor AI output).
+            return structured_tables[-1]
+
+        if fallback_rows:
+            return [["Source", "Output"], *fallback_rows]
+
+        return [["Output"], ["No upstream data received"]]
+
+    def _coerce_to_sheet_table(self, value: Any) -> Optional[List[List[str]]]:
+        """Try converting arbitrary value into a tabular [rows][cols] shape."""
+        parsed = value
+
+        if isinstance(value, str):
+            parsed = self._try_parse_structured_text(value)
+            if parsed is None:
+                return None
+
+        if isinstance(parsed, dict):
+            headers = list(parsed.keys())
+            return [headers, [self._to_cell(parsed.get(k)) for k in headers]]
+
+        if isinstance(parsed, list):
+            if not parsed:
+                return None
+
+            if all(isinstance(item, dict) for item in parsed):
+                headers: List[str] = []
+                for item in parsed:
+                    for key in item.keys():
+                        if key not in headers:
+                            headers.append(key)
+
+                rows: List[List[str]] = [headers]
+                for item in parsed:
+                    rows.append([self._to_cell(item.get(h)) for h in headers])
+                return rows
+
+            if all(isinstance(item, (list, tuple)) for item in parsed):
+                rows: List[List[str]] = []
+                for item in parsed:
+                    rows.append([self._to_cell(cell) for cell in item])
+                return rows if rows else None
+
+            return [["value"], *[[self._to_cell(item)] for item in parsed]]
+
+        return None
+
+    def _try_parse_structured_text(self, text: str) -> Optional[Any]:
+        """Parse structured content from text (JSON fence, JSON, key-value lines)."""
+        raw = text.strip()
+        if not raw:
+            return None
+
+        # 1) JSON code block
+        code_match = re.search(r"```(?:json)?\s*(.*?)```", raw, flags=re.IGNORECASE | re.DOTALL)
+        if code_match:
+            candidate = code_match.group(1).strip()
+            try:
+                return json.loads(candidate)
+            except Exception:
+                pass
+
+        # 2) Raw JSON
+        try:
+            return json.loads(raw)
+        except Exception:
+            pass
+
+        # 3) Simple key-value text blocks
+        kv_pairs = {}
+        lines = [line.strip() for line in raw.splitlines() if line.strip()]
+        for line in lines:
+            if ":" not in line:
+                continue
+            key, val = line.split(":", 1)
+            key = key.strip().lstrip("-*")
+            val = val.strip()
+            if key and val:
+                kv_pairs[key] = val
+
+        if len(kv_pairs) >= 2:
+            return kv_pairs
+
+        return None
+
+    def _to_cell(self, value: Any) -> str:
+        """Normalize arbitrary values to safe sheet cell strings."""
+        if value is None:
+            return ""
+        if isinstance(value, (dict, list)):
+            try:
+                return json.dumps(value, ensure_ascii=False)
+            except Exception:
+                return str(value)
+        return str(value)
     
     def _get_document_parser_file_path(self, node: Node, input_data: Dict[str, Any]) -> str:
         """Get file path for document parser with enhanced download capability."""
@@ -805,9 +1047,10 @@ class WorkflowEngine:
         return file_path
 
     async def _execute_messaging_node(self, context: NodeExecutionContext) -> str:
-        """Execute Twilio SMS/WhatsApp node."""
+        """Execute WhatsApp Cloud API node."""
         node = context.node
         input_data = context.input_data or {}
+        api_manager = context.api_manager
 
         # Build message, optionally appending predecessor output
         message = node.data.get("message", "")
@@ -820,8 +1063,27 @@ class WorkflowEngine:
                     break
 
         node_data = {**node.data, "message": message}
-        print(f"Executing twilio node: {node.id}")
-        return await run_twilio_node(node_data)
+
+        user_whatsapp_token = None
+        user_whatsapp_phone_number_id = None
+        if api_manager:
+            whatsapp_token = await api_manager.get_whatsapp_token()
+            whatsapp_phone_number_id = await api_manager.get_whatsapp_phone_number_id()
+            user_whatsapp_token = whatsapp_token
+            user_whatsapp_phone_number_id = whatsapp_phone_number_id
+            if whatsapp_token and not node_data.get("access_token"):
+                node_data["access_token"] = whatsapp_token
+            if whatsapp_phone_number_id and not node_data.get("phone_number_id"):
+                node_data["phone_number_id"] = whatsapp_phone_number_id
+
+        if _require_user_owned_keys() and (not user_whatsapp_token or not user_whatsapp_phone_number_id):
+            return (
+                "Error: Missing user WhatsApp credentials. "
+                "Add WhatsApp token and phone_number_id in Settings > API Keys."
+            )
+
+        print(f"Executing whatsapp node: {node.id}")
+        return await run_whatsapp_node(node_data)
 
     async def _execute_document_parser(self, node_data: Dict[str, Any]) -> str:
         """Execute document parser with enhanced file handling and cleanup."""
@@ -931,11 +1193,12 @@ class WorkflowEngine:
         from services import run_document_parser_node
         return run_document_parser_node
     
-    async def _execute_report_generator(self, node: Node, input_data: Dict[str, Any]) -> str:
+    async def _execute_report_generator(self, node: Node, input_data: Dict[str, Any], api_manager: Any = None) -> str:
         """Execute report generator with enhanced content from all connected nodes."""
         title = node.data.get("title", "AutoFlow Report")
         content = node.data.get("content", "")
         format_type = node.data.get("format", "pdf")
+        google_token_json = await api_manager.get_google_token_json() if api_manager else None
         
         report_content = content if content else "# AutoFlow Workflow Report\n\n"
         report_data = {}
@@ -947,7 +1210,7 @@ class WorkflowEngine:
                 
                 if "File uploaded:" in pred_result:
                     report_content, report_data = await self._add_file_upload_content_to_report(
-                        report_content, report_data, pred_result, pred_id)
+                        report_content, report_data, pred_result, pred_id, google_token_json)
                 elif "Document parsed:" in pred_result:
                     report_content, report_data = self._add_document_content_to_report(
                         report_content, report_data, pred_result)
@@ -992,7 +1255,14 @@ class WorkflowEngine:
         
         return await run_report_generator_node(updated_data)
 
-    async def _add_file_upload_content_to_report(self, content: str, data: Dict[str, Any], pred_result: str, pred_id: str) -> tuple:
+    async def _add_file_upload_content_to_report(
+        self,
+        content: str,
+        data: Dict[str, Any],
+        pred_result: str,
+        pred_id: str,
+        google_token_json: Optional[str] = None,
+    ) -> tuple:
         """Enhanced file upload content processing for reports."""
         try:
             file_url = pred_result.split("File uploaded: ")[-1].strip()
@@ -1006,7 +1276,7 @@ class WorkflowEngine:
                 # Try to get file metadata
                 try:
                     from services.file_upload import get_drive_file_info
-                    file_info_result = await get_drive_file_info(file_id)
+                    file_info_result = await get_drive_file_info(file_id, token_json=google_token_json)
                     
                     if file_info_result.get("success"):
                         file_info = file_info_result["file_info"]
@@ -1033,7 +1303,11 @@ class WorkflowEngine:
                         
                         # Try to download and analyze the file content if it's a document
                         if self._is_analyzable_file(file_info.get('mimeType', '')):
-                            content += await self._analyze_uploaded_file_content(file_id, file_info)
+                            content += await self._analyze_uploaded_file_content(
+                                file_id,
+                                file_info,
+                                google_token_json,
+                            )
                             
                     else:
                         # Fallback if we can't get file info
@@ -1098,13 +1372,18 @@ class WorkflowEngine:
         ]
         return any(mime_type.startswith(t) for t in analyzable_types)
 
-    async def _analyze_uploaded_file_content(self, file_id: str, file_info: dict) -> str:
+    async def _analyze_uploaded_file_content(
+        self,
+        file_id: str,
+        file_info: dict,
+        google_token_json: Optional[str] = None,
+    ) -> str:
         """Download and analyze file content for the report with enhanced resume analysis."""
         try:
             print(f"🔍 Attempting to analyze file content for report...")
             
             # Download the file
-            local_path = await download_from_drive(file_id)
+            local_path = await download_from_drive(file_id, token_json=google_token_json)
             if not local_path or not os.path.exists(local_path):
                 return "**Content Analysis:** Could not download file for analysis.\n\n"
             

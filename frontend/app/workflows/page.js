@@ -1,10 +1,22 @@
 "use client"
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '../../stores/authStore'
 import { useFlowStore } from '../../stores/flowStore'
 import TopNav from '../../components/TopNav'
-import { PlusIcon, TrashIcon, PencilSquareIcon, ClockIcon, CircleStackIcon } from '@heroicons/react/24/outline'
+import MobileBottomNav from '../../components/MobileBottomNav'
+import {
+  PlusIcon,
+  TrashIcon,
+  PencilSquareIcon,
+  ClockIcon,
+  CircleStackIcon,
+  BoltIcon,
+  RectangleStackIcon,
+  DocumentDuplicateIcon,
+  PlayCircleIcon,
+  Cog6ToothIcon,
+} from '@heroicons/react/24/outline'
 
 const GLOBAL_CSS = `
     *, *::before, *::after { box-sizing: border-box; }
@@ -20,12 +32,38 @@ const GLOBAL_CSS = `
   .gradient-text { background: linear-gradient(135deg, #00D4FF, #FF6B35); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 `
 
+const MOBILE_NAV_ITEMS = [
+  { href: '/', label: 'Flow', icon: BoltIcon },
+  { href: '/workflows', label: 'Workflows', icon: RectangleStackIcon },
+  { href: '/templates', label: 'Templates', icon: DocumentDuplicateIcon },
+  { href: '/runs', label: 'Runs', icon: PlayCircleIcon },
+  { href: '/settings', label: 'Settings', icon: Cog6ToothIcon },
+]
+
 export default function WorkflowsPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const { isAuthenticated, loading, checkAuth } = useAuthStore()
   const { savedWorkflows, loadWorkflows, loadWorkflow, deleteWorkflow, newWorkflow } = useFlowStore()
   const [search, setSearch] = useState('')
   const [deleting, setDeleting] = useState(null)
+  const [isMobile, setIsMobile] = useState(false)
+  const [isLight, setIsLight] = useState(false)
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 900)
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    const update = () => setIsLight(document.documentElement.classList.contains('light'))
+    update()
+    const observer = new MutationObserver(update)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => { checkAuth() }, [checkAuth])
   useEffect(() => {
@@ -62,15 +100,22 @@ export default function WorkflowsPage() {
   if (loading || !isAuthenticated) return null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', height: '100vh', background: '#020617', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)" }}>
+    <div style={{ display: 'flex', flexDirection: 'row', height: isMobile ? '100dvh' : '100vh', background: '#020617', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", overflow: 'hidden' }}>
       <style jsx global>{GLOBAL_CSS}</style>
-      <TopNav />
+      {!isMobile && <TopNav />}
 
-      <div style={{ flex: 1, overflow: 'auto', padding: '32px 40px' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '18px 12px 96px' : '32px 40px' }}>
         {/* Header row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: isMobile ? 'flex-start' : 'center',
+          justifyContent: 'space-between',
+          gap: '10px',
+          flexDirection: isMobile ? 'column' : 'row',
+          marginBottom: isMobile ? '16px' : '28px',
+        }}>
           <div>
-            <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#F1F5F9', margin: 0, letterSpacing: '-0.4px' }}>Workflows</h1>
+            <h1 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: '700', color: '#F1F5F9', margin: 0, letterSpacing: '-0.4px' }}>Workflows</h1>
             <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0' }}>
               {savedWorkflows.length} workflow{savedWorkflows.length !== 1 ? 's' : ''}
             </p>
@@ -79,9 +124,9 @@ export default function WorkflowsPage() {
             onClick={handleNew}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+              padding: isMobile ? '9px 12px' : '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
               background: '#3B82F6',
-              color: 'white', fontSize: '13px', fontWeight: '600',
+              color: 'white', fontSize: isMobile ? '12px' : '13px', fontWeight: '600',
               boxShadow: '0 0 20px rgba(59,130,246,0.25)',
             }}
           >
@@ -97,17 +142,17 @@ export default function WorkflowsPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{
-            width: '100%', maxWidth: '380px',
+            width: '100%', maxWidth: isMobile ? '100%' : '380px',
             background: '#1e293b', border: '1px solid #1e293b',
             borderRadius: '8px', padding: '8px 14px',
             color: '#ccc', fontSize: '13px', outline: 'none',
-            marginBottom: '24px', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+            marginBottom: isMobile ? '14px' : '24px', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
           }}
         />
 
         {/* Grid */}
         {filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 0' }}>
+          <div style={{ textAlign: 'center', padding: isMobile ? '42px 0' : '80px 0' }}>
             <div style={{ fontSize: '40px', marginBottom: '16px' }}>⚡</div>
             <div style={{ color: '#475569', fontSize: '15px', fontWeight: '500', marginBottom: '8px' }}>
               {search ? 'No workflows match your search' : 'No workflows yet'}
@@ -125,7 +170,7 @@ export default function WorkflowsPage() {
             )}
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
             {filtered.map(w => (
               <div
                 key={w._id}
@@ -134,7 +179,7 @@ export default function WorkflowsPage() {
                 style={{
                   background: '#0f172a',
                   border: '1px solid #1e293b',
-                  borderRadius: '12px', padding: '20px',
+                  borderRadius: '12px', padding: isMobile ? '16px' : '20px',
                   cursor: 'pointer', transition: 'background 0.15s ease, border-color 0.15s ease',
                   position: 'relative',
                 }}
@@ -190,6 +235,15 @@ export default function WorkflowsPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {isMobile && (
+          <MobileBottomNav
+            items={MOBILE_NAV_ITEMS}
+            pathname={pathname}
+            onNavigate={(href) => router.push(href)}
+            isLight={isLight}
+          />
         )}
       </div>
     </div>

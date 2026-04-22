@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
-from .connection import get_database, db
+from .connection import get_database, db, connect_to_mongo
 from ..auth.auth import hash_password
 
 async def create_user(user_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -73,7 +73,17 @@ async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
 async def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
     """Get user by ID"""
     try:
-        database = get_database()
+        try:
+            database = get_database()
+        except RuntimeError as conn_err:
+            # Background scheduler jobs can run in a context where DB was not
+            # initialized yet for this module instance. Reconnect once and retry.
+            if "Database not connected" in str(conn_err):
+                await connect_to_mongo()
+                database = get_database()
+            else:
+                raise
+
         users_collection = database.users
         
         # Handle both MongoDB ObjectId and in-memory string ID

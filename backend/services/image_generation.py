@@ -140,6 +140,108 @@ async def generate_stability_image(prompt: str, width: int = 1024, height: int =
         print(f"❌ {error_msg}")
         return error_msg
 
+
+async def generate_huggingface_image(prompt: str, size: str = "1024x1024") -> str:
+    """Generate image using Hugging Face Inference API."""
+    try:
+        api_key = os.getenv("HF_API_TOKEN") or os.getenv("HUGGINGFACE_API_KEY")
+        if not api_key:
+            return "Error: Hugging Face API key not configured"
+
+        # Default model can be overridden from environment.
+        # Use SDXL base as a safer default for hf-inference compatibility.
+        primary_model = os.getenv("HF_IMAGE_MODEL", "stabilityai/stable-diffusion-xl-base-1.0")
+        fallback_env = os.getenv("HF_IMAGE_FALLBACK_MODELS", "")
+        fallback_models = [m.strip() for m in fallback_env.split(",") if m.strip()]
+        fallback_models.extend([
+            "stabilityai/stable-diffusion-xl-base-1.0",
+            "stabilityai/stable-diffusion-2-1",
+            "runwayml/stable-diffusion-v1-5",
+        ])
+
+        models_to_try = []
+        for model in [primary_model, *fallback_models]:
+            if model and model not in models_to_try:
+                models_to_try.append(model)
+
+        if "x" in size:
+            width, height = map(int, size.split("x"))
+        else:
+            width = height = 1024
+
+        print(f"🎨 Generating Hugging Face image with prompt: {prompt[:100]}...")
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "inputs": prompt,
+            "options": {"wait_for_model": True},
+            "parameters": {
+                "width": width,
+                "height": height,
+            },
+        }
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            last_status = None
+            last_error = ""
+            for model_id in models_to_try:
+                endpoint = f"https://router.huggingface.co/hf-inference/models/{model_id}"
+                print(f"   Model: {model_id}")
+
+                response = await client.post(endpoint, headers=headers, json=payload)
+
+                if response.status_code == 200:
+                    # HF image endpoints return raw bytes for successful inference.
+                    content_type = response.headers.get("content-type", "")
+                    if "image" not in content_type and response.content.startswith(b"{"):
+                        last_status = response.status_code
+                        last_error = response.text[:200]
+                        continue
+
+                    filename = f"hf_{uuid.uuid4().hex[:8]}.png"
+                    file_path = os.path.join(IMAGES_DIR, filename)
+                    with open(file_path, "wb") as f:
+                        f.write(response.content)
+
+                    print(f"✅ Hugging Face image saved: {file_path}")
+                    return file_path
+
+                # Model deprecated on current provider - try fallback model.
+                if response.status_code == 410:
+                    print(f"⚠️ Hugging Face model deprecated on hf-inference: {model_id}. Trying fallback...")
+                    last_status = response.status_code
+                    last_error = response.text
+                    continue
+
+                # If model is not available/loading, continue through fallbacks.
+                if response.status_code in {404, 503}:
+                    print(f"⚠️ Hugging Face model unavailable: {model_id} ({response.status_code}). Trying fallback...")
+                    last_status = response.status_code
+                    last_error = response.text
+                    continue
+
+                # Any other error: preserve and stop trying.
+                last_status = response.status_code
+                last_error = response.text
+                break
+
+            if last_status == 410:
+                return "Error: Hugging Face model is deprecated on hf-inference. Set HF_IMAGE_MODEL to a supported model."
+
+            print(f"❌ Hugging Face API Error ({last_status}): {last_error}")
+            return f"Error: Hugging Face API request failed ({last_status})"
+
+    except asyncio.TimeoutError:
+        return "Error: Hugging Face image generation timeout"
+    except Exception as e:
+        error_msg = f"Error generating Hugging Face image: {str(e)}"
+        print(f"❌ {error_msg}")
+        return error_msg
+
 async def run_image_generation_node(node_data: Dict[str, Any]) -> str:
     """Main function for image generation node"""
     try:
@@ -165,6 +267,8 @@ async def run_image_generation_node(node_data: Dict[str, Any]) -> str:
             else:
                 width = height = 1024
             result = await generate_stability_image(prompt, width, height)
+        elif provider in {"huggingface", "hf"}:
+            result = await generate_huggingface_image(prompt, size)
         else:
             return f"Error: Unsupported image provider: {provider}"
         

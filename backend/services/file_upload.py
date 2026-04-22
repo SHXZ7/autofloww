@@ -2,6 +2,7 @@ import os
 import io
 import time
 import mimetypes
+import json
 from datetime import datetime
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
@@ -9,7 +10,77 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
-async def upload_to_drive(file_path, file_name, mime_type):
+
+def _backend_root() -> str:
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
+def _is_truthy(value: str) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _allow_server_fallback() -> bool:
+    explicit = os.getenv("ALLOW_SERVER_KEY_FALLBACK")
+    if explicit is not None:
+        return _is_truthy(explicit)
+
+    app_env = os.getenv("APP_ENV", "development").strip().lower()
+    return app_env not in {"prod", "production"}
+
+
+def _load_drive_credentials(scopes, token_json=None):
+    drive_paths = _drive_paths()
+    token_file = drive_paths["token"]
+    credentials_file = drive_paths["credentials"]
+
+    creds = None
+    if token_json:
+        token_data = json.loads(token_json) if isinstance(token_json, str) else token_json
+        creds = Credentials.from_authorized_user_info(token_data, scopes)
+    elif os.path.exists(token_file):
+        print("🔑 Loading existing Drive token...")
+        creds = Credentials.from_authorized_user_file(token_file, scopes)
+
+    if creds and not creds.valid:
+        if creds.expired and creds.refresh_token:
+            print("🔄 Refreshing expired token...")
+            creds.refresh(Request())
+            print("✅ Token refreshed successfully")
+            if not token_json:
+                with open(token_file, 'w') as token:
+                    token.write(creds.to_json())
+        else:
+            creds = None
+
+    if not creds:
+        if token_json or not _allow_server_fallback():
+            raise Exception("Missing/invalid user Google token. Add google_token_json in Settings > API Keys.")
+
+        print("🚀 Starting new OAuth flow...")
+        if not os.path.exists(credentials_file):
+            raise FileNotFoundError(
+                "credentials.json file not found. Please download it from Google Cloud Console and make sure Google Drive API is enabled."
+            )
+
+        flow = InstalledAppFlow.from_client_secrets_file(credentials_file, scopes)
+        creds = flow.run_local_server(port=0)
+        print("✅ OAuth flow completed successfully")
+        with open(token_file, 'w') as token:
+            token.write(creds.to_json())
+            print("💾 Token saved successfully")
+
+    return creds
+
+
+def _drive_paths():
+    root = _backend_root()
+    return {
+        "token": os.path.join(root, "drive_token.json"),
+        "credentials": os.path.join(root, "credentials.json"),
+        "downloads": os.path.join(root, "downloads"),
+    }
+
+async def upload_to_drive(file_path, file_name, mime_type, token_json=None):
     # Validate file exists
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
@@ -17,44 +88,12 @@ async def upload_to_drive(file_path, file_name, mime_type):
     try:
         # Use Google Drive specific scopes
         SCOPES = ['https://www.googleapis.com/auth/drive.file']
-        TOKEN_FILE = "drive_token.json"  # Separate token file for Drive
-        CREDENTIALS_FILE = "credentials.json"
         
         print(f"📁 Attempting to upload file: {file_path}")
         print(f"📝 File name: {file_name}, MIME type: {mime_type}")
         print(f"📊 File size: {os.path.getsize(file_path) / 1024:.1f} KB")
         
-        creds = None
-        if os.path.exists(TOKEN_FILE):
-            print("🔑 Loading existing Drive token...")
-            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-        
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                print("🔄 Refreshing expired token...")
-                try:
-                    creds.refresh(Request())
-                    print("✅ Token refreshed successfully")
-                except Exception as e:
-                    print(f"❌ Token refresh failed: {e}")
-                    # Delete the invalid token file
-                    if os.path.exists(TOKEN_FILE):
-                        os.remove(TOKEN_FILE)
-                    creds = None
-            
-            if not creds:
-                print("🚀 Starting new OAuth flow...")
-                if not os.path.exists(CREDENTIALS_FILE):
-                    raise FileNotFoundError("❌ credentials.json file not found. Please download it from Google Cloud Console and make sure Google Drive API is enabled.")
-                
-                flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-                creds = flow.run_local_server(port=0)
-                print("✅ OAuth flow completed successfully")
-            
-            # Save the credentials for the next run
-            with open(TOKEN_FILE, 'w') as token:
-                token.write(creds.to_json())
-                print("💾 Token saved successfully")
+        creds = _load_drive_credentials(SCOPES, token_json=token_json)
         
         print("🔧 Building Drive service...")
         service = build('drive', 'v3', credentials=creds)
@@ -114,45 +153,16 @@ async def upload_to_drive(file_path, file_name, mime_type):
         raise Exception(error_msg)
 
 
-async def download_from_drive(file_id: str, custom_filename: str = None) -> str:
+async def download_from_drive(file_id: str, custom_filename: str = None, token_json=None) -> str:
     """Enhanced download with better error handling and file naming."""
     try:
         # Use the same credentials as upload
         SCOPES = ['https://www.googleapis.com/auth/drive.file']
-        TOKEN_FILE = "drive_token.json"
-        CREDENTIALS_FILE = "credentials.json"
+        drive_paths = _drive_paths()
         
         print(f"📥 Starting enhanced download for file ID: {file_id}")
         
-        creds = None
-        if os.path.exists(TOKEN_FILE):
-            print("🔑 Loading existing Drive token...")
-            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-        
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                print("🔄 Refreshing expired token...")
-                try:
-                    creds.refresh(Request())
-                    print("✅ Token refreshed successfully")
-                except Exception as e:
-                    print(f"❌ Token refresh failed: {e}")
-                    if os.path.exists(TOKEN_FILE):
-                        os.remove(TOKEN_FILE)
-                    creds = None
-            
-            if not creds:
-                print("🚀 Starting new OAuth flow...")
-                if not os.path.exists(CREDENTIALS_FILE):
-                    raise FileNotFoundError("credentials.json file not found. Please download it from Google Cloud Console.")
-                
-                flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-                creds = flow.run_local_server(port=0)
-                print("✅ OAuth flow completed successfully")
-            
-            with open(TOKEN_FILE, 'w') as token:
-                token.write(creds.to_json())
-                print("💾 Token saved successfully")
+        creds = _load_drive_credentials(SCOPES, token_json=token_json)
         
         print("🔧 Building Drive service...")
         service = build('drive', 'v3', credentials=creds)
@@ -185,9 +195,8 @@ async def download_from_drive(file_id: str, custom_filename: str = None) -> str:
             mime_type = None
             print(f"📄 Using fallback filename: {file_name}")
         
-        # Create downloads directory with timestamp subdirectory - Use /tmp for cloud deployment
-        BASE_DIR = "/tmp"
-        downloads_dir = os.path.join(BASE_DIR, "downloads")
+        # Store downloads under backend/downloads for stable local/cloud behavior.
+        downloads_dir = drive_paths["downloads"]
         timestamp_dir = os.path.join(downloads_dir, datetime.now().strftime('%Y%m%d'))
         os.makedirs(timestamp_dir, exist_ok=True)
         
@@ -353,27 +362,12 @@ async def _export_google_workspace_file(service, file_id: str, file_name: str, m
         print(f"❌ Google Workspace export failed: {str(e)}")
         raise Exception(f"Failed to export Google Workspace file: {str(e)}")
 
-async def get_drive_file_info(file_id: str) -> dict:
+async def get_drive_file_info(file_id: str, token_json=None) -> dict:
     """Get detailed information about a Google Drive file without downloading it."""
     try:
         # Use the same credentials as other Drive operations
         SCOPES = ['https://www.googleapis.com/auth/drive.file']
-        TOKEN_FILE = "drive_token.json"
-        CREDENTIALS_FILE = "credentials.json"
-        
-        creds = None
-        if os.path.exists(TOKEN_FILE):
-            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-        
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-                creds = flow.run_local_server(port=0)
-            
-            with open(TOKEN_FILE, 'w') as token:
-                token.write(creds.to_json())
+        creds = _load_drive_credentials(SCOPES, token_json=token_json)
         
         service = build('drive', 'v3', credentials=creds)
         
@@ -411,7 +405,7 @@ async def get_drive_file_info(file_id: str) -> dict:
 async def cleanup_old_downloads(days_old: int = 7) -> dict:
     """Clean up old downloaded files to save disk space."""
     try:
-        downloads_dir = "downloads"
+        downloads_dir = _drive_paths()["downloads"]
         if not os.path.exists(downloads_dir):
             return {"success": True, "message": "No downloads directory found"}
         

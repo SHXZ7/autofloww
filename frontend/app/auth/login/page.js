@@ -34,7 +34,7 @@ export default function LoginPage() {
   if (isAuthenticated) return null
 
   return (
-    <div className="h-screen flex items-center justify-center overflow-hidden p-4 relative"
+    <div className="min-h-screen md:h-screen flex items-start md:items-center justify-center overflow-y-auto md:overflow-hidden px-3 py-14 md:p-4 relative"
       style={{ background: isLight ? "#f5f0eb" : "#020617", transition: "background 0.2s" }}>
       <style jsx global>{`
         body { font-family: var(--font-space-grotesk, system-ui, sans-serif); }
@@ -48,16 +48,16 @@ export default function LoginPage() {
       {/* Back button */}
       <button
         onClick={() => router.push("/homepage")}
-        className="absolute top-6 left-6 z-50 flex items-center gap-2 transition-all duration-200 group"
+        className="absolute top-4 left-4 md:top-6 md:left-6 z-50 flex items-center gap-1.5 md:gap-2 transition-all duration-200 group"
         style={{ color: isLight ? "#52525b" : "#9ca3af" }}
       >
         <ArrowLeftIcon className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-        <span className="text-sm font-mono">Back to Home</span>
+        <span className="text-xs md:text-sm font-mono">Back to Home</span>
       </button>
 
       {/* Split-panel card */}
-      <div className="w-full max-w-4xl flex flex-col md:flex-row overflow-hidden shadow-2xl"
-        style={{ border: isLight ? "1px solid #e2e8f0" : "1px solid #1e293b", height: "min(640px, calc(100vh - 60px))" }}>
+      <div className="w-full max-w-sm md:max-w-4xl flex flex-col md:flex-row overflow-hidden shadow-2xl"
+        style={{ border: isLight ? "1px solid #e2e8f0" : "1px solid #1e293b", height: "min(560px, calc(100dvh - 40px))" }}>
 
         {/* Left: dark decorative panel */}
         <div className="hidden md:flex md:w-1/2 relative flex-col justify-between overflow-hidden p-8"
@@ -128,7 +128,7 @@ export default function LoginPage() {
         </div>
 
         {/* Right: form panel */}
-        <div className="flex-1 flex flex-col justify-center overflow-y-auto p-8 md:p-12"
+        <div className="flex-1 flex flex-col justify-center overflow-y-auto p-4 md:p-12"
           style={{ background: isLight ? "#ffffff" : "#020617", transition: "background 0.2s" }}>
           <LoginForm
             onSwitchToSignup={() => router.push("/auth/signup")}

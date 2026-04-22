@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os
-from typing import List, Any
+import json
+from typing import List, Any, Optional
 
 # Try to import Google Sheets dependencies
 try:
@@ -12,7 +13,26 @@ try:
 except ImportError:
     GOOGLE_AVAILABLE = False
 
-def write_to_sheet(spreadsheet_id: str, range_name: str, values: List[List[Any]]) -> str:
+
+def _is_truthy(value: Optional[str]) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _allow_server_fallback() -> bool:
+    explicit = os.getenv("ALLOW_SERVER_KEY_FALLBACK")
+    if explicit is not None:
+        return _is_truthy(explicit)
+
+    app_env = os.getenv("APP_ENV", "development").strip().lower()
+    return app_env not in {"prod", "production"}
+
+
+def write_to_sheet(
+    spreadsheet_id: str,
+    range_name: str,
+    values: List[List[Any]],
+    token_json: Optional[str] = None,
+) -> str:
     """Write data to Google Sheets"""
     if not GOOGLE_AVAILABLE:
         return "Error: Google Sheets API not available. Install with: pip install google-api-python-client google-auth google-auth-oauthlib"
@@ -20,15 +40,23 @@ def write_to_sheet(spreadsheet_id: str, range_name: str, values: List[List[Any]]
     try:
         # Use the same token file as file upload for consistency
         SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-        TOKEN_FILE = "sheets_token.json"
-        CREDENTIALS_FILE = "credentials.json"
+        backend_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        TOKEN_FILE = os.path.join(backend_root, "sheets_token.json")
+        CREDENTIALS_FILE = os.path.join(backend_root, "credentials.json")
         
         print(f"📊 Writing to Google Sheet: {spreadsheet_id}")
         print(f"📋 Range: {range_name}")
         print(f"📝 Data rows: {len(values)}")
         
         creds = None
-        if os.path.exists(TOKEN_FILE):
+        if token_json:
+            try:
+                token_data = json.loads(token_json) if isinstance(token_json, str) else token_json
+                creds = Credentials.from_authorized_user_info(token_data, SCOPES)
+                print("Loaded user Google token from API keys")
+            except Exception as e:
+                return f"Error: Invalid user Google token JSON: {str(e)}"
+        elif os.path.exists(TOKEN_FILE):
             print("Loading existing Sheets token...")
             creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
         
@@ -40,11 +68,14 @@ def write_to_sheet(spreadsheet_id: str, range_name: str, values: List[List[Any]]
                     print("Token refreshed successfully")
                 except Exception as e:
                     print(f"Token refresh failed: {e}")
-                    if os.path.exists(TOKEN_FILE):
+                    if not token_json and os.path.exists(TOKEN_FILE):
                         os.remove(TOKEN_FILE)
                     creds = None
             
             if not creds:
+                if token_json or not _allow_server_fallback():
+                    return "Error: Missing/invalid user Google token. Add google_token_json in Settings > API Keys."
+
                 print("Starting new OAuth flow...")
                 if not os.path.exists(CREDENTIALS_FILE):
                     return "Error: credentials.json file not found. Please download it from Google Cloud Console and ensure Google Sheets API is enabled."
@@ -53,9 +84,10 @@ def write_to_sheet(spreadsheet_id: str, range_name: str, values: List[List[Any]]
                 creds = flow.run_local_server(port=0)
                 print("OAuth flow completed successfully")
             
-            with open(TOKEN_FILE, 'w') as token:
-                token.write(creds.to_json())
-                print("Token saved successfully")
+            if not token_json:
+                with open(TOKEN_FILE, 'w') as token:
+                    token.write(creds.to_json())
+                    print("Token saved successfully")
         
         print("Building Sheets service...")
         service = build('sheets', 'v4', credentials=creds)
@@ -100,7 +132,12 @@ async def run_google_sheets_node(node_data):
         if isinstance(values, list) and values and not isinstance(values[0], list):
             values = [values]  # Convert 1D to 2D
         
-        result = write_to_sheet(spreadsheet_id, range_name, values)
+        result = write_to_sheet(
+            spreadsheet_id,
+            range_name,
+            values,
+            token_json=node_data.get("google_token_json"),
+        )
         return result
         
     except Exception as e:

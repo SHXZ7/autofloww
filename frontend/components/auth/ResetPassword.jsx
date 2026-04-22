@@ -7,7 +7,7 @@ export default function ResetPassword() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-  const API_BASE_URL = 'http://172.20.10.2:8000'
+  const API_BASE_URL = 'https://autofloww-production.up.railway.app'
 
 
   

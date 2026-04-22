@@ -25,7 +25,7 @@ export default function NodeSidebar() {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
     return () => observer.disconnect()
   }, [])
-  const API_BASE_URL = 'http://172.20.10.2:8000'
+  const API_BASE_URL = 'https://autofloww-production.up.railway.app'
 
   const runWorkflow = async () => {
     try {

@@ -1,10 +1,10 @@
-﻿"use client"
+"use client"
 import { Handle, Position } from "reactflow"
 import { useState } from "react"
 import { CogIcon } from "@heroicons/react/24/outline"
 import { useFlowStore } from "../stores/flowStore"
 
-const API_BASE_URL = 'http://172.20.10.2:8000'
+const API_BASE_URL = 'https://autofloww-production.up.railway.app'
 
 export default function CustomNode({ data, id }) {
   const [isEditing, setIsEditing] = useState(false)
@@ -77,7 +77,7 @@ export default function CustomNode({ data, id }) {
     else if (data.title !== undefined && data.format !== undefined) nodeType = "report_generator"
     else if (data.platform !== undefined) nodeType = "social_media"
 
-    return nodeTypeMap[nodeType] || { icon: '◉', category: 'Unknown' }
+    return nodeTypeMap[nodeType] || { icon: '?', category: 'Unknown' }
   }
 
   const nodeInfo = getNodeTypeInfo()
@@ -164,7 +164,7 @@ export default function CustomNode({ data, id }) {
               placeholder={`${API_BASE_URL}/webhook/trigger/${id}`}
             />
             <div className="text-xs text-[#64748b] mt-1">
-              ℹ Webhook URL will be auto-registered when workflow runs
+              ?� Webhook URL will be auto-registered when workflow runs
             </div>
           </div>
           <div>
@@ -434,7 +434,7 @@ export default function CustomNode({ data, id }) {
           case 'daily': return `Runs daily at ${fmtTime(scheduleHour, scheduleMinute)}`
           case 'weekly': return `Runs every ${DAY_FULL[scheduleDay] || 'week'} at ${fmtTime(scheduleHour, scheduleMinute)}`
           case 'monthly': return `Runs on the ${scheduleDay}${['','st','nd','rd'][scheduleDay] || 'th'} of each month at ${fmtTime(scheduleHour, scheduleMinute)}`
-          default: return `Custom: ${formData.cron || '—'}`
+          default: return `Custom: ${formData.cron || '�'}`
         }
       }
 
@@ -448,13 +448,13 @@ export default function CustomNode({ data, id }) {
               onChange={(e) => handleScheduleChange('scheduleType', e.target.value)}
               className="w-full bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] text-sm"
             >
-              <option value="every_minute">⚡  Every Minute</option>
-              <option value="every_hour">🕐  Every Hour</option>
-              <option value="every_n_hours">🔄  Every N Hours</option>
-              <option value="daily">📅  Daily</option>
-              <option value="weekly">📆  Weekly</option>
-              <option value="monthly">🗓️  Monthly</option>
-              <option value="custom">⚙️  Custom (Cron)</option>
+              <option value="every_minute">?  Every Minute</option>
+              <option value="every_hour">??  Every Hour</option>
+              <option value="every_n_hours">??  Every N Hours</option>
+              <option value="daily">??  Daily</option>
+              <option value="weekly">??  Weekly</option>
+              <option value="monthly">???  Monthly</option>
+              <option value="custom">??  Custom (Cron)</option>
             </select>
           </div>
 
@@ -553,13 +553,13 @@ export default function CustomNode({ data, id }) {
                 className="w-full bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6]"
                 placeholder="0 9 * * *"
               />
-              <div className="text-xs text-[#475569] mt-1">Format: minute · hour · day · month · weekday</div>
+              <div className="text-xs text-[#475569] mt-1">Format: minute � hour � day � month � weekday</div>
             </div>
           )}
 
           {/* Live preview */}
           <div className="bg-[#0f172a] border border-[#1e3a5f] rounded-lg p-3 flex items-start gap-2">
-            <span className="text-[#3B82F6] text-sm mt-0.5">✓</span>
+            <span className="text-[#3B82F6] text-sm mt-0.5">?</span>
             <div>
               <div className="text-[#93c5fd] text-sm font-medium">{getPreview()}</div>
               {scheduleType !== 'custom' && (
@@ -701,7 +701,7 @@ export default function CustomNode({ data, id }) {
             <div>
               <label className="block text-sm font-medium text-[#94a3b8] mb-2">Selected File</label>
               <div className="text-xs text-emerald-400 bg-[#1e293b] p-2 rounded">
-                ðŸ“ {formData.name || 'File uploaded'}
+                📁 {formData.name || 'File uploaded'}
               </div>
               <div className="text-xs text-[#64748b] mt-1">
                 Path: {formData.path}
@@ -709,7 +709,7 @@ export default function CustomNode({ data, id }) {
             </div>
           ) : (
             <div className="text-xs text-[#e74c3c] bg-[#1e293b] p-2 rounded">
-              âš ï¸ No file selected. Please upload a file to enable this node.
+              ⚠️ No file selected. Please upload a file to enable this node.
             </div>
           )}
         </div>
@@ -722,14 +722,14 @@ export default function CustomNode({ data, id }) {
           {formData.filename ? (
             <div className="flex items-center justify-between bg-[#0f172a] border border-emerald-500/30 rounded-lg px-3 py-2">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-emerald-400 text-sm flex-shrink-0">📄</span>
+                <span className="text-emerald-400 text-sm flex-shrink-0">??</span>
                 <span className="text-emerald-300 text-xs font-medium truncate">{formData.filename}</span>
               </div>
               <button
                 onClick={() => setFormData({ ...formData, file_path: '', filename: '' })}
                 className="text-[#64748b] hover:text-red-400 transition-colors text-xs flex-shrink-0 ml-2"
                 title="Remove file"
-              >✕</button>
+              >?</button>
             </div>
           ) : (
             <div className="bg-[#0f172a] border border-[#334155] border-dashed rounded-lg px-3 py-2">
@@ -748,9 +748,9 @@ export default function CustomNode({ data, id }) {
                 : 'border-[#3B82F6]/50 text-[#3B82F6] bg-[#1e40af]/10 hover:bg-[#1e40af]/20 hover:border-[#3B82F6]'
             }`}>
               {isDocUploading ? (
-                <><span className="animate-spin text-base">⏳</span> Uploading…</>
+                <><span className="animate-spin text-base">?</span> Uploading�</>
               ) : (
-                <><span>📁</span> Choose file to upload</>
+                <><span>??</span> Choose file to upload</>
               )}
               <input
                 type="file"
@@ -785,12 +785,12 @@ export default function CustomNode({ data, id }) {
 
           <div className="bg-[#0f172a] rounded-lg px-3 py-2">
             <p className="text-[#475569] text-xs font-semibold uppercase tracking-wide mb-1">Supported formats</p>
-            <p className="text-[#64748b] text-xs">PDF · Word (.docx) · Excel (.xlsx) · Text (.txt/.md) · CSV</p>
+            <p className="text-[#64748b] text-xs">PDF � Word (.docx) � Excel (.xlsx) � Text (.txt/.md) � CSV</p>
           </div>
 
           {/* Tip for scheduled workflows */}
           <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
-            <p className="text-amber-400/80 text-xs">💡 Upload a document here so it can be parsed automatically when this workflow runs on schedule.</p>
+            <p className="text-amber-400/80 text-xs">?? Upload a document here so it can be parsed automatically when this workflow runs on schedule.</p>
           </div>
         </div>
       )
@@ -1032,7 +1032,7 @@ export default function CustomNode({ data, id }) {
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
             style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
           >
-            ⚡ {data.description || "Webhook"}
+            ? {data.description || "Webhook"}
           </div>
         )}
         {data.webhook_url && data.username && !data.method && (
@@ -1040,7 +1040,7 @@ export default function CustomNode({ data, id }) {
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
             style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
           >
-            🎮{data.username}
+            ??{data.username}
           </div>
         )}
         {data.spreadsheet_id && (
@@ -1048,7 +1048,7 @@ export default function CustomNode({ data, id }) {
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
             style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
           >
-            📊 {data.range} 
+            ?? {data.range} 
           </div>
         )}
         {data.cron && (
@@ -1056,7 +1056,7 @@ export default function CustomNode({ data, id }) {
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
             style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
           >
-            ⏰ {data.cron}
+            ? {data.cron}
           </div>
         )}
         {data.service && (
@@ -1064,7 +1064,7 @@ export default function CustomNode({ data, id }) {
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
             style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
           >
-            📁 {data.name || data.service}
+            ?? {data.name || data.service}
           </div>
         )}
         {data.mode && (
@@ -1072,7 +1072,7 @@ export default function CustomNode({ data, id }) {
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
             style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
           >
-            📱 {data.mode.toUpperCase()}
+            ?? {data.mode.toUpperCase()}
           </div>
         )}
         {data.prompt && (
@@ -1080,7 +1080,7 @@ export default function CustomNode({ data, id }) {
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
             style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
           >
-            🎨 {data.provider}: {data.size}
+            ?? {data.provider}: {data.size}
           </div>
         )}
         {data.subject && (
@@ -1088,7 +1088,7 @@ export default function CustomNode({ data, id }) {
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
             style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
           >
-            📧 {data.subject}
+            ?? {data.subject}
           </div>
         )}
         {data.supported_types && (
@@ -1096,7 +1096,7 @@ export default function CustomNode({ data, id }) {
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
             style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
           >
-            📄 {data.filename || "No file selected"}
+            ?? {data.filename || "No file selected"}
           </div>
         )}
         {data.title && data.format && (
@@ -1104,7 +1104,7 @@ export default function CustomNode({ data, id }) {
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
             style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
           >
-            📊 {data.format.toUpperCase()} Report
+            ?? {data.format.toUpperCase()} Report
           </div>
         )}
         {data.platform && (
@@ -1112,7 +1112,7 @@ export default function CustomNode({ data, id }) {
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
             style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
           >
-            📱 {data.platform.charAt(0).toUpperCase() + data.platform.slice(1)}
+            ?? {data.platform.charAt(0).toUpperCase() + data.platform.slice(1)}
           </div>
         )}
       </div>

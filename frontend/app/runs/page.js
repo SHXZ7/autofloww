@@ -32,7 +32,7 @@ const STATUS_STYLES = {
   pending: { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', icon: ClockIcon,      label: 'Pending' },
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://172.20.10.2:8000'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://autofloww-production.up.railway.app'
 
 const MOBILE_NAV_ITEMS = [
   { href: '/', label: 'Flow', icon: BoltIcon },

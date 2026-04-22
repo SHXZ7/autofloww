@@ -84,7 +84,7 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false)
   const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false)
   const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false)
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://172.20.10.2:8000"
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://autofloww-production.up.railway.app"
   useEffect(() => {
     const update = () => setIsLight(document.documentElement.classList.contains('light'))
     update()

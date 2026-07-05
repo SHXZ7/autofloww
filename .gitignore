@@ -247,6 +247,7 @@ cython_debug/
 
 # Large media files
 *.mp4
+!A_clean_second_product_dem.mp4
 *.avi
 *.mov
 *.mkv

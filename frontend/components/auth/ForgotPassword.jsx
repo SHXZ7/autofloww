@@ -8,7 +8,7 @@ export default function ForgotPassword({ onBack }) {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
 
-  const API_BASE_URL = 'http://localhost:8000'
+  const API_BASE_URL = 'autoflow-f6hga9djg0a5b4fj.uaenorth-01.azurewebsites.net'
 
 
   const handleSubmit = async (e) => {

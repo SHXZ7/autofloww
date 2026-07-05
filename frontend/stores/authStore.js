@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
-const API_BASE_URL = 'http://localhost:8000'
+const API_BASE_URL = 'autoflow-f6hga9djg0a5b4fj.uaenorth-01.azurewebsites.net'
 
 
 export const useAuthStore = create(

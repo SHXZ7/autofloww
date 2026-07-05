@@ -7,7 +7,7 @@ export default function ResetPassword() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-  const API_BASE_URL = 'http://localhost:8000'
+  const API_BASE_URL = 'autoflow-f6hga9djg0a5b4fj.uaenorth-01.azurewebsites.net'
 
 
   

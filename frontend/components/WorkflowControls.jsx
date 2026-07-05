@@ -13,7 +13,7 @@ import {
   StopCircleIcon,
 } from "@heroicons/react/24/outline"
 
-const API_BASE_URL = 'http://localhost:8000'
+const API_BASE_URL = 'autoflow-f6hga9djg0a5b4fj.uaenorth-01.azurewebsites.net'
 
 const GOOGLE_REQUIRED_NODE_TYPES = new Set([
   'gmail_trigger',

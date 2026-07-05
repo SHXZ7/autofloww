@@ -32,7 +32,7 @@ const STATUS_STYLES = {
   pending: { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', icon: ClockIcon,      label: 'Pending' },
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'autoflow-f6hga9djg0a5b4fj.uaenorth-01.azurewebsites.net'
+const API_BASE_URL = 'autoflow-f6hga9djg0a5b4fj.uaenorth-01.azurewebsites.net'
 
 const MOBILE_NAV_ITEMS = [
   { href: '/', label: 'Flow', icon: BoltIcon },

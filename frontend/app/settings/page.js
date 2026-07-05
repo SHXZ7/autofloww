@@ -23,22 +23,22 @@ import {
 const GLOBAL_CSS = `
     *, *::before, *::after { box-sizing: border-box; }
   body { font-family: var(--font-space-grotesk, system-ui, sans-serif); background: #020617; margin: 0; -webkit-font-smoothing: antialiased; }
-  html.light body { background: #f8fafc !important; }
+  html.light body { background: #f5f3ef !important; }
   ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(51,65,85,0.8); border-radius: 8px; }
   html.light ::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.8); }
   .setting-row:hover { background: rgba(30,41,59,0.7) !important; }
-  html.light .setting-row:hover { background: rgba(226,232,240,0.9) !important; }
+  html.light .setting-row:hover { background: rgba(232,228,222,0.7) !important; }
   .setting-row { transition: background 0.12s ease; }
-  html.light .settings-page-bg { background: #f8fafc !important; }
-  html.light .settings-heading { color: #0f172a !important; }
-  html.light .settings-acc-card { background: #ffffff !important; border-color: #e2e8f0 !important; }
-  html.light .acc-user-name { color: #1e293b !important; }
-  html.light .settings-list-card { background: #ffffff !important; border-color: #e2e8f0 !important; }
-  html.light .setting-row { border-bottom-color: #e2e8f0 !important; }
-  html.light .setting-icon-box { background: #f1f5f9 !important; border-color: #e2e8f0 !important; }
-  html.light .setting-row-title { color: #1e293b !important; }
-  html.light .setting-badge { background: #e2e8f0 !important; color: #475569 !important; }
+  html.light .settings-page-bg { background: #f5f3ef !important; }
+  html.light .settings-heading { color: #111111 !important; }
+  html.light .settings-acc-card { background: #ffffff !important; border-color: #e8e4de !important; }
+  html.light .acc-user-name { color: #111111 !important; }
+  html.light .settings-list-card { background: #ffffff !important; border-color: #e8e4de !important; }
+  html.light .setting-row { border-bottom-color: #e8e4de !important; }
+  html.light .setting-icon-box { background: #f5f3ef !important; border-color: #e8e4de !important; }
+  html.light .setting-row-title { color: #111111 !important; }
+  html.light .setting-badge { background: #e8e4de !important; color: #52525b !important; }
 `
 
 const SETTINGS_SECTIONS = [

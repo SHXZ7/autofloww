@@ -24,7 +24,7 @@ const GLOBAL_CSS = `
   .pill-active { background: rgba(59,130,246,0.15) !important; color: #3B82F6 !important; border-color: rgba(59,130,246,0.3) !important; }
 `
 
-const API_BASE_URL = 'https://autofloww-production.up.railway.app'
+const API_BASE_URL = 'http://localhost:8000'
 
 // Helper: build edge
 const edge = (id, source, target) => ({ id, source, target })
@@ -324,21 +324,21 @@ export default function TemplatesPage() {
 
   const colors = isLight
     ? {
-        pageBg: '#f8fafc',
-        heading: '#0f172a',
-        muted: '#64748b',
+        pageBg: '#f5f3ef',
+        heading: '#111111',
+        muted: '#71717a',
         panelBg: '#ffffff',
-        panelBorder: '#cbd5e1',
+        panelBorder: '#e8e4de',
         inputBg: '#ffffff',
-        inputBorder: '#cbd5e1',
-        inputText: '#0f172a',
-        pillBg: '#f1f5f9',
-        pillText: '#64748b',
+        inputBorder: '#e8e4de',
+        inputText: '#111111',
+        pillBg: '#f5f3ef',
+        pillText: '#52525b',
         cardBg: '#ffffff',
-        cardBorder: '#cbd5e1',
-        cardTitle: '#0f172a',
-        cardDesc: '#475569',
-        metaText: '#64748b',
+        cardBorder: '#e8e4de',
+        cardTitle: '#111111',
+        cardDesc: '#52525b',
+        metaText: '#71717a',
         buttonBg: 'rgba(59,130,246,0.12)',
       }
     : {

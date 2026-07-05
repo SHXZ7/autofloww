@@ -1,25 +1,36 @@
 "use client"
 import { Handle, Position } from "reactflow"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { CogIcon } from "@heroicons/react/24/outline"
 import { useFlowStore } from "../stores/flowStore"
 
-const API_BASE_URL = 'https://autofloww-production.up.railway.app'
+const API_BASE_URL = 'http://localhost:8000'
 
 export default function CustomNode({ data, id }) {
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState(data)
   const [isDocUploading, setIsDocUploading] = useState(false)
   const updateNodeData = useFlowStore((s) => s.updateNodeData)
+  const [isLight, setIsLight] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return (localStorage.getItem('theme') || 'dark') === 'light'
+  })
+  useEffect(() => {
+    const update = () => setIsLight(document.documentElement.classList.contains('light'))
+    update()
+    const observer = new MutationObserver(update)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
 
   
   const CATEGORY_COLORS = {
-    AI:            { accent: "#8B5CF6", bg: "rgba(139,92,246,0.12)",  border: "rgba(139,92,246,0.3)"  },
-    Integration:   { accent: "#3B82F6", bg: "rgba(59,130,246,0.12)",  border: "rgba(59,130,246,0.3)"  },
-    Communication: { accent: "#22C55E", bg: "rgba(34,197,94,0.12)",   border: "rgba(34,197,94,0.3)"   },
-    Automation:    { accent: "#F59E0B", bg: "rgba(245,158,11,0.12)",  border: "rgba(245,158,11,0.3)"  },
-    Data:          { accent: "#06B6D4", bg: "rgba(6,182,212,0.12)",   border: "rgba(6,182,212,0.3)"   },
-    Unknown:       { accent: "#64748b", bg: "rgba(100,116,139,0.12)", border: "rgba(100,116,139,0.3)" },
+    AI:            { accent: "#8B5CF6", bg: "rgba(139,92,246,0.12)",  bgLight: "rgba(220,216,210,0.9)",  border: "rgba(139,92,246,0.3)"  },
+    Integration:   { accent: "#3B82F6", bg: "rgba(59,130,246,0.12)",  bgLight: "rgba(220,216,210,0.9)",  border: "rgba(59,130,246,0.3)"  },
+    Communication: { accent: "#22C55E", bg: "rgba(34,197,94,0.12)",   bgLight: "rgba(220,216,210,0.9)",  border: "rgba(34,197,94,0.3)"   },
+    Automation:    { accent: "#F59E0B", bg: "rgba(245,158,11,0.12)",  bgLight: "rgba(220,216,210,0.9)",  border: "rgba(245,158,11,0.3)"  },
+    Data:          { accent: "#06B6D4", bg: "rgba(6,182,212,0.12)",   bgLight: "rgba(220,216,210,0.9)",  border: "rgba(6,182,212,0.3)"   },
+    Unknown:       { accent: "#64748b", bg: "rgba(100,116,139,0.12)", bgLight: "rgba(220,216,210,0.9)",  border: "rgba(100,116,139,0.3)" },
   }
 
   const handleSave = () => {
@@ -899,7 +910,7 @@ export default function CustomNode({ data, id }) {
     return (
       <div
         className="rounded-xl shadow-2xl min-w-80 backdrop-blur-sm"
-        style={{ backgroundColor: '#0f172a', border: `2px solid ${catColors.border}`, boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px ${catColors.border}` }}
+        style={{ backgroundColor: isLight ? '#ffffff' : '#0f172a', border: `2px solid ${catColors.border}`, boxShadow: isLight ? `0 8px 32px rgba(0,0,0,0.12), 0 0 0 1px ${catColors.border}` : `0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px ${catColors.border}` }}
       >
 
         <Handle
@@ -914,7 +925,7 @@ export default function CustomNode({ data, id }) {
         />
 
         {/* Header */}
-        <div className="p-4 border-b rounded-t-xl" style={{ backgroundColor: catColors.bg, borderColor: catColors.border }}>
+        <div className="p-4 border-b rounded-t-xl" style={{ backgroundColor: isLight ? catColors.bgLight : catColors.bg, borderColor: catColors.border }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div
@@ -925,8 +936,8 @@ export default function CustomNode({ data, id }) {
                 ) : nodeInfo.icon}
               </div>
               <div>
-                <h3 className="font-semibold text-white">{data.label}</h3>
-                <p className="text-xs text-[#64748b]">{nodeInfo.category}</p>
+                <h3 className="font-semibold" style={{ color: isLight ? '#111111' : 'white' }}>{data.label}</h3>
+                <p className="text-xs" style={{ color: isLight ? '#71717a' : '#64748b' }}>{nodeInfo.category}</p>
               </div>
             </div>
           </div>
@@ -936,7 +947,7 @@ export default function CustomNode({ data, id }) {
         <div className="max-h-96 overflow-y-auto">{renderEditForm()}</div>
 
         {/* Actions */}
-        <div className="p-4 border-t rounded-b-xl flex gap-3" style={{ backgroundColor: '#0f172a', borderColor: catColors.border }}>
+        <div className="p-4 border-t rounded-b-xl flex gap-3" style={{ backgroundColor: isLight ? '#f5f3ef' : '#0f172a', borderColor: isLight ? '#e8e4de' : catColors.border }}>
           <button
             onClick={handleSave}
             className="flex-1 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-lg hover:opacity-90" style={{ backgroundColor: catColors.accent }}
@@ -945,7 +956,16 @@ export default function CustomNode({ data, id }) {
           </button>
           <button
             onClick={() => setIsEditing(false)}
-            className="flex-1 bg-[#1e293b] hover:bg-[#334155] text-[#94a3b8] hover:text-[#F1F5F9] font-medium px-4 py-2 rounded-lg transition-all duration-200 border border-[#334155]"
+            style={{
+              flex: 1, fontWeight: '500', padding: '8px 16px', borderRadius: '8px',
+              transition: 'all 0.2s',
+              backgroundColor: isLight ? '#e8e4de' : '#1e293b',
+              color: isLight ? '#52525b' : '#94a3b8',
+              border: `1px solid ${isLight ? '#d5cfc6' : '#334155'}`,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = isLight ? '#d5cfc6' : '#334155'; e.currentTarget.style.color = isLight ? '#111111' : '#F1F5F9' }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = isLight ? '#e8e4de' : '#1e293b'; e.currentTarget.style.color = isLight ? '#52525b' : '#94a3b8' }}
           >
             Cancel
           </button>
@@ -970,13 +990,13 @@ export default function CustomNode({ data, id }) {
       className="rounded-xl min-w-48 cursor-pointer transition-all duration-200 backdrop-blur-sm"
       onDoubleClick={() => setIsEditing(true)}
       style={{
-        backgroundColor: '#1e293b',
-        border: '1px solid #334155',
+        backgroundColor: isLight ? '#e8e4de' : '#1e293b',
+        border: isLight ? `1px solid ${catColors.border}` : '1px solid #334155',
         borderLeft: '3px solid ' + catColors.accent,
         borderRadius: '12px',
         minWidth: '192px',
-        color: 'white',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.3)'
+        color: isLight ? '#111111' : 'white',
+        boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.1)' : '0 4px 24px rgba(0,0,0,0.3)'
       }}
     >
       <Handle
@@ -992,7 +1012,7 @@ export default function CustomNode({ data, id }) {
 
       {/* Header */}
       <div 
-        className="p-3 border-b rounded-t-xl" style={{ backgroundColor: catColors.bg, borderColor: catColors.border, borderTopLeftRadius: '10px', borderTopRightRadius: '10px' }}
+        className="p-3 border-b rounded-t-xl" style={{ backgroundColor: isLight ? catColors.bgLight : catColors.bg, borderColor: catColors.border, borderTopLeftRadius: '10px', borderTopRightRadius: '10px' }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -1002,8 +1022,8 @@ export default function CustomNode({ data, id }) {
               <img src={nodeInfo.icon} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
             </div>
             <div>
-              <h3 className="font-medium text-white text-sm" style={{ color: 'white' }}>{data.label}</h3>
-              <p className="text-xs text-[#64748b]" style={{ color: '#64748b' }}>{nodeInfo.category}</p>
+              <h3 className="font-medium text-sm" style={{ color: isLight ? '#111111' : 'white' }}>{data.label}</h3>
+              <p className="text-xs" style={{ color: isLight ? '#71717a' : '#64748b' }}>{nodeInfo.category}</p>
             </div>
           </div>
           <CogIcon className="w-4 h-4 text-[#64748b] hover:text-[#F1F5F9] transition-colors" />
@@ -1015,7 +1035,7 @@ export default function CustomNode({ data, id }) {
         {data.model && (
           <div 
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
+            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
           >
             Model: {data.model.split("/").pop()}
           </div>
@@ -1023,7 +1043,7 @@ export default function CustomNode({ data, id }) {
         {data.to && (
           <div 
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
+            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
           >
             To: {data.to}
           </div>
@@ -1031,7 +1051,7 @@ export default function CustomNode({ data, id }) {
         {data.webhook_url && data.method && (
           <div 
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
+            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
           >
             ? {data.description || "Webhook"}
           </div>
@@ -1039,7 +1059,7 @@ export default function CustomNode({ data, id }) {
         {data.webhook_url && data.username && !data.method && (
           <div 
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
+            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
           >
             ??{data.username}
           </div>
@@ -1047,7 +1067,7 @@ export default function CustomNode({ data, id }) {
         {data.spreadsheet_id && (
           <div 
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
+            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
           >
             ?? {data.range} 
           </div>
@@ -1055,7 +1075,7 @@ export default function CustomNode({ data, id }) {
         {data.cron && (
           <div 
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
+            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
           >
             ? {data.cron}
           </div>
@@ -1063,7 +1083,7 @@ export default function CustomNode({ data, id }) {
         {data.service && (
           <div 
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
+            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
           >
             ?? {data.name || data.service}
           </div>
@@ -1071,7 +1091,7 @@ export default function CustomNode({ data, id }) {
         {data.mode && (
           <div 
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
+            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
           >
             ?? {data.mode.toUpperCase()}
           </div>
@@ -1079,7 +1099,7 @@ export default function CustomNode({ data, id }) {
         {data.prompt && (
           <div 
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
+            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
           >
             ?? {data.provider}: {data.size}
           </div>
@@ -1087,7 +1107,7 @@ export default function CustomNode({ data, id }) {
         {data.subject && (
           <div 
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
+            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
           >
             ?? {data.subject}
           </div>
@@ -1095,7 +1115,7 @@ export default function CustomNode({ data, id }) {
         {data.supported_types && (
           <div 
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
+            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
           >
             ?? {data.filename || "No file selected"}
           </div>
@@ -1103,7 +1123,7 @@ export default function CustomNode({ data, id }) {
         {data.title && data.format && (
           <div 
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
+            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
           >
             ?? {data.format.toUpperCase()} Report
           </div>
@@ -1111,7 +1131,7 @@ export default function CustomNode({ data, id }) {
         {data.platform && (
           <div 
             className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}
+            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
           >
             ?? {data.platform.charAt(0).toUpperCase() + data.platform.slice(1)}
           </div>

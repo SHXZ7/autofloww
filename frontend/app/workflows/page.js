@@ -21,11 +21,11 @@ import {
 const GLOBAL_CSS = `
     *, *::before, *::after { box-sizing: border-box; }
   body { font-family: var(--font-space-grotesk, system-ui, sans-serif); background: #020617; margin: 0; -webkit-font-smoothing: antialiased; }
-  html.light body { background: #f8fafc !important; }
+  html.light body { background: #f5f3ef !important; }
   ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(51,65,85,0.8); border-radius: 8px; }
   .wf-card:hover { background: #1e293b !important; border-color: #334155 !important; }
-  html.light .wf-card:hover { background: #e2e8f0 !important; border-color: #cbd5e1 !important; }
+  html.light .wf-card:hover { background: #f5f3ef !important; border-color: #d5cfc6 !important; }
   .wf-card:hover .wf-card-edit { opacity: 1 !important; }
   .wf-card-edit { opacity: 0; transition: opacity 0.15s ease; }
   .wf-del:hover { background: rgba(255,107,53,0.2) !important; color: #FF6B35 !important; }
@@ -48,7 +48,10 @@ export default function WorkflowsPage() {
   const [search, setSearch] = useState('')
   const [deleting, setDeleting] = useState(null)
   const [isMobile, setIsMobile] = useState(false)
-  const [isLight, setIsLight] = useState(false)
+  const [isLight, setIsLight] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return (localStorage.getItem('theme') || 'dark') === 'light'
+  })
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 900)
@@ -100,7 +103,7 @@ export default function WorkflowsPage() {
   if (loading || !isAuthenticated) return null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', height: isMobile ? '100dvh' : '100vh', background: '#020617', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'row', height: isMobile ? '100dvh' : '100vh', background: isLight ? '#f5f3ef' : '#020617', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", overflow: 'hidden' }}>
       <style jsx global>{GLOBAL_CSS}</style>
       {!isMobile && <TopNav />}
 
@@ -115,8 +118,8 @@ export default function WorkflowsPage() {
           marginBottom: isMobile ? '16px' : '28px',
         }}>
           <div>
-            <h1 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: '700', color: '#F1F5F9', margin: 0, letterSpacing: '-0.4px' }}>Workflows</h1>
-            <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0' }}>
+            <h1 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: '700', color: isLight ? '#111111' : '#F1F5F9', margin: 0, letterSpacing: '-0.4px' }}>Workflows</h1>
+            <p style={{ fontSize: '13px', color: isLight ? '#71717a' : '#64748b', margin: '4px 0 0' }}>
               {savedWorkflows.length} workflow{savedWorkflows.length !== 1 ? 's' : ''}
             </p>
           </div>
@@ -143,9 +146,10 @@ export default function WorkflowsPage() {
           onChange={e => setSearch(e.target.value)}
           style={{
             width: '100%', maxWidth: isMobile ? '100%' : '380px',
-            background: '#1e293b', border: '1px solid #1e293b',
+            background: isLight ? '#ffffff' : '#1e293b',
+            border: `1px solid ${isLight ? '#e8e4de' : '#1e293b'}`,
             borderRadius: '8px', padding: '8px 14px',
-            color: '#ccc', fontSize: '13px', outline: 'none',
+            color: isLight ? '#111111' : '#ccc', fontSize: '13px', outline: 'none',
             marginBottom: isMobile ? '14px' : '24px', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
           }}
         />
@@ -154,16 +158,16 @@ export default function WorkflowsPage() {
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: isMobile ? '42px 0' : '80px 0' }}>
             <div style={{ fontSize: '40px', marginBottom: '16px' }}>⚡</div>
-            <div style={{ color: '#475569', fontSize: '15px', fontWeight: '500', marginBottom: '8px' }}>
+            <div style={{ color: isLight ? '#71717a' : '#475569', fontSize: '15px', fontWeight: '500', marginBottom: '8px' }}>
               {search ? 'No workflows match your search' : 'No workflows yet'}
             </div>
-            <div style={{ color: '#475569', fontSize: '13px', marginBottom: '24px' }}>
+            <div style={{ color: isLight ? '#71717a' : '#475569', fontSize: '13px', marginBottom: '24px' }}>
               {search ? 'Try a different search term' : 'Create your first automation workflow'}
             </div>
             {!search && (
               <button onClick={handleNew} style={{
-                padding: '9px 20px', borderRadius: '8px', border: '1px solid #334155',
-                background: '#1e293b', color: '#94a3b8', fontSize: '13px', cursor: 'pointer',
+                padding: '9px 20px', borderRadius: '8px', border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
+                background: isLight ? '#ffffff' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', fontSize: '13px', cursor: 'pointer',
               }}>
                 + Create workflow
               </button>
@@ -177,8 +181,8 @@ export default function WorkflowsPage() {
                 className="wf-card"
                 onClick={() => handleOpen(w._id)}
                 style={{
-                  background: '#0f172a',
-                  border: '1px solid #1e293b',
+                  background: isLight ? '#ffffff' : '#0f172a',
+                  border: `1px solid ${isLight ? '#e8e4de' : '#1e293b'}`,
                   borderRadius: '12px', padding: isMobile ? '16px' : '20px',
                   cursor: 'pointer', transition: 'background 0.15s ease, border-color 0.15s ease',
                   position: 'relative',
@@ -192,15 +196,15 @@ export default function WorkflowsPage() {
                 }}>
                   <CircleStackIcon style={{ width: '18px', height: '18px', color: '#3B82F6' }} />
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#e2e8f0', marginBottom: '6px', paddingRight: '28px' }}>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: isLight ? '#111111' : '#e2e8f0', marginBottom: '6px', paddingRight: '28px' }}>
                   {w.name}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '12px', color: isLight ? '#71717a' : '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <CircleStackIcon style={{ width: '11px', height: '11px' }} />
                     {w.nodes?.length || 0} node{w.nodes?.length !== 1 ? 's' : ''}
                   </span>
-                  <span style={{ fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '12px', color: isLight ? '#71717a' : '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <ClockIcon style={{ width: '11px', height: '11px' }} />
                     {new Date(w.updated_at).toLocaleDateString()}
                   </span>
@@ -224,7 +228,7 @@ export default function WorkflowsPage() {
                     disabled={deleting === w._id}
                     style={{
                       padding: '4px 6px', borderRadius: '5px', border: 'none', cursor: 'pointer',
-                      background: '#1e293b', color: '#64748b',
+                      background: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#64748b',
                       transition: 'background 0.12s ease, color 0.12s ease',
                     }}
                     title="Delete"

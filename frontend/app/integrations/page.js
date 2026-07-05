@@ -16,11 +16,11 @@ import {
 const GLOBAL_CSS = `
     *, *::before, *::after { box-sizing: border-box; }
   body { font-family: var(--font-space-grotesk, system-ui, sans-serif); background: #020617; margin: 0; -webkit-font-smoothing: antialiased; }
-  html.light body { background: #f8fafc !important; }
+  html.light body { background: #f5f3ef !important; }
   ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(51,65,85,0.8); border-radius: 8px; }
   .int-card:hover { background: #1e293b !important; border-color: #334155 !important; }
-  html.light .int-card:hover { background: #e2e8f0 !important; border-color: #cbd5e1 !important; }
+  html.light .int-card:hover { background: #f5f3ef !important; border-color: #d5cfc6 !important; }
   .int-card { transition: background 0.15s ease, border-color 0.15s ease; }
   .config-btn:hover { background: rgba(59,130,246,0.2) !important; color: #3B82F6 !important; }
 `
@@ -125,7 +125,10 @@ export default function IntegrationsPage() {
   const [filter, setFilter] = useState('All')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [isLight, setIsLight] = useState(false)
+  const [isLight, setIsLight] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return (localStorage.getItem('theme') || 'dark') === 'light'
+  })
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 900)
@@ -152,15 +155,15 @@ export default function IntegrationsPage() {
   if (loading || !isAuthenticated) return null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', height: isMobile ? '100dvh' : '100vh', background: '#020617', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'row', height: isMobile ? '100dvh' : '100vh', background: isLight ? '#f5f3ef' : '#020617', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", overflow: 'hidden' }}>
       <style jsx global>{GLOBAL_CSS}</style>
       {!isMobile && <TopNav />}
 
       <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '18px 12px 96px' : '32px 40px' }}>
         {/* Header */}
         <div style={{ marginBottom: isMobile ? '18px' : '28px' }}>
-          <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#F1F5F9', margin: 0, letterSpacing: '-0.4px' }}>Integrations</h1>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0' }}>
+          <h1 style={{ fontSize: '22px', fontWeight: '700', color: isLight ? '#111111' : '#F1F5F9', margin: 0, letterSpacing: '-0.4px' }}>Integrations</h1>
+          <p style={{ fontSize: '13px', color: isLight ? '#71717a' : '#64748b', margin: '4px 0 0' }}>
             Connect external services — configure API keys in Settings → API Keys
           </p>
         </div>
@@ -173,10 +176,13 @@ export default function IntegrationsPage() {
               onClick={() => setFilter(cat)}
               style={{
                 padding: '5px 14px', borderRadius: '20px',
-                border: `1px solid ${filter === cat ? 'rgba(59,130,246,0.4)' : '#1e293b'}`,
-
-                background: filter === cat ? 'rgba(59,130,246,0.12)' : '#0f172a',
-                color: filter === cat ? '#3B82F6' : '#64748b',
+                border: `1px solid ${filter === cat
+                  ? 'rgba(59,130,246,0.4)'
+                  : (isLight ? '#e8e4de' : '#1e293b')}`,
+                background: filter === cat
+                  ? 'rgba(59,130,246,0.12)'
+                  : (isLight ? '#ffffff' : '#0f172a'),
+                color: filter === cat ? '#3B82F6' : (isLight ? '#52525b' : '#64748b'),
                 fontSize: '12.5px', fontWeight: '500', cursor: 'pointer',
                 fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", transition: 'all 0.12s ease',
               }}
@@ -193,7 +199,8 @@ export default function IntegrationsPage() {
               key={integration.id}
               className="int-card"
               style={{
-                background: '#0f172a', border: '1px solid #1e293b',
+                background: isLight ? '#ffffff' : '#0f172a',
+                border: `1px solid ${isLight ? '#e8e4de' : '#1e293b'}`,
                 borderRadius: '12px', padding: isMobile ? '16px' : '20px',
               }}
             >
@@ -209,17 +216,17 @@ export default function IntegrationsPage() {
                   {integration.icon}
                 </div>
                 <div>
-                  <div style={{ fontSize: '13.5px', fontWeight: '600', color: '#e2e8f0', marginBottom: '3px' }}>{integration.name}</div>
+                  <div style={{ fontSize: '13.5px', fontWeight: '600', color: isLight ? '#111111' : '#e2e8f0', marginBottom: '3px' }}>{integration.name}</div>
                   <span style={{
                     fontSize: '10.5px', fontWeight: '500', padding: '2px 7px', borderRadius: '10px',
-                    background: '#1e293b', color: '#64748b',
+                    background: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#64748b',
                   }}>
                     {integration.category}
                   </span>
                 </div>
               </div>
 
-              <p style={{ fontSize: '12.5px', color: '#64748b', lineHeight: '1.55', margin: '0 0 16px' }}>
+              <p style={{ fontSize: '12.5px', color: isLight ? '#71717a' : '#64748b', lineHeight: '1.55', margin: '0 0 16px' }}>
                 {integration.desc}
               </p>
 

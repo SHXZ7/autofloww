@@ -3,12 +3,23 @@ import { useState, useEffect } from "react"
 import { XMarkIcon, UserCircleIcon, KeyIcon, CreditCardIcon, ShieldCheckIcon, ShieldExclamationIcon } from "@heroicons/react/24/outline"
 import { useAuthStore } from "../stores/authStore"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://autofloww-production.up.railway.app"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
 export default function ProfileSettings({ isOpen, onClose, activeTab = "profile" }) {
   const [currentTab, setCurrentTab] = useState(activeTab)
   const { user, updateUserProfile, changePassword, updateApiKeys, getApiKeys, loading, logout } = useAuthStore()
-  
+  const [isLight, setIsLight] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return (localStorage.getItem('theme') || 'dark') === 'light'
+  })
+  useEffect(() => {
+    const update = () => setIsLight(document.documentElement.classList.contains('light'))
+    update()
+    const observer = new MutationObserver(update)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+
   const [profile, setProfile] = useState({
     name: "",
     email: "",
@@ -20,7 +31,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
       errors: true
     }
   })
-  
+
   const [apiKeys, setApiKeys] = useState({
     openai: { key: "", isActive: false },
     groq: { key: "", isActive: false },
@@ -41,11 +52,12 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
     linkedin_token: { key: "", isActive: false },
     instagram_token: { key: "", isActive: false }
   })
-  
+
   const [apiKeysLoading, setApiKeysLoading] = useState(false)
   const [apiKeysSaving, setApiKeysSaving] = useState(false)
   const [apiKeysHasChanges, setApiKeysHasChanges] = useState(false)
   const [connectingGoogle, setConnectingGoogle] = useState(false)
+  const [keysLoaded, setKeysLoaded] = useState(false)
 
   // Password state
   const [passwordData, setPasswordData] = useState({
@@ -53,18 +65,18 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
     newPassword: "",
     confirmPassword: ""
   })
-  
+
   const [passwordErrors, setPasswordErrors] = useState({})
-  
+
   const [hasChanges, setHasChanges] = useState(false)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [changingPassword, setChangingPassword] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  
+
   // Always define ALL useEffect hooks in the same order, regardless of conditions
   // Update profile when user data changes
-  
+
   useEffect(() => {
     if (user) {
       setProfile({
@@ -82,7 +94,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
       setErrors({})
     }
   }, [user])
-  
+
   // When active tab changes externally
   useEffect(() => {
     setCurrentTab(activeTab)
@@ -129,63 +141,63 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
         }
       }
     }
-    
+
     loadApiKeys()
   }, [user, currentTab])
 
   if (!isOpen) return null
-  
+
   const validateForm = () => {
     const newErrors = {}
-    
+
     if (!profile.name.trim()) {
       newErrors.name = "Name is required"
     }
-    
+
     if (!profile.email.trim()) {
       newErrors.email = "Email is required"
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) {
       newErrors.email = "Please enter a valid email address"
     }
-    
+
     if (!profile.workspace.trim()) {
       newErrors.workspace = "Workspace name is required"
     }
-    
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
-  
+
   const validatePasswordForm = () => {
     const errors = {}
-    
+
     if (!passwordData.currentPassword) {
       errors.currentPassword = "Current password is required"
     }
-    
+
     if (!passwordData.newPassword) {
       errors.newPassword = "New password is required"
     } else if (passwordData.newPassword.length < 6) {
       errors.newPassword = "New password must be at least 6 characters"
     }
-    
+
     if (!passwordData.confirmPassword) {
       errors.confirmPassword = "Please confirm your new password"
     } else if (passwordData.newPassword !== passwordData.confirmPassword) {
       errors.confirmPassword = "Passwords do not match"
     }
-    
+
     setPasswordErrors(errors)
     return Object.keys(errors).length === 0
   }
-  
+
   const handleInputChange = (field, value) => {
     setProfile(prev => ({
       ...prev,
       [field]: value
     }))
     setHasChanges(true)
-    
+
     // Clear error for this field
     if (errors[field]) {
       setErrors(prev => ({
@@ -194,7 +206,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
       }))
     }
   }
-  
+
   const handleNotificationChange = (field, checked) => {
     setProfile(prev => ({
       ...prev,
@@ -205,7 +217,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
     }))
     setHasChanges(true)
   }
-  
+
   const handleApiKeyChange = (service, value) => {
     setApiKeys(prev => ({
       ...prev,
@@ -217,13 +229,13 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
     }))
     setApiKeysHasChanges(true)
   }
-  
+
   const handlePasswordChange = (field, value) => {
     setPasswordData(prev => ({
       ...prev,
       [field]: value
     }))
-    
+
     // Clear error for this field
     if (passwordErrors[field]) {
       setPasswordErrors(prev => ({
@@ -232,17 +244,17 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
       }))
     }
   }
-  
+
   const saveChanges = async () => {
     if (!validateForm()) {
       return
     }
-    
+
     setSaving(true)
-    
+
     try {
       const result = await updateUserProfile(profile)
-      
+
       if (result.success) {
         setHasChanges(false)
         // Show success message
@@ -250,7 +262,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
         successNotification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50'
         successNotification.textContent = 'Profile updated successfully!'
         document.body.appendChild(successNotification)
-        
+
         setTimeout(() => {
           document.body.removeChild(successNotification)
         }, 3000)
@@ -261,7 +273,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
         errorNotification.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50'
         errorNotification.textContent = errorMessage
         document.body.appendChild(errorNotification)
-        
+
         setTimeout(() => {
           document.body.removeChild(errorNotification)
         }, 5000)
@@ -272,20 +284,20 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
       setSaving(false)
     }
   }
-  
+
   const handleChangePassword = async () => {
     if (!validatePasswordForm()) {
       return
     }
-    
+
     setChangingPassword(true)
-    
+
     try {
       const result = await changePassword(
         passwordData.currentPassword,
         passwordData.newPassword
       )
-      
+
       if (result.success) {
         // Reset form
         setPasswordData({
@@ -293,13 +305,13 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
           newPassword: "",
           confirmPassword: ""
         })
-        
+
         // Show success message
         const successNotification = document.createElement('div')
         successNotification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50'
         successNotification.textContent = 'Password changed successfully!'
         document.body.appendChild(successNotification)
-        
+
         setTimeout(() => {
           document.body.removeChild(successNotification)
         }, 3000)
@@ -320,13 +332,13 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
       setChangingPassword(false)
     }
   }
-  
+
   const saveApiKeys = async () => {
     setApiKeysSaving(true)
-    
+
     try {
       const result = await updateApiKeys(apiKeys)
-      
+
       if (result.success) {
         setApiKeysHasChanges(false)
         // Show success message
@@ -372,12 +384,11 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
 
   const showNotification = (message, type = 'success') => {
     const notification = document.createElement('div')
-    notification.className = `fixed bottom-4 right-4 ${
-      type === 'success' ? 'bg-green-500' : 'bg-red-500'
-    } text-white px-6 py-3 rounded-lg shadow-lg z-50`
+    notification.className = `fixed bottom-4 right-4 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'
+      } text-white px-6 py-3 rounded-lg shadow-lg z-50`
     notification.textContent = message
     document.body.appendChild(notification)
-    
+
     setTimeout(() => {
       if (document.body.contains(notification)) {
         document.body.removeChild(notification)
@@ -405,8 +416,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
 
   return (
     <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-[120] flex ${isMobile ? 'items-end justify-center p-1.5 pb-[78px]' : 'items-center justify-center'} ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-300`}>
-      <div className={`bg-[#0f172a] border border-[#1e293b] w-full overflow-hidden flex flex-col ${isMobile ? 'rounded-2xl h-[76dvh] max-h-[calc(100dvh-96px)] max-w-[380px] ps-mobile' : 'rounded-xl max-w-4xl h-[80vh]'}`}>
-        <style jsx>{`
+      <div className={`ps-modal-container bg-[#0f172a] border border-[#1e293b] w-full overflow-hidden flex flex-col ${isMobile ? 'rounded-2xl h-[76dvh] max-h-[calc(100dvh-96px)] max-w-[380px] ps-mobile' : 'rounded-xl max-w-4xl h-[80vh]'}`}>
+        <style jsx global>{`
           @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -467,14 +478,157 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
           .ps-mobile .mobile-small {
             font-size: 0.78rem;
           }
+
+          /* Light Mode Overrides */
+          html.light .ps-modal-container {
+            background-color: #ffffff !important;
+            border-color: #e8e4de !important;
+            color: #111111 !important;
+          }
+          html.light .ps-header {
+            border-bottom-color: #e8e4de !important;
+          }
+          html.light .ps-header h2 {
+            color: #111111 !important;
+          }
+          html.light .ps-close-btn {
+            color: #71717a !important;
+          }
+          html.light .ps-close-btn:hover {
+            background-color: #f5f3ef !important;
+          }
+          html.light .ps-sidebar {
+            border-right-color: #e8e4de !important;
+          }
+          html.light .ps-sidebar-btn {
+            color: #52525b !important;
+            background-color: transparent !important;
+          }
+          html.light .ps-sidebar-btn:hover {
+            background-color: #f5f3ef !important;
+            color: #111111 !important;
+          }
+          html.light .ps-sidebar-btn-active {
+            background-color: #111111 !important;
+            color: #ffffff !important;
+          }
+          html.light h2,
+          html.light h3,
+          html.light h4,
+          html.light h5 {
+            color: #111111 !important;
+          }
+          html.light p,
+          html.light li,
+          html.light span:not(.ps-sidebar-btn-active span):not(.text-white):not(.text-yellow-400) {
+            color: #71717a !important;
+          }
+          html.light label {
+            color: #52525b !important;
+          }
+          html.light input,
+          html.light select,
+          html.light textarea {
+            background-color: #f5f3ef !important;
+            border-color: #e8e4de !important;
+            color: #111111 !important;
+          }
+          html.light input::placeholder,
+          html.light textarea::placeholder {
+            color: #a1a1aa !important;
+          }
+          html.light select option {
+            background-color: #ffffff !important;
+            color: #111111 !important;
+          }
+          /* Card containers */
+          html.light .bg-\[\#1e293b\] {
+            background-color: #f5f3ef !important;
+            border-color: #e8e4de !important;
+          }
+          html.light .bg-\[\#0f172a\] {
+            background-color: #f5f3ef !important;
+            border-color: #e8e4de !important;
+          }
+          html.light .border-\[\#334155\] {
+            border-color: #e8e4de !important;
+          }
+          html.light .border-\[\#1e293b\] {
+            border-color: #e8e4de !important;
+          }
+          html.light .border-t {
+            border-top-color: #e8e4de !important;
+          }
+          html.light .border-b {
+            border-bottom-color: #e8e4de !important;
+          }
+          /* Setup / blue warning banners */
+          html.light .bg-\[\#172554\] {
+            background-color: #eff6ff !important;
+            border-color: #bfdbfe !important;
+          }
+          html.light .text-\[\#bfdbfe\] {
+            color: #1e3a8a !important;
+          }
+          html.light .text-\#bfdbfe {
+            color: #1e3a8a !important;
+          }
+          html.light .bg-\[\#1e3a8a\]\/40 {
+            background-color: #ffffff !important;
+            border-color: #bfdbfe !important;
+          }
+          html.light .text-\[\#dbeafe\] {
+            color: #1e3a8a !important;
+          }
+          html.light .bg-\[\#111827\] {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+          }
+          html.light .bg-\[\#111827\] .text-white {
+            color: #1e293b !important;
+          }
+          html.light .bg-\[\#111827\] .text-\[\#cbd5e1\] {
+            color: #475569 !important;
+          }
+          html.light .text-\[\#94a3b8\] {
+            color: #52525b !important;
+          }
+          html.light .text-\[\#cbd5e1\] {
+            color: #52525b !important;
+          }
+          html.light .bg-\[\#334155\] {
+            background-color: #e8e4de !important;
+            color: #52525b !important;
+          }
+          html.light .bg-\[\#334155\]:hover {
+            background-color: #d5cfc6 !important;
+            color: #111111 !important;
+          }
+          /* Billing & pricing plan box overrides */
+          html.light .from-\[\#3B82F6\]\/20 {
+            --tw-gradient-from: rgba(59, 130, 246, 0.08) !important;
+            --tw-gradient-to: rgba(139, 92, 246, 0.08) !important;
+            --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+            border-color: rgba(59, 130, 246, 0.2) !important;
+          }
+          html.light .border-\[\#3B82F6\]\/20 {
+            border-color: rgba(59, 130, 246, 0.2) !important;
+          }
+          html.light .text-emerald-300,
+          html.light .text-emerald-400 {
+            color: #047857 !important;
+          }
+          html.light .border-emerald-500\/30 {
+            border-color: rgba(16, 185, 129, 0.3) !important;
+          }
         `}</style>
-        
+
         {/* Header */}
-        <div className={`flex items-center justify-between border-b border-[#1e293b] ${isMobile ? 'pl-3 pr-4 py-2.5' : 'p-6'}`}>
+        <div className={`ps-header flex items-center justify-between border-b border-[#1e293b] ${isMobile ? 'pl-3 pr-4 py-2.5' : 'p-6'}`}>
           <h2 className={`${isMobile ? 'text-[15px]' : 'text-xl'} font-semibold text-white`}>Profile Settings</h2>
           <button
             onClick={onClose}
-            className={`${isMobile ? 'w-8 h-8' : 'p-2'} flex items-center justify-center shrink-0 hover:bg-[#1e293b] rounded-lg transition-colors`}
+            className={`ps-close-btn ${isMobile ? 'w-8 h-8' : 'p-2'} flex items-center justify-center shrink-0 hover:bg-[#1e293b] rounded-lg transition-colors`}
             aria-label="Close settings"
           >
             <XMarkIcon className={`${isMobile ? 'w-[18px] h-[18px]' : 'w-5 h-5'} text-[#64748b]`} />
@@ -484,17 +638,16 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
         <div className="flex flex-1 min-h-0">
           {/* Sidebar / Mobile Tabs */}
           {isMobile ? (
-            <div className="w-[50px] border-r border-[#1e293b] px-1 py-1.5">
+            <div className="ps-sidebar w-[50px] border-r border-[#1e293b] px-1 py-1.5">
               <nav className="flex flex-col gap-1.5 items-center">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setCurrentTab(tab.id)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
-                      currentTab === tab.id
-                        ? "bg-[#3B82F6] text-white"
+                    className={`ps-sidebar-btn w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${currentTab === tab.id
+                        ? "ps-sidebar-btn-active bg-[#3B82F6] text-white"
                         : "text-[#94a3b8] hover:bg-[#1e293b]"
-                    }`}
+                      }`}
                     title={tab.label}
                     aria-label={tab.label}
                   >
@@ -503,7 +656,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                 ))}
                 <button
                   onClick={handleLogout}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-red-300 hover:bg-red-500/15 transition-colors mt-0.5"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-red-500 hover:bg-red-500/15 transition-colors mt-0.5"
                   title="Logout"
                   aria-label="Logout"
                 >
@@ -512,17 +665,16 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
               </nav>
             </div>
           ) : (
-            <div className="w-64 border-r border-[#1e293b] p-4">
+            <div className="ps-sidebar w-64 border-r border-[#1e293b] p-4">
               <nav className="space-y-2">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setCurrentTab(tab.id)}
-                    className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-left ${
-                      currentTab === tab.id
-                        ? "bg-[#3B82F6] text-white"
+                    className={`ps-sidebar-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-left ${currentTab === tab.id
+                        ? "ps-sidebar-btn-active bg-[#3B82F6] text-white"
                         : "text-[#94a3b8] hover:bg-[#1e293b]"
-                    }`}
+                      }`}
                   >
                     <span className="text-lg">{tab.icon}</span>
                     <span className="text-sm">{tab.label}</span>
@@ -533,13 +685,13 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
           )}
 
           {/* Content */}
-          <div className={`flex-1 overflow-y-auto animate-fade-in ${isMobile ? 'p-2 pb-3' : 'p-6'}`}>
+          <div className={`flex-1 overflow-y-auto ${isMobile ? 'p-2 pb-3' : 'p-6'}`}>
             {/* Profile Tab */}
             {currentTab === "profile" && (
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-4">Profile Information</h3>
-                  
+
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-[#94a3b8] mb-2">
@@ -549,16 +701,15 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         type="text"
                         value={profile.name}
                         onChange={(e) => handleInputChange("name", e.target.value)}
-                        className={`w-full bg-[#1e293b] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all ${
-                          errors.name ? 'border-red-500' : 'border-[#334155]'
-                        }`}
+                        className={`w-full bg-[#1e293b] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all ${errors.name ? 'border-red-500' : 'border-[#334155]'
+                          }`}
                         placeholder="Enter your full name"
                       />
                       {errors.name && (
                         <p className="text-red-400 text-sm mt-1">{errors.name}</p>
                       )}
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-[#94a3b8] mb-2">
                         Email Address *
@@ -567,16 +718,15 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         type="email"
                         value={profile.email}
                         onChange={(e) => handleInputChange("email", e.target.value)}
-                        className={`w-full bg-[#1e293b] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all ${
-                          errors.email ? 'border-red-500' : 'border-[#334155]'
-                        }`}
+                        className={`w-full bg-[#1e293b] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all ${errors.email ? 'border-red-500' : 'border-[#334155]'
+                          }`}
                         placeholder="Enter your email address"
                       />
                       {errors.email && (
                         <p className="text-red-400 text-sm mt-1">{errors.email}</p>
                       )}
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-[#94a3b8] mb-2">
                         Workspace Name *
@@ -585,16 +735,15 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         type="text"
                         value={profile.workspace}
                         onChange={(e) => handleInputChange("workspace", e.target.value)}
-                        className={`w-full bg-[#1e293b] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all ${
-                          errors.workspace ? 'border-red-500' : 'border-[#334155]'
-                        }`}
+                        className={`w-full bg-[#1e293b] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all ${errors.workspace ? 'border-red-500' : 'border-[#334155]'
+                          }`}
                         placeholder="Enter workspace name"
                       />
                       {errors.workspace && (
                         <p className="text-red-400 text-sm mt-1">{errors.workspace}</p>
                       )}
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-[#94a3b8] mb-2">
                         Timezone
@@ -614,15 +763,14 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                       </select>
                     </div>
                   </div>
-                  
+
                   {/* Save Button for Profile Tab */}
                   <div className="mt-6 pt-4 border-t border-[#1e293b]">
-                    <button 
+                    <button
                       onClick={saveChanges}
                       disabled={!hasChanges || saving || loading}
-                      className={`px-6 py-2 bg-[#3B82F6] hover:bg-[#2563eb] text-white rounded-lg transition-colors ${
-                        !hasChanges || saving || loading ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                      className={`px-6 py-2 bg-[#3B82F6] hover:bg-[#2563eb] text-white rounded-lg transition-colors ${!hasChanges || saving || loading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                     >
                       {saving ? "Saving..." : "Save Profile"}
                     </button>
@@ -698,7 +846,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                       </div>
                     </div>
                   </div>
-                  
+
                   {apiKeysLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3B82F6]"></div>
@@ -716,9 +864,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">OpenAI API Key</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.openai.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.openai.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.openai.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -742,9 +889,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">Groq API Key</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.groq?.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.groq?.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.groq?.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -768,9 +914,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">OpenRouter API Key</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.openrouter.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.openrouter.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.openrouter.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -794,9 +939,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">Google API Key</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.google.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.google.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.google.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -820,9 +964,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">Stability AI API Key</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.stability.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.stability.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.stability.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -855,9 +998,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">Discord Webhook URL</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.discord.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.discord.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.discord.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -881,9 +1023,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">Google OAuth Token JSON</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.google_token_json.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.google_token_json.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.google_token_json.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -914,9 +1055,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">WhatsApp Access Token</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.whatsapp_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.whatsapp_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.whatsapp_token.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -940,9 +1080,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">WhatsApp Phone Number ID</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.whatsapp_phone_number_id.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.whatsapp_phone_number_id.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.whatsapp_phone_number_id.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -966,9 +1105,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">WhatsApp Sender Number (Optional)</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.whatsapp_sender_number.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.whatsapp_sender_number.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.whatsapp_sender_number.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -1001,9 +1139,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">Twitter API Key</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twitter_api_key.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.twitter_api_key.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.twitter_api_key.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -1027,9 +1164,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">Twitter API Secret</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twitter_api_secret.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.twitter_api_secret.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.twitter_api_secret.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -1053,9 +1189,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">Twitter Access Token</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twitter_access_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.twitter_access_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.twitter_access_token.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -1079,9 +1214,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">Twitter Access Token Secret</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.twitter_access_secret.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.twitter_access_secret.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.twitter_access_secret.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -1105,9 +1239,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">LinkedIn Access Token</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.linkedin_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.linkedin_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.linkedin_token.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -1131,9 +1264,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">Instagram Access Token</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.instagram_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.instagram_token.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.instagram_token.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -1166,9 +1298,8 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-sm font-medium text-[#94a3b8]">GitHub Personal Access Token</label>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                apiKeys.github.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${apiKeys.github.isActive ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#334155]/50 text-[#64748b]"
+                                }`}>
                                 {apiKeys.github.isActive ? "Active" : "Not Set"}
                               </span>
                             </div>
@@ -1225,12 +1356,11 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
 
                   {/* Save Button for API Keys */}
                   <div className="mt-6 pt-4 border-t border-[#1e293b]">
-                    <button 
+                    <button
                       onClick={saveApiKeys}
                       disabled={!apiKeysHasChanges || apiKeysSaving || apiKeysLoading}
-                      className={`px-6 py-2 bg-[#3B82F6] hover:bg-[#2563eb] text-white rounded-lg transition-colors ${
-                        !apiKeysHasChanges || apiKeysSaving || apiKeysLoading ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                      className={`px-6 py-2 bg-[#3B82F6] hover:bg-[#2563eb] text-white rounded-lg transition-colors ${!apiKeysHasChanges || apiKeysSaving || apiKeysLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                     >
                       {apiKeysSaving ? "Saving..." : "Save API Keys"}
                     </button>
@@ -1243,14 +1373,14 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                 </div>
               </div>
             )}
-            
+
             {/* Notifications Tab */}
             {currentTab === "notifications" && (
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-4">Notification Settings</h3>
                   <p className="text-[#64748b] mb-6">Manage how you receive notifications</p>
-                  
+
                   <div className="space-y-6">
                     <div className="flex items-center justify-between p-4 bg-[#1e293b] rounded-lg">
                       <div>
@@ -1258,57 +1388,56 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         <p className="text-[#64748b] text-sm">Receive updates about your account via email</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={profile.notifications.email} 
+                        <input
+                          type="checkbox"
+                          checked={profile.notifications.email}
                           onChange={(e) => handleNotificationChange("email", e.target.checked)}
-                          className="sr-only peer" 
+                          className="sr-only peer"
                         />
                         <div className="w-11 h-6 bg-[#334155] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3B82F6]"></div>
                       </label>
                     </div>
-                    
+
                     <div className="flex items-center justify-between p-4 bg-[#1e293b] rounded-lg">
                       <div>
                         <h4 className="text-white font-medium">Workflow Notifications</h4>
                         <p className="text-[#64748b] text-sm">Get notified when workflows complete or fail</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={profile.notifications.workflow} 
+                        <input
+                          type="checkbox"
+                          checked={profile.notifications.workflow}
                           onChange={(e) => handleNotificationChange("workflow", e.target.checked)}
-                          className="sr-only peer" 
+                          className="sr-only peer"
                         />
                         <div className="w-11 h-6 bg-[#334155] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3B82F6]"></div>
                       </label>
                     </div>
-                    
+
                     <div className="flex items-center justify-between p-4 bg-[#1e293b] rounded-lg">
                       <div>
                         <h4 className="text-white font-medium">Error Alerts</h4>
                         <p className="text-[#64748b] text-sm">Receive alerts when critical errors occur</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={profile.notifications.errors} 
+                        <input
+                          type="checkbox"
+                          checked={profile.notifications.errors}
                           onChange={(e) => handleNotificationChange("errors", e.target.checked)}
-                          className="sr-only peer" 
+                          className="sr-only peer"
                         />
                         <div className="w-11 h-6 bg-[#334155] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3B82F6]"></div>
                       </label>
                     </div>
                   </div>
-                  
+
                   {/* Save Button for Notifications */}
                   <div className="mt-6 pt-4 border-t border-[#1e293b]">
-                    <button 
+                    <button
                       onClick={saveChanges}
                       disabled={!hasChanges || saving || loading}
-                      className={`px-6 py-2 bg-[#3B82F6] hover:bg-[#2563eb] text-white rounded-lg transition-colors ${
-                        !hasChanges || saving || loading ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                      className={`px-6 py-2 bg-[#3B82F6] hover:bg-[#2563eb] text-white rounded-lg transition-colors ${!hasChanges || saving || loading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                     >
                       {saving ? "Saving..." : "Save Notification Settings"}
                     </button>
@@ -1316,14 +1445,14 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                 </div>
               </div>
             )}
-            
+
             {/* Security Tab */}
             {currentTab === "security" && (
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-4">Security Settings</h3>
                   <p className="text-[#64748b] mb-6">Manage your account security</p>
-                  
+
                   <div className="space-y-6">
                     <div className="p-4 bg-[#1e293b] rounded-lg">
                       <h4 className="text-white font-medium mb-4">Change Password</h4>
@@ -1333,54 +1462,51 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                             {passwordErrors.general}
                           </div>
                         )}
-                        
+
                         <div>
                           <label className="block text-sm font-medium text-[#94a3b8] mb-2">Current Password</label>
                           <input
                             type="password"
                             value={passwordData.currentPassword}
                             onChange={(e) => handlePasswordChange("currentPassword", e.target.value)}
-                            className={`w-full bg-[#0f172a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent ${
-                              passwordErrors.currentPassword ? 'border-red-500' : 'border-[#334155]'
-                            }`}
+                            className={`w-full bg-[#0f172a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent ${passwordErrors.currentPassword ? 'border-red-500' : 'border-[#334155]'
+                              }`}
                           />
                           {passwordErrors.currentPassword && (
                             <p className="text-red-400 text-sm mt-1">{passwordErrors.currentPassword}</p>
                           )}
                         </div>
-                        
+
                         <div>
                           <label className="block text-sm font-medium text-[#94a3b8] mb-2">New Password</label>
                           <input
                             type="password"
                             value={passwordData.newPassword}
                             onChange={(e) => handlePasswordChange("newPassword", e.target.value)}
-                            className={`w-full bg-[#0f172a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent ${
-                              passwordErrors.newPassword ? 'border-red-500' : 'border-[#334155]'
-                            }`}
+                            className={`w-full bg-[#0f172a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent ${passwordErrors.newPassword ? 'border-red-500' : 'border-[#334155]'
+                              }`}
                           />
                           {passwordErrors.newPassword && (
                             <p className="text-red-400 text-sm mt-1">{passwordErrors.newPassword}</p>
                           )}
                         </div>
-                        
+
                         <div>
                           <label className="block text-sm font-medium text-[#94a3b8] mb-2">Confirm New Password</label>
                           <input
                             type="password"
                             value={passwordData.confirmPassword}
                             onChange={(e) => handlePasswordChange("confirmPassword", e.target.value)}
-                            className={`w-full bg-[#0f172a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent ${
-                              passwordErrors.confirmPassword ? 'border-red-500' : 'border-[#334155]'
-                            }`}
+                            className={`w-full bg-[#0f172a] border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent ${passwordErrors.confirmPassword ? 'border-red-500' : 'border-[#334155]'
+                              }`}
                           />
                           {passwordErrors.confirmPassword && (
                             <p className="text-red-400 text-sm mt-1">{passwordErrors.confirmPassword}</p>
                           )}
                         </div>
-                        
+
                         <div>
-                          <button 
+                          <button
                             onClick={handleChangePassword}
                             disabled={changingPassword}
                             className="bg-[#3B82F6] hover:bg-[#2563eb] text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
@@ -1390,7 +1516,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="p-4 bg-[#1e293b] rounded-lg">
                       <h4 className="text-white font-medium mb-2">Active Sessions</h4>
                       <p className="text-[#64748b] text-sm mb-4">Manage your active login sessions</p>
@@ -1408,13 +1534,13 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                 </div>
               </div>
             )}
-            
+
             {/* Billing Tab */}
             {currentTab === "billing" && (
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-4">Billing & Subscription</h3>
-                  
+
                   <div className="p-4 bg-gradient-to-r from-[#3B82F6]/20 to-[#8B5CF6]/20 rounded-lg border border-[#3B82F6]/20 mb-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -1426,7 +1552,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                       </button>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-6">
                     <div className="grid grid-cols-3 gap-4">
                       <div className="p-4 bg-[#1e293b] rounded-lg text-center">
@@ -1437,7 +1563,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         </div>
                         <div className="text-xs text-white mt-1">3 of 5</div>
                       </div>
-                      
+
                       <div className="p-4 bg-[#1e293b] rounded-lg text-center">
                         <div className="text-[#3B82F6] font-semibold text-2xl">47</div>
                         <div className="text-[#64748b] text-sm mt-1">Executions Used</div>
@@ -1446,17 +1572,17 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                         </div>
                         <div className="text-xs text-white mt-1">47 of 100</div>
                       </div>
-                      
+
                       <div className="p-4 bg-[#1e293b] rounded-lg text-center">
                         <div className="text-[#3B82F6] font-semibold text-2xl">∞</div>
                         <div className="text-[#64748b] text-sm mt-1">Days Remaining</div>
                         <div className="text-xs text-[#94a3b8] mt-3">Free plan never expires</div>
                       </div>
                     </div>
-                    
+
                     <div className="p-4 bg-[#1e293b] rounded-lg">
                       <h4 className="text-white font-medium mb-4">Available Plans</h4>
-                      
+
                       <div className="space-y-4">
                         <div className="p-4 border border-[#334155] rounded-lg bg-[#0f172a] relative">
                           <div className="absolute top-0 right-0 bg-[#3B82F6] text-white text-xs px-2 py-1 rounded-bl-lg rounded-tr-lg">Current</div>
@@ -1474,7 +1600,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                             </li>
                           </ul>
                         </div>
-                        
+
                         <div className="p-4 border border-[#3B82F6] rounded-lg bg-[#0f172a]">
                           <h5 className="text-white font-medium">Pro</h5>
                           <div className="text-[#3B82F6] font-bold text-2xl mt-2">$19<span className="text-sm font-normal">/month</span></div>
@@ -1496,7 +1622,7 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
                             Upgrade to Pro
                           </button>
                         </div>
-                        
+
                         <div className="p-4 border border-[#334155] rounded-lg bg-[#0f172a]">
                           <h5 className="text-white font-medium">Enterprise</h5>
                           <div className="text-[#3B82F6] font-bold text-2xl mt-2">Custom</div>
@@ -1537,15 +1663,16 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
         </div>
 
 
-      {/* Footer */}
-      <div className={`border-t border-[#1e293b] ${isMobile ? 'p-2.5' : 'p-6'} flex ${isMobile ? 'justify-stretch' : 'justify-end'} space-x-3`}>
-        <button
-          onClick={onClose}
-          className={`px-4 py-2 bg-[#334155] hover:bg-[#334155] text-white rounded-lg transition-colors ${isMobile ? 'w-full text-[13px]' : ''}`}
-        >
-          Close
-        </button>
+        {/* Footer */}
+        <div className={`border-t border-[#1e293b] ${isMobile ? 'p-2.5' : 'p-6'} flex ${isMobile ? 'justify-stretch' : 'justify-end'} space-x-3`}>
+          <button
+            onClick={onClose}
+            className={`px-4 py-2 bg-[#334155] hover:bg-[#334155] text-white rounded-lg transition-colors ${isMobile ? 'w-full text-[13px]' : ''}`}
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-)}
+  )
+}

@@ -8,7 +8,7 @@ export default function ForgotPassword({ onBack }) {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
 
-  const API_BASE_URL = 'https://autofloww-production.up.railway.app'
+  const API_BASE_URL = 'http://localhost:8000'
 
 
   const handleSubmit = async (e) => {

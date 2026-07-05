@@ -67,7 +67,10 @@ export default function Home() {
   const { isAuthenticated, loading, checkAuth } = useAuthStore()
   const router = useRouter()
   const pathname = usePathname()
-  const [isLight, setIsLight] = useState(false)
+  const [isLight, setIsLight] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return (localStorage.getItem('theme') || 'dark') === 'light'
+  })
   const [prompt, setPrompt] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState("")
@@ -84,7 +87,7 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false)
   const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false)
   const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false)
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://autofloww-production.up.railway.app"
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
   useEffect(() => {
     const update = () => setIsLight(document.documentElement.classList.contains('light'))
     update()
@@ -400,13 +403,13 @@ export default function Home() {
 
   // Show main app
   return (
-    <div style={{display:'flex', flexDirection:'row', height:isMobile ? '100dvh' : '100vh', background:'#020617', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)", overflow:'hidden'}}>
+    <div style={{display:'flex', flexDirection:'row', height:isMobile ? '100dvh' : '100vh', background: isLight ? '#f5f3ef' : '#030712', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)", overflow:'hidden'}}>
       <style jsx global>{`
         *, *::before, *::after { box-sizing: border-box; }
 
         body {
           font-family: var(--font-space-grotesk, system-ui, sans-serif);
-          background: #020617;
+          background: ${isLight ? '#f5f3ef' : '#030712'};
           margin: 0;
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
@@ -523,29 +526,29 @@ export default function Home() {
           color: #F1F5F9 !important;
         }
 
-        .react-flow__background { background: #020617 !important; }
+        .react-flow__background { background: #030712 !important; }
         .react-flow__selection {
           background: rgba(59, 130, 246, 0.06) !important;
           border: 1px dashed rgba(59, 130, 246, 0.4) !important;
         }
 
         /* ── Light mode ── */
-        html.light body { background: #f8fafc !important; }
-        html.light .rf-canvas-bg { background: #f1f5f9 !important; }
-        html.light .react-flow__background { background: #f1f5f9 !important; }
-        html.light .react-flow { background: #f1f5f9 !important; }
-        html.light .react-flow__pane { background: #f1f5f9 !important; }
+        html.light body { background: #f5f3ef !important; }
+        html.light .rf-canvas-bg { background: #f5f3ef !important; }
+        html.light .react-flow__background { background: #f5f3ef !important; }
+        html.light .react-flow { background: #f5f3ef !important; }
+        html.light .react-flow__pane { background: #f5f3ef !important; }
         html.light .react-flow__controls {
           background: #ffffff !important;
-          border-color: #e2e8f0 !important;
+          border-color: #e8e4de !important;
         }
         html.light .react-flow__controls button {
-          border-bottom-color: #e2e8f0 !important;
-          color: #475569 !important;
+          border-bottom-color: #e8e4de !important;
+          color: #52525b !important;
         }
         html.light .react-flow__controls button:hover {
-          background: rgba(59,130,246,0.08) !important;
-          color: #1e293b !important;
+          background: rgba(227,91,26,0.08) !important;
+          color: #111111 !important;
         }
 
         @media (max-width: 900px) {
@@ -570,8 +573,8 @@ export default function Home() {
       <div style={{
         height: '48px',
         minHeight: '48px',
-        background: isLight ? '#f8fafc' : '#0f172a',
-        borderBottom: `1px solid ${isLight ? '#e2e8f0' : '#1e293b'}`,
+        background: isLight ? '#ffffff' : '#0d1527',
+        borderBottom: `1px solid ${isLight ? '#e8e4de' : '#1e293b'}`,
         display: 'flex',
         alignItems: 'center',
         padding: isMobile ? '0 8px' : '0 14px',
@@ -697,8 +700,8 @@ export default function Home() {
         {!isMobile && (
           <div style={{
             width:'230px', minWidth:'230px',
-            borderRight:`1px solid ${isLight ? '#e2e8f0' : '#1e293b'}`,
-            background: isLight ? '#f8fafc' : '#0f172a', overflow:'hidden',
+            borderRight:`1px solid ${isLight ? '#e8e4de' : '#1e293b'}`,
+            background: isLight ? '#ffffff' : '#0d1527', overflow:'hidden',
             display:'flex', flexDirection:'column', flexShrink:0,
           }}>
             <NodeSidebar />
@@ -933,12 +936,12 @@ export default function Home() {
             <div style={{
               pointerEvents: 'auto',
               borderRadius: '12px',
-              border: `1px solid ${isLight ? '#cbd5e1' : 'rgba(51,65,85,0.85)'}`,
-              background: isLight ? 'rgba(255,255,255,0.95)' : 'rgba(15,23,42,0.9)',
+              border: `1px solid ${isLight ? '#e8e4de' : 'rgba(51,65,85,0.85)'}`,
+              background: isLight ? 'rgba(255,255,255,0.95)' : 'rgba(13, 21, 39, 0.9)',
               backdropFilter: 'blur(10px)',
               WebkitBackdropFilter: 'blur(10px)',
               boxShadow: isLight
-                ? '0 6px 24px rgba(15,23,42,0.12)'
+                ? '0 6px 24px rgba(0,0,0,0.04)'
                 : '0 10px 28px rgba(2,6,23,0.55)',
               padding: '10px',
             }}>
@@ -957,9 +960,9 @@ export default function Home() {
                     flex: isMobile ? '1 1 100%' : 1,
                     height: '40px',
                     borderRadius: '9px',
-                    border: `1px solid ${isLight ? '#cbd5e1' : '#334155'}`,
-                    background: isLight ? '#ffffff' : '#0b1220',
-                    color: isLight ? '#0f172a' : '#e2e8f0',
+                    border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
+                    background: isLight ? '#f5f3ef' : '#0b1220',
+                    color: isLight ? '#111111' : '#e2e8f0',
                     padding: '0 12px',
                     fontSize: '13px',
                     outline: 'none',
@@ -976,16 +979,16 @@ export default function Home() {
                     border: 'none',
                     cursor: isGenerating || !prompt.trim() ? 'not-allowed' : 'pointer',
                     background: isGenerating || !prompt.trim()
-                      ? (isLight ? '#cbd5e1' : '#334155')
-                      : 'linear-gradient(135deg, #2563eb 0%, #14b8a6 100%)',
+                      ? (isLight ? '#e8e4de' : '#334155')
+                      : (isLight ? 'linear-gradient(135deg, #e35b1a 0%, #f97316 100%)' : 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)'),
                     color: isGenerating || !prompt.trim()
-                      ? (isLight ? '#64748b' : '#94a3b8')
+                      ? (isLight ? '#a1a1aa' : '#94a3b8')
                       : '#ffffff',
                     fontSize: '12px',
                     fontWeight: 700,
                     letterSpacing: '0.02em',
                     transition: 'all 0.15s ease',
-                    boxShadow: isGenerating || !prompt.trim() ? 'none' : '0 6px 20px rgba(37,99,235,0.35)',
+                    boxShadow: isGenerating || !prompt.trim() ? 'none' : (isLight ? '0 6px 20px rgba(227,91,26,0.3)' : '0 6px 20px rgba(37,99,235,0.35)'),
                     fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
                   }}
                 >
@@ -999,13 +1002,13 @@ export default function Home() {
                     height: '40px',
                     minWidth: isMobile ? 'calc(50% - 4px)' : '88px',
                     borderRadius: '9px',
-                    border: `1px solid ${isLight ? '#cbd5e1' : '#334155'}`,
+                    border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
                     background: isGenerating || !prompt.trim() || !nodes.length
-                      ? (isLight ? '#e2e8f0' : '#334155')
-                      : (isLight ? '#f8fafc' : '#0b1220'),
+                      ? (isLight ? '#e8e4de' : '#334155')
+                      : (isLight ? '#ffffff' : '#0b1220'),
                     color: isGenerating || !prompt.trim() || !nodes.length
-                      ? (isLight ? '#94a3b8' : '#94a3b8')
-                      : (isLight ? '#0f172a' : '#e2e8f0'),
+                      ? (isLight ? '#a1a1aa' : '#94a3b8')
+                      : (isLight ? '#111111' : '#e2e8f0'),
                     cursor: isGenerating || !prompt.trim() || !nodes.length ? 'not-allowed' : 'pointer',
                     fontSize: '12px',
                     fontWeight: 700,
@@ -1022,9 +1025,9 @@ export default function Home() {
                     height: '40px',
                     minWidth: isMobile ? 'calc(50% - 4px)' : '108px',
                     borderRadius: '9px',
-                    border: `1px solid ${isLight ? '#cbd5e1' : '#334155'}`,
+                    border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
                     background: isLight ? '#ffffff' : '#0b1220',
-                    color: isLight ? '#1e293b' : '#cbd5e1',
+                    color: isLight ? '#111111' : '#cbd5e1',
                     cursor: isGenerating || !lastAction ? 'not-allowed' : 'pointer',
                     fontSize: '12px',
                     fontWeight: 600,
@@ -1040,9 +1043,9 @@ export default function Home() {
                     height: '40px',
                     minWidth: isMobile ? 'calc(50% - 4px)' : '40px',
                     borderRadius: '9px',
-                    border: `1px solid ${isLight ? '#cbd5e1' : '#334155'}`,
+                    border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
                     background: isLight ? '#ffffff' : '#0b1220',
-                    color: isLight ? '#475569' : '#94a3b8',
+                    color: isLight ? '#52525b' : '#94a3b8',
                     cursor: 'pointer',
                     fontSize: '18px',
                     lineHeight: 1,
@@ -1136,8 +1139,8 @@ export default function Home() {
         {!isMobile && (
         <div style={{
           width:'200px', minWidth:'200px',
-          borderLeft:`1px solid ${isLight ? '#e2e8f0' : '#1e293b'}`,
-          background: isLight ? '#f8fafc' : '#0f172a', display:'flex', flexDirection:'column',
+          borderLeft:`1px solid ${isLight ? '#e8e4de' : '#1e293b'}`,
+          background: isLight ? '#ffffff' : '#0d1527', display:'flex', flexDirection:'column',
           flexShrink:0, padding:'14px 12px', gap:'16px', overflowY:'auto',
           fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)",
         }}>
@@ -1150,9 +1153,9 @@ export default function Home() {
               style={{
                 width:'100%', boxSizing:'border-box',
                 background: isLight ? '#ffffff' : '#1e293b',
-                border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
+                border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
                 borderRadius:'7px', padding:'6px 8px',
-                color: isLight ? '#1e293b' : '#F1F5F9', fontSize:'12px',
+                color: isLight ? '#111111' : '#F1F5F9', fontSize:'12px',
                 fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)", outline:'none',
                 cursor:'pointer',
               }}
@@ -1164,7 +1167,7 @@ export default function Home() {
           </div>
 
           {/* Divider */}
-          <div style={{height:'1px', background: isLight ? '#e2e8f0' : '#1e293b'}} />
+          <div style={{height:'1px', background: isLight ? '#e8e4de' : '#1e293b'}} />
 
           {/* Section: Canvas Stats */}
           <div>
@@ -1177,18 +1180,18 @@ export default function Home() {
                 <div key={label} style={{
                   display:'flex', justifyContent:'space-between', alignItems:'center',
                   padding:'6px 10px', borderRadius:'7px',
-                  background: isLight ? '#f1f5f9' : 'rgba(30,41,59,0.5)',
-                  border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
+                  background: isLight ? '#f5f3ef' : 'rgba(30,41,59,0.5)',
+                  border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
                 }}>
-                  <span style={{fontSize:'12px', color:'#64748b'}}>{label}</span>
-                  <span style={{fontSize:'13px', fontWeight:'600', color: value > 0 ? '#3B82F6' : (isLight ? '#cbd5e1' : '#334155')}}>{value}</span>
+                  <span style={{fontSize:'12px', color:'#71717a'}}>{label}</span>
+                  <span style={{fontSize:'13px', fontWeight:'600', color: value > 0 ? (isLight ? '#e35b1a' : '#3b82f6') : (isLight ? '#e8e4de' : '#334155')}}>{value}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Divider */}
-          <div style={{height:'1px', background: isLight ? '#e2e8f0' : '#1e293b'}} />
+          <div style={{height:'1px', background: isLight ? '#e8e4de' : '#1e293b'}} />
 
           {/* Section: Tips */}
           <div>

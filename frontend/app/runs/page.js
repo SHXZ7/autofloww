@@ -32,7 +32,7 @@ const STATUS_STYLES = {
   pending: { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', icon: ClockIcon,      label: 'Pending' },
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://autofloww-production.up.railway.app'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const MOBILE_NAV_ITEMS = [
   { href: '/', label: 'Flow', icon: BoltIcon },
@@ -118,17 +118,17 @@ export default function RunsPage() {
 
   const colors = isLight
     ? {
-        pageBg: '#f8fafc',
+        pageBg: '#f5f3ef',
         panelBg: '#ffffff',
-        panelBorder: '#cbd5e1',
-        heading: '#0f172a',
-        text: '#334155',
-        muted: '#64748b',
-        tabBg: '#f1f5f9',
-        tabActiveBg: '#e2e8f0',
-        rowExpandedBg: 'rgba(226,232,240,0.65)',
-        logsSectionBg: 'rgba(241,245,249,0.8)',
-        logsBoxBg: '#f8fafc',
+        panelBorder: '#e8e4de',
+        heading: '#111111',
+        text: '#52525b',
+        muted: '#71717a',
+        tabBg: '#f5f3ef',
+        tabActiveBg: '#e8e4de',
+        rowExpandedBg: 'rgba(232,228,222,0.65)',
+        logsSectionBg: 'rgba(245,243,239,0.8)',
+        logsBoxBg: '#f5f3ef',
       }
     : {
         pageBg: '#020617',

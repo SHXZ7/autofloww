@@ -4,14 +4,15 @@ import { useEffect, useState } from "react"
 import { SunIcon, MoonIcon } from "@heroicons/react/24/outline"
 
 export default function ThemeSwitch({ className = "" }) {
-  const [theme, setTheme] = useState("dark")
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'dark'
+    return localStorage.getItem('theme') ||
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+  })
 
   useEffect(() => {
-    const saved = localStorage.getItem("theme") ||
-      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-    setTheme(saved)
-    document.documentElement.classList.toggle("light", saved === "light")
-  }, [])
+    document.documentElement.classList.toggle('light', theme === 'light')
+  }, [theme])
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark"

@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
-const API_BASE_URL = 'https://autofloww-production.up.railway.app'
+const API_BASE_URL = 'http://localhost:8000'
 
 
 export const useAuthStore = create(

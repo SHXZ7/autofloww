@@ -2,8 +2,23 @@
 
 
 :root {
-  --background: #020617;
-  --foreground: #F1F5F9;
+  --background: #030712;
+  --foreground: #ffffff;
+  --footer-bg: #050814;
+  --secondary-bg: #0d1527;
+  --border-color: #1e293b;
+  --header-bg: rgba(13, 21, 39, 0.8);
+  --badge-bg: rgba(13, 21, 39, 0.7);
+}
+
+html.light {
+  --background: #f5f3ef;
+  --foreground: #111111;
+  --footer-bg: #f5f3ef;
+  --secondary-bg: #ffffff;
+  --border-color: #e8e4de;
+  --header-bg: rgba(255, 255, 255, 0.8);
+  --badge-bg: rgba(255, 255, 255, 0.7);
 }
 
 :root {
@@ -11,13 +26,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-space-grotesk);
   --font-mono: var(--font-space-grotesk);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #020617;
-    --foreground: #F1F5F9;
-  }
 }
 
 body {

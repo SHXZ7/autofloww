@@ -17,7 +17,10 @@ export default function NodeSidebar() {
     automation: false,
     utilities: false,
   })
-  const [isLight, setIsLight] = useState(false)
+  const [isLight, setIsLight] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return (localStorage.getItem('theme') || 'dark') === 'light'
+  })
   useEffect(() => {
     const update = () => setIsLight(document.documentElement.classList.contains('light'))
     update()
@@ -25,7 +28,7 @@ export default function NodeSidebar() {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
     return () => observer.disconnect()
   }, [])
-  const API_BASE_URL = 'https://autofloww-production.up.railway.app'
+  const API_BASE_URL = 'http://localhost:8000'
 
   const runWorkflow = async () => {
     try {
@@ -317,7 +320,7 @@ export default function NodeSidebar() {
   }, {})
 
   return (
-    <div className="h-full flex flex-col" style={{background: isLight ? '#f8fafc' : '#0f172a', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}>
+    <div className="h-full flex flex-col" style={{background: isLight ? '#ffffff' : '#0d1527', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}>
       <style jsx>{`
         /* Custom scrollbar for webkit browsers */
         ::-webkit-scrollbar {
@@ -392,7 +395,7 @@ export default function NodeSidebar() {
       `}</style>
 
       {/* Search */}
-      <div style={{padding:'14px 12px 10px', borderBottom:`1px solid ${isLight ? '#e2e8f0' : '#1e293b'}`, flexShrink:0}}>
+      <div style={{padding:'14px 12px 10px', borderBottom:`1px solid ${isLight ? '#e8e4de' : '#1e293b'}`, flexShrink:0}}>
         <input
           type="text"
           placeholder="Search nodes…"
@@ -400,10 +403,10 @@ export default function NodeSidebar() {
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
             width:'100%', boxSizing:'border-box',
-            background: isLight ? '#ffffff' : '#1e293b',
-            border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
+            background: isLight ? '#f5f3ef' : '#1e293b',
+            border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
             borderRadius:'8px', padding:'8px 12px',
-            color: isLight ? '#1e293b' : '#F1F5F9', fontSize:'14px',
+            color: isLight ? '#111111' : '#F1F5F9', fontSize:'13px',
             fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)",
             outline:'none',
           }}
@@ -421,21 +424,21 @@ export default function NodeSidebar() {
                 width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
                 padding:'9px 10px', borderRadius:'8px', border:'none',
                 background: expandedSections[key]
-                  ? (isLight ? 'rgba(226,232,240,0.8)' : 'rgba(30,41,59,0.8)')
+                  ? (isLight ? 'rgba(232,228,222,0.8)' : 'rgba(30,41,59,0.8)')
                   : 'transparent',
                 cursor:'pointer', transition:'background 0.12s',
               }}
-              onMouseEnter={e => { if (!expandedSections[key]) e.currentTarget.style.background = isLight ? 'rgba(226,232,240,0.5)' : 'rgba(30,41,59,0.5)' }}
+              onMouseEnter={e => { if (!expandedSections[key]) e.currentTarget.style.background = isLight ? 'rgba(232,228,222,0.5)' : 'rgba(30,41,59,0.5)' }}
               onMouseLeave={e => { if (!expandedSections[key]) e.currentTarget.style.background = 'transparent' }}
             >
               <div style={{display:'flex', alignItems:'center', gap:'7px'}}>
                 {category.icon.startsWith('/') ? <img src={category.icon} alt="" style={{width:'20px', height:'20px', objectFit:'contain', flexShrink:0}} /> : <span style={{fontSize:'16px'}}>{category.icon}</span>}
-                <span style={{fontSize:'14.5px', fontWeight:'600', color: expandedSections[key] ? (isLight ? '#1e293b' : '#F1F5F9') : (isLight ? '#475569' : '#64748b'), fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}>{category.title}</span>
-                <span style={{fontSize:'12px', color: isLight ? '#94a3b8' : '#475569', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}> ({category.nodes.length})</span>
+                <span style={{fontSize:'13.5px', fontWeight:'600', color: expandedSections[key] ? (isLight ? '#111111' : '#F1F5F9') : (isLight ? '#52525b' : '#64748b'), fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}>{category.title}</span>
+                <span style={{fontSize:'12px', color: isLight ? '#a1a1aa' : '#475569', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}>({category.nodes.length})</span>
               </div>
               {expandedSections[key]
-                ? <ChevronDownIcon style={{width:'15px', height:'15px', color: isLight ? '#64748b' : '#64748b'}} />
-                : <ChevronRightIcon style={{width:'15px', height:'15px', color: isLight ? '#94a3b8' : '#475569'}} />
+                ? <ChevronDownIcon style={{width:'15px', height:'15px', color: isLight ? '#52525b' : '#64748b'}} />
+                : <ChevronRightIcon style={{width:'15px', height:'15px', color: isLight ? '#a1a1aa' : '#475569'}} />
               }
             </button>
 

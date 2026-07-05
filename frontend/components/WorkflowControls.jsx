@@ -13,7 +13,7 @@ import {
   StopCircleIcon,
 } from "@heroicons/react/24/outline"
 
-const API_BASE_URL = 'https://autofloww-production.up.railway.app'
+const API_BASE_URL = 'http://localhost:8000'
 
 const GOOGLE_REQUIRED_NODE_TYPES = new Set([
   'gmail_trigger',
@@ -56,9 +56,9 @@ function TBtn({ children, onClick, disabled, accent, success, danger, title, sty
     color: hov ? '#EF4444' : '#f87171',
     border: '1px solid rgba(239,68,68,0.3)',
   } : light ? {
-    background: hov ? '#e2e8f0' : '#f1f5f9',
-    color: hov ? '#1e293b' : '#475569',
-    border: '1px solid #e2e8f0',
+    background: hov ? '#e8e4de' : '#f5f3ef',
+    color: hov ? '#111111' : '#52525b',
+    border: '1px solid #e8e4de',
   } : {
     background: hov ? '#1e293b' : 'rgba(30,41,59,0.6)',
     color: hov ? '#F1F5F9' : '#94a3b8',
@@ -106,7 +106,10 @@ export default function WorkflowControls() {
   const [showSetupModal, setShowSetupModal]       = useState(false)
   const [setupMissingNodes, setSetupMissingNodes] = useState([])
   const nameRef = useRef(null)
-  const [isLight, setIsLight] = useState(false)
+  const [isLight, setIsLight] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return (localStorage.getItem('theme') || 'dark') === 'light'
+  })
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
     const update = () => setIsLight(document.documentElement.classList.contains('light'))
@@ -267,18 +270,18 @@ export default function WorkflowControls() {
               style={{
                 display:'flex', alignItems:'center', justifyContent:'center',
                 width:'28px', height:'28px', borderRadius:'7px',
-                border: isLight ? '1px solid #e2e8f0' : 'none',
-                background: isLight ? '#f1f5f9' : 'rgba(30,41,59,0.6)', color:'#64748b', cursor:'pointer',
+                border: isLight ? '1px solid #e8e4de' : 'none',
+                background: isLight ? '#f5f3ef' : 'rgba(30,41,59,0.6)', color:'#64748b', cursor:'pointer',
                 flexShrink:0, transition:'background 0.13s, color 0.13s',
               }}
-              onMouseEnter={e=>{e.currentTarget.style.background=isLight?'#e2e8f0':'#1e293b';e.currentTarget.style.color=isLight?'#334155':'#94a3b8'}}
-              onMouseLeave={e=>{e.currentTarget.style.background=isLight?'#f1f5f9':'rgba(30,41,59,0.6)';e.currentTarget.style.color='#64748b'}}
+              onMouseEnter={e=>{e.currentTarget.style.background=isLight?'#e8e4de':'#1e293b';e.currentTarget.style.color=isLight?'#111111':'#94a3b8'}}
+              onMouseLeave={e=>{e.currentTarget.style.background=isLight?'#f5f3ef':'rgba(30,41,59,0.6)';e.currentTarget.style.color='#64748b'}}
             >
               <PlusIcon style={{width:'14px',height:'14px'}} />
             </button>
 
             {/* Divider */}
-            <div style={{width:'1px', height:'18px', background: isLight ? '#e2e8f0' : '#1e293b', flexShrink:0}} />
+            <div style={{width:'1px', height:'18px', background: isLight ? '#e8e4de' : '#1e293b', flexShrink:0}} />
           </>
         )}
 
@@ -287,8 +290,8 @@ export default function WorkflowControls() {
           display:'flex', alignItems:'center', gap:'7px',
           padding:'4px 10px 4px 8px',
           borderRadius:'8px',
-          background: isLight ? 'rgba(248,250,252,0.9)' : 'rgba(30,41,59,0.5)',
-          border: isLight ? '1px solid #e2e8f0' : '1px solid #334155',
+          background: isLight ? '#fcfaf7' : 'rgba(30,41,59,0.5)',
+          border: isLight ? '1px solid #e8e4de' : '1px solid #334155',
           minWidth:0, maxWidth: isMobile ? '150px' : '220px',
         }}>
           <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#3B82F6',flexShrink:0,
@@ -380,15 +383,15 @@ export default function WorkflowControls() {
           {savedWorkflows.length > 0 && (
             <span style={{
               fontSize:'10px', fontWeight:700,
-              background: isLight ? '#e2e8f0' : '#1e293b',
-              color: isLight ? '#475569' : '#64748b',
+              background: isLight ? '#e8e4de' : '#1e293b',
+              color: isLight ? '#52525b' : '#64748b',
               padding:'1px 5px', borderRadius:'10px',
             }}>{savedWorkflows.length}</span>
           )}
         </TBtn>
 
         {/* Divider */}
-        <div style={{width:'1px', height:'18px', background: isLight ? '#e2e8f0' : '#1e293b', flexShrink:0}} />
+        <div style={{width:'1px', height:'18px', background: isLight ? '#e8e4de' : '#1e293b', flexShrink:0}} />
 
         {/* Debug */}
         <TBtn
@@ -407,7 +410,7 @@ export default function WorkflowControls() {
         </TBtn>
 
         {/* Divider */}
-        <div style={{width:'1px', height:'18px', background: isLight ? '#e2e8f0' : '#1e293b', flexShrink:0}} />
+        <div style={{width:'1px', height:'18px', background: isLight ? '#e8e4de' : '#1e293b', flexShrink:0}} />
 
         {/* Stop Schedule — only shown when schedule nodes exist */}
         {scheduleNodes.length > 0 && (
@@ -431,9 +434,9 @@ export default function WorkflowControls() {
         <div style={{
           position:'fixed', top:'56px', right:'16px', zIndex:60,
           background: isLight ? '#ffffff' : '#0f172a',
-          border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
+          border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
           borderRadius:'12px', padding:'16px', width:'280px',
-          boxShadow: isLight ? '0 16px 48px rgba(0,0,0,0.1)' : '0 16px 48px rgba(0,0,0,0.7)',
+          boxShadow: isLight ? '0 16px 48px rgba(0,0,0,0.08)' : '0 16px 48px rgba(0,0,0,0.7)',
         }}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'12px'}}>
             <span style={{fontSize:'13px',fontWeight:'600',color: isLight ? '#1e293b' : '#F1F5F9'}}>Version History</span>
@@ -446,7 +449,7 @@ export default function WorkflowControls() {
                 display:'flex',alignItems:'center',gap:'10px',
                 padding:'8px 10px',borderRadius:'8px',marginBottom:'4px',
                 background: wf._id===currentWorkflowId ? 'rgba(59,130,246,0.1)' : (isLight ? '#f8fafc' : 'rgba(30,41,59,0.4)'),
-                border: `1px solid ${wf._id===currentWorkflowId ? 'rgba(59,130,246,0.35)' : (isLight ? '#e2e8f0' : '#334155')}`,
+                border: `1px solid ${wf._id===currentWorkflowId ? 'rgba(59,130,246,0.35)' : (isLight ? '#e8e4de' : '#334155')}`,
               }}>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:'13px',fontWeight:'500',color: isLight ? '#1e293b' : '#F1F5F9',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{wf.name}</div>
@@ -469,11 +472,7 @@ export default function WorkflowControls() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
           <div
             className="glass p-6 rounded-xl w-[560px] max-w-[95vw] shadow-xl"
-            style={{
-              border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
-              background: isLight ? '#ffffff' : undefined,
-            }}
-          >
+            style={{border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`, background: isLight ? '#ffffff' : undefined}}>
             <div style={{display:'flex', alignItems:'start', justifyContent:'space-between', gap:'12px', marginBottom:'14px'}}>
               <div>
                 <h3 style={{fontSize:'18px', fontWeight:'700', margin:'0 0 4px 0', color: isLight ? '#1e293b' : '#F1F5F9'}}>
@@ -493,8 +492,8 @@ export default function WorkflowControls() {
             </div>
 
             <div style={{
-              background: isLight ? '#f8fafc' : 'rgba(15,23,42,0.7)',
-              border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
+              background: isLight ? '#f5f3ef' : 'rgba(15,23,42,0.7)',
+              border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
               borderRadius: '10px',
               padding: '12px',
               marginBottom: '14px',
@@ -557,9 +556,9 @@ export default function WorkflowControls() {
                 onClick={() => setShowSetupModal(false)}
                 style={{
                   flex:1,
-                  background: isLight ? '#f1f5f9' : '#1e293b',
-                  border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
-                  color: isLight ? '#475569' : '#94a3b8',
+                  background: isLight ? '#f5f3ef' : '#1e293b',
+                  border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
+                  color: isLight ? '#52525b' : '#94a3b8',
                   borderRadius:'8px',
                   padding:'10px 12px',
                   fontSize:'13px',
@@ -577,7 +576,7 @@ export default function WorkflowControls() {
       {showSaveDialog && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="glass p-6 rounded-xl w-96 shadow-xl"
-            style={{border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`, background: isLight ? '#ffffff' : undefined}}>
+            style={{border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`, background: isLight ? '#ffffff' : undefined}}>
             <h3 className="text-lg font-semibold mb-4" style={{color: isLight ? '#1e293b' : '#F1F5F9'}}>Save Workflow</h3>
             <input
               type="text"
@@ -587,8 +586,8 @@ export default function WorkflowControls() {
               onKeyDown={e => e.key==='Enter' && handleSave()}
               className="w-full rounded-lg px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
               style={{
-                background: isLight ? '#f8fafc' : '#1e293b',
-                border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
+                background: isLight ? '#f5f3ef' : '#1e293b',
+                border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
                 color: isLight ? '#1e293b' : '#F1F5F9',
               }}
               autoFocus
@@ -602,9 +601,9 @@ export default function WorkflowControls() {
               <button onClick={()=>setShowSaveDialog(false)}
                 className="flex-1 py-2 rounded-lg transition-all"
                 style={{
-                  background: isLight ? '#f1f5f9' : '#1e293b',
-                  border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
-                  color: isLight ? '#475569' : '#94a3b8',
+                  background: isLight ? '#f5f3ef' : '#1e293b',
+                  border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
+                  color: isLight ? '#52525b' : '#94a3b8',
                 }}>
                 Cancel
               </button>
@@ -617,7 +616,7 @@ export default function WorkflowControls() {
       {showLoadDialog && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="glass p-6 rounded-xl w-96 max-h-[80vh] overflow-y-auto shadow-xl"
-            style={{border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`, background: isLight ? '#ffffff' : undefined}}>
+            style={{border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`, background: isLight ? '#ffffff' : undefined}}>
             <h3 className="text-lg font-semibold mb-4" style={{color: isLight ? '#1e293b' : '#F1F5F9'}}>Load Workflow</h3>
             {savedWorkflows.length === 0
               ? <p className="text-center py-4" style={{color: isLight ? '#64748b' : '#94a3b8'}}>No saved workflows</p>
@@ -627,11 +626,11 @@ export default function WorkflowControls() {
                       <button onClick={()=>handleLoad(wf._id)}
                         className="flex-1 text-left p-3 rounded-lg transition-all"
                         style={{
-                          background: isLight ? '#f8fafc' : '#1e293b',
-                          border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
+                          background: isLight ? '#fcfaf7' : '#1e293b',
+                          border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
                         }}
-                        onMouseEnter={e=>e.currentTarget.style.background=isLight?'#f1f5f9':'#293548'}
-                        onMouseLeave={e=>e.currentTarget.style.background=isLight?'#f8fafc':'#1e293b'}>
+                        onMouseEnter={e=>e.currentTarget.style.background=isLight?'#f5f3ef':'#293548'}
+                        onMouseLeave={e=>e.currentTarget.style.background=isLight?'#fcfaf7':'#1e293b'}>
                         <div className="font-medium" style={{color: isLight ? '#1e293b' : '#F1F5F9'}}>{wf.name}</div>
                         <div className="text-sm" style={{color: isLight ? '#64748b' : '#64748b'}}>
                           {new Date(wf.updated_at).toLocaleDateString()} · {wf.nodes?.length||0} nodes
@@ -651,9 +650,9 @@ export default function WorkflowControls() {
             <button onClick={()=>setShowLoadDialog(false)}
               className="w-full mt-4 py-2 rounded-lg transition-all"
               style={{
-                background: isLight ? '#f1f5f9' : '#1e293b',
-                border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`,
-                color: isLight ? '#475569' : '#94a3b8',
+                background: isLight ? '#f5f3ef' : '#1e293b',
+                border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
+                color: isLight ? '#52525b' : '#94a3b8',
               }}>
               Close
             </button>
@@ -665,7 +664,7 @@ export default function WorkflowControls() {
       {showDeleteDialog && workflowToDelete && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="glass p-6 rounded-xl w-96 shadow-xl"
-            style={{border: `1px solid ${isLight ? '#e2e8f0' : '#334155'}`, background: isLight ? '#ffffff' : undefined}}>
+            style={{border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`, background: isLight ? '#ffffff' : undefined}}>
             <h3 className="text-lg font-semibold mb-4" style={{color: isLight ? '#1e293b' : '#F1F5F9'}}>Delete Workflow</h3>
             <p className="mb-4" style={{color: isLight ? '#475569' : '#cbd5e1'}}>
               Are you sure you want to delete "<span className="font-medium" style={{color: isLight ? '#1e293b' : '#F1F5F9'}}>{workflowToDelete.name}</span>"?

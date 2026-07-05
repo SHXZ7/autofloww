@@ -25,9 +25,9 @@ export default function LoginPage() {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ background: "var(--background)" }}
+        style={{ background: isLight ? "#f5f3ef" : "#030712" }}
       >
-        <div style={{ color: "var(--foreground)" }} className="font-sans text-sm font-medium">
+        <div style={{ color: isLight ? "#111111" : "#ffffff" }} className="font-sans text-sm font-medium">
           Loading...
         </div>
       </div>
@@ -44,7 +44,7 @@ export default function LoginPage() {
   return (
     <div
       className="min-h-screen md:h-screen w-screen flex flex-col md:flex-row overflow-x-hidden md:overflow-y-hidden"
-      style={{ background: "var(--background)", transition: "background 0.3s ease" }}
+      style={{ background: rightBg, transition: "background 0.3s ease" }}
     >
       <style jsx global>{`
         body {

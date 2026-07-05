@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { XMarkIcon, UserCircleIcon, KeyIcon, CreditCardIcon, ShieldCheckIcon, ShieldExclamationIcon } from "@heroicons/react/24/outline"
 import { useAuthStore } from "../stores/authStore"
 
-const API_BASE_URL = "https://autoflow-f6hga9djg0a5b4fj.uaenorth-01.azurewebsites.net/docs"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://autoflow-f6hga9djg0a5b4fj.uaenorth-01.azurewebsites.net"
 
 export default function ProfileSettings({ isOpen, onClose, activeTab = "profile" }) {
   const [currentTab, setCurrentTab] = useState(activeTab)

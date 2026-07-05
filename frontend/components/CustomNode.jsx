@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { CogIcon } from "@heroicons/react/24/outline"
 import { useFlowStore } from "../stores/flowStore"
 
-const API_BASE_URL = 'https://autoflow-f6hga9djg0a5b4fj.uaenorth-01.azurewebsites.net/docs'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://autoflow-f6hga9djg0a5b4fj.uaenorth-01.azurewebsites.net'
 
 export default function CustomNode({ data, id }) {
   const [isEditing, setIsEditing] = useState(false)

@@ -6,7 +6,6 @@ backend/drive_token.json
 backend/token.json
 backend/service_account.json
 *.env
-.env.*
 
 # Google OAuth and API credentials
 **/token.json
@@ -45,7 +44,6 @@ pip-delete-this-directory.txt
 **/*.pyd
 
 # IDE and editor files
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -99,8 +97,6 @@ jspm_packages/
 .yarn-integrity
 
 # dotenv environment variables file
-.env.test
-.env.production
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -248,6 +244,7 @@ cython_debug/
 # Large media files
 *.mp4
 !A_clean_second_product_dem.mp4
+!Product_demo_workflow_animation_1080p_202608231731.mp4
 *.avi
 *.mov
 *.mkv
@@ -346,8 +343,6 @@ debug.log
 *.debug
 
 # IDE and editor specific files for workflow development
-**/.vscode/settings.json
-**/.vscode/launch.json
 **/workflow_*.tmp
 **/flow_*.temp
 
@@ -364,7 +359,7 @@ test_*.json
 mock_*.json
 
 
-.env
 branch_structure.json
 temp_auto_push.bat
 temp_interactive_push.bat
+config.bat

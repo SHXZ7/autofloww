@@ -248,6 +248,7 @@ cython_debug/
 # Large media files
 *.mp4
 !A_clean_second_product_dem.mp4
+!Product_demo_workflow_animation_1080p_202608231731.mp4
 *.avi
 *.mov
 *.mkv

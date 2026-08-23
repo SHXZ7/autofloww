@@ -14,15 +14,14 @@ import {
 } from '@heroicons/react/24/outline'
 
 const GLOBAL_CSS = `
-    *, *::before, *::after { box-sizing: border-box; }
-  body { font-family: var(--font-space-grotesk, system-ui, sans-serif); background: #020617; margin: 0; -webkit-font-smoothing: antialiased; }
-  html.light body { background: #f5f3ef !important; }
-  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(51,65,85,0.8); border-radius: 8px; }
-  .int-card:hover { background: #1e293b !important; border-color: #334155 !important; }
-  html.light .int-card:hover { background: #f5f3ef !important; border-color: #d5cfc6 !important; }
-  .int-card { transition: background 0.15s ease, border-color 0.15s ease; }
-  .config-btn:hover { background: rgba(59,130,246,0.2) !important; color: #3B82F6 !important; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { font-family: var(--font-space-grotesk, system-ui, sans-serif); background: #F6F1EA; margin: 0; -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #E5DCD0; border-radius: 8px; }
+  .int-card { transition: all 0.15s ease; }
+  .int-card:hover { background: #EDE6DC !important; border-color: #EB5E3D !important; transform: translateY(-2px); }
+  .config-btn { transition: all 0.15s ease; }
+  .config-btn:hover { background: #EB5E3D !important; color: #FFFFFF !important; border-color: #EB5E3D !important; }
 `
 
 const INTEGRATIONS = [
@@ -31,7 +30,7 @@ const INTEGRATIONS = [
     name: 'Groq / AI Models',
     desc: 'Powers all AI nodes — GPT, Llama, Gemini, Claude, Mistral — via the Groq inference engine.',
     icon: '🤖',
-    color: '#3B82F6',
+    color: '#DDA449',
     category: 'AI',
     docsUrl: 'https://console.groq.com/',
     settingsTab: 'api',
@@ -41,7 +40,7 @@ const INTEGRATIONS = [
     name: 'Google Sheets',
     desc: 'Read and write spreadsheet data directly from your automation workflows.',
     icon: '📊',
-    color: '#34d399',
+    color: '#2EA38D',
     category: 'Data',
     docsUrl: 'https://developers.google.com/sheets',
     settingsTab: 'api',
@@ -51,7 +50,7 @@ const INTEGRATIONS = [
     name: 'Google Drive',
     desc: 'Upload, download, and manage files in Google Drive from your workflows.',
     icon: '📁',
-    color: '#fbbf24',
+    color: '#DDA449',
     category: 'Data',
     docsUrl: 'https://developers.google.com/drive',
     settingsTab: 'api',
@@ -61,7 +60,7 @@ const INTEGRATIONS = [
     name: 'Gmail / SMTP',
     desc: 'Send automated emails using Gmail or any SMTP-compatible provider.',
     icon: '📧',
-    color: '#60a5fa',
+    color: '#5B9EB5',
     category: 'Communication',
     docsUrl: 'https://support.google.com/mail/answer/185833',
     settingsTab: 'api',
@@ -71,7 +70,7 @@ const INTEGRATIONS = [
     name: 'Discord',
     desc: 'Post messages and alerts to Discord channels via webhook or bot token.',
     icon: '💬',
-    color: '#818cf8',
+    color: '#5B9EB5',
     category: 'Communication',
     docsUrl: 'https://discord.com/developers/docs',
     settingsTab: 'api',
@@ -81,7 +80,7 @@ const INTEGRATIONS = [
     name: 'WhatsApp Cloud API',
     desc: 'Send WhatsApp messages directly through Meta WhatsApp Cloud API.',
     icon: '📱',
-    color: '#fb7185',
+    color: '#2EA38D',
     category: 'Communication',
     docsUrl: 'https://developers.facebook.com/docs/whatsapp/cloud-api',
     settingsTab: 'api',
@@ -91,7 +90,7 @@ const INTEGRATIONS = [
     name: 'Stability AI',
     desc: 'Generate high-quality images using Stability AI\'s image generation API.',
     icon: '🎨',
-    color: '#f472b6',
+    color: '#EB5E3D',
     category: 'AI',
     docsUrl: 'https://stability.ai/docs',
     settingsTab: 'api',
@@ -101,7 +100,7 @@ const INTEGRATIONS = [
     name: 'Webhooks',
     desc: 'Trigger workflows from external services using inbound webhook endpoints.',
     icon: '🪝',
-    color: '#FF6B35',
+    color: '#EB5E3D',
     category: 'Automation',
     docsUrl: '#',
     settingsTab: 'api',
@@ -125,24 +124,12 @@ export default function IntegrationsPage() {
   const [filter, setFilter] = useState('All')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [isLight, setIsLight] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return (localStorage.getItem('theme') || 'dark') === 'light'
-  })
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 900)
     onResize()
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
-  }, [])
-
-  useEffect(() => {
-    const update = () => setIsLight(document.documentElement.classList.contains('light'))
-    update()
-    const observer = new MutationObserver(update)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-    return () => observer.disconnect()
   }, [])
 
   useEffect(() => { checkAuth() }, [checkAuth])
@@ -155,36 +142,32 @@ export default function IntegrationsPage() {
   if (loading || !isAuthenticated) return null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', height: isMobile ? '100dvh' : '100vh', background: isLight ? '#f5f3ef' : '#020617', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'row', height: isMobile ? '100dvh' : '100vh', background: '#F6F1EA', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", overflow: 'hidden' }}>
       <style jsx global>{GLOBAL_CSS}</style>
       {!isMobile && <TopNav />}
 
-      <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '18px 12px 96px' : '32px 40px' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '18px 14px 96px' : '32px 40px' }}>
         {/* Header */}
         <div style={{ marginBottom: isMobile ? '18px' : '28px' }}>
-          <h1 style={{ fontSize: '22px', fontWeight: '700', color: isLight ? '#111111' : '#F1F5F9', margin: 0, letterSpacing: '-0.4px' }}>Integrations</h1>
-          <p style={{ fontSize: '13px', color: isLight ? '#71717a' : '#64748b', margin: '4px 0 0' }}>
-            Connect external services — configure API keys in Settings → API Keys
+          <h1 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '800', color: '#241812', margin: 0, letterSpacing: '-0.02em' }}>Integrations</h1>
+          <p style={{ fontSize: '13px', color: '#736357', margin: '4px 0 0', fontWeight: '500' }}>
+            Connect external services and manage API credentials in Settings → API Keys
           </p>
         </div>
 
         {/* Category pills */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
           {CATEGORIES.map(cat => (
             <button
               key={cat}
               onClick={() => setFilter(cat)}
               style={{
-                padding: '5px 14px', borderRadius: '20px',
-                border: `1px solid ${filter === cat
-                  ? 'rgba(59,130,246,0.4)'
-                  : (isLight ? '#e8e4de' : '#1e293b')}`,
-                background: filter === cat
-                  ? 'rgba(59,130,246,0.12)'
-                  : (isLight ? '#ffffff' : '#0f172a'),
-                color: filter === cat ? '#3B82F6' : (isLight ? '#52525b' : '#64748b'),
-                fontSize: '12.5px', fontWeight: '500', cursor: 'pointer',
-                fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", transition: 'all 0.12s ease',
+                padding: '6px 16px', borderRadius: '20px',
+                border: '1px solid #E5DCD0',
+                background: filter === cat ? '#EB5E3D' : '#EDE6DC',
+                color: filter === cat ? '#FFFFFF' : '#241812',
+                fontSize: '12.5px', fontWeight: '700', cursor: 'pointer',
+                fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", transition: 'all 0.15s ease',
               }}
             >
               {cat}
@@ -193,40 +176,41 @@ export default function IntegrationsPage() {
         </div>
 
         {/* Integration grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(290px, 1fr))', gap: '16px' }}>
           {filtered.map(integration => (
             <div
               key={integration.id}
               className="int-card"
               style={{
-                background: isLight ? '#ffffff' : '#0f172a',
-                border: `1px solid ${isLight ? '#e8e4de' : '#1e293b'}`,
-                borderRadius: '12px', padding: isMobile ? '16px' : '20px',
+                background: '#FFFFFF',
+                border: '1px solid #E5DCD0',
+                borderRadius: '16px', padding: isMobile ? '16px' : '22px',
+                boxShadow: '0 4px 16px rgba(36,24,18,0.04)',
               }}
             >
               {/* Icon + name row */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '14px' }}>
                 <div style={{
-                  width: '38px', height: '38px', flexShrink: 0, borderRadius: '9px',
-                  background: `${integration.color}18`,
-                  border: `1px solid ${integration.color}25`,
+                  width: '42px', height: '42px', flexShrink: 0, borderRadius: '12px',
+                  background: '#EDE6DC',
+                  border: '1px solid #E5DCD0',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '18px',
+                  fontSize: '20px',
                 }}>
                   {integration.icon}
                 </div>
                 <div>
-                  <div style={{ fontSize: '13.5px', fontWeight: '600', color: isLight ? '#111111' : '#e2e8f0', marginBottom: '3px' }}>{integration.name}</div>
+                  <div style={{ fontSize: '15px', fontWeight: '700', color: '#241812', marginBottom: '4px' }}>{integration.name}</div>
                   <span style={{
-                    fontSize: '10.5px', fontWeight: '500', padding: '2px 7px', borderRadius: '10px',
-                    background: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#64748b',
+                    fontSize: '10.5px', fontWeight: '700', padding: '2px 8px', borderRadius: '10px',
+                    background: '#EDE6DC', color: '#736357', border: '1px solid #E5DCD0',
                   }}>
                     {integration.category}
                   </span>
                 </div>
               </div>
 
-              <p style={{ fontSize: '12.5px', color: isLight ? '#71717a' : '#64748b', lineHeight: '1.55', margin: '0 0 16px' }}>
+              <p style={{ fontSize: '12.5px', color: '#736357', lineHeight: '1.55', margin: '0 0 18px', fontWeight: '500' }}>
                 {integration.desc}
               </p>
 
@@ -235,14 +219,14 @@ export default function IntegrationsPage() {
                   className="config-btn"
                   onClick={() => setSettingsOpen(true)}
                   style={{
-                    flex: 1, padding: '6px 0', borderRadius: '6px',
-                    border: '1px solid rgba(59,130,246,0.3)',
-                    background: 'rgba(59,130,246,0.08)', color: '#3B82F6',
-                    fontSize: '12px', fontWeight: '500', cursor: 'pointer',
-                    fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", transition: 'all 0.12s ease',
+                    flex: 1, padding: '7px 0', borderRadius: '10px',
+                    border: '1px solid #E5DCD0',
+                    background: '#EDE6DC', color: '#241812',
+                    fontSize: '12.5px', fontWeight: '700', cursor: 'pointer',
+                    fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
                   }}
                 >
-                  Configure
+                  Configure Key →
                 </button>
               </div>
             </div>
@@ -254,7 +238,7 @@ export default function IntegrationsPage() {
             items={MOBILE_NAV_ITEMS}
             pathname={pathname}
             onNavigate={(href) => router.push(href)}
-            isLight={isLight}
+            isLight={true}
           />
         )}
       </div>

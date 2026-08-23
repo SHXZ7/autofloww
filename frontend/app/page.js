@@ -25,6 +25,8 @@ import {
   DocumentDuplicateIcon,
   PlayCircleIcon,
   Cog6ToothIcon,
+  ChevronRightIcon,
+  AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline'
 
 // Dynamically import particle background to avoid SSR issues
@@ -75,6 +77,7 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState("")
   const [dockCollapsed, setDockCollapsed] = useState(false)
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false)
   const [pendingWorkflow, setPendingWorkflow] = useState(null)
   const [pendingSummary, setPendingSummary] = useState("")
   const [lastAction, setLastAction] = useState(null)
@@ -353,22 +356,21 @@ export default function Home() {
   // Show loading screen while checking authentication
   if (loading) {
     return (
-      <div style={{minHeight:'100vh', background:'#020617', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}>
+      <div style={{minHeight:'100vh', background:'#F6F1EA', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}>
         <style jsx>{`
-
           @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 24px rgba(59,130,246,0.25), 0 0 56px rgba(59,130,246,0.08); }
-            50% { box-shadow: 0 0 36px rgba(59,130,246,0.45), 0 0 72px rgba(59,130,246,0.15); }
+            0%, 100% { box-shadow: 0 4px 20px rgba(235,94,61,0.25); }
+            50% { box-shadow: 0 8px 30px rgba(235,94,61,0.45); }
           }
           @keyframes loader-dot {
-            0%, 100% { opacity: 0.2; transform: translateY(0); }
+            0%, 100% { opacity: 0.3; transform: translateY(0); }
             50% { opacity: 1; transform: translateY(-3px); }
           }
         `}</style>
         <div style={{textAlign:'center'}}>
           <div style={{
             width:'52px', height:'52px',
-            background:'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
+            background:'linear-gradient(135deg, #EB5E3D 0%, #D94F2F 100%)',
             borderRadius:'14px',
             display:'flex', alignItems:'center', justifyContent:'center',
             margin:'0 auto 20px auto',
@@ -376,12 +378,12 @@ export default function Home() {
           }}>
             <span style={{color:'white', fontWeight:800, fontSize:'17px', letterSpacing:'-0.5px'}}>AF</span>
           </div>
-          <div style={{color:'rgba(241,245,249,0.4)', fontSize:'11px', fontWeight:600, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:'16px'}}>Loading</div>
+          <div style={{color:'#736357', fontSize:'11px', fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:'16px'}}>Loading AutoFlow</div>
           <div style={{display:'flex', justifyContent:'center', gap:'6px'}}>
             {[0,1,2].map(i => (
               <div key={i} style={{
-                width:'5px', height:'5px', borderRadius:'50%',
-                background:'rgba(59,130,246,0.8)',
+                width:'6px', height:'6px', borderRadius:'50%',
+                background:'#EB5E3D',
                 animation:`loader-dot 1.1s ease-in-out ${i * 0.18}s infinite`,
               }} />
             ))}
@@ -403,23 +405,23 @@ export default function Home() {
 
   // Show main app
   return (
-    <div style={{display:'flex', flexDirection:'row', height:isMobile ? '100dvh' : '100vh', background: isLight ? '#f5f3ef' : '#030712', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)", overflow:'hidden'}}>
+    <div style={{display:'flex', flexDirection:'row', height:isMobile ? '100dvh' : '100vh', background: '#F6F1EA', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)", overflow:'hidden'}}>
       <style jsx global>{`
         *, *::before, *::after { box-sizing: border-box; }
 
         body {
           font-family: var(--font-space-grotesk, system-ui, sans-serif);
-          background: ${isLight ? '#f5f3ef' : '#030712'};
+          background: #F6F1EA;
           margin: 0;
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
         }
 
         /* Scrollbars */
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(51,65,85,0.8); border-radius: 8px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(71,85,105,0.9); }
+        ::-webkit-scrollbar-thumb { background: #E5DCD0; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: #D5CDC0; }
 
         /* Utility classes */
         .gradient-text {
@@ -448,17 +450,16 @@ export default function Home() {
         .react-flow__node {
           background: transparent !important;
           border: none !important;
-          color: white !important;
+          color: #241812 !important;
           font-family: var(--font-space-grotesk, system-ui, sans-serif) !important;
         }
         .react-flow__node-default {
           background: transparent !important;
           border: none !important;
-          color: white !important;
+          color: #241812 !important;
           font-family: var(--font-space-grotesk, system-ui, sans-serif) !important;
         }
         .react-flow__node > div { background: transparent !important; }
-        .react-flow__node * { color: inherit !important; }
 
         /* Handles */
         .react-flow__handle {
@@ -568,16 +569,16 @@ export default function Home() {
       {!isMobile && <TopNav />}
 
       {/* ── Content Area ── */}
-      <div style={{display:'flex', flexDirection:'column', flex:1, overflow:'hidden'}}>
+      <div style={{display:'flex', flexDirection:'column', flex:1, overflow:'hidden', background: '#F6F1EA'}}>
       {/* ── Canvas Toolbar ── */}
       <div style={{
-        height: '48px',
-        minHeight: '48px',
-        background: isLight ? '#ffffff' : '#0d1527',
-        borderBottom: `1px solid ${isLight ? '#e8e4de' : '#1e293b'}`,
+        height: '52px',
+        minHeight: '52px',
+        background: '#FFFFFF',
+        borderBottom: '1px solid #E5DCD0',
         display: 'flex',
         alignItems: 'center',
-        padding: isMobile ? '0 8px' : '0 14px',
+        padding: isMobile ? '0 10px' : '0 16px',
         flexShrink: 0,
         zIndex: 39,
       }}>
@@ -860,6 +861,39 @@ export default function Home() {
             </div>
           )}
 
+          {/* Expand Inspector Button when collapsed */}
+          {!isMobile && rightPanelCollapsed && (
+            <button
+              onClick={() => setRightPanelCollapsed(false)}
+              title="Expand Inspector"
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                zIndex: 25,
+                background: '#FFFFFF',
+                border: '1px solid #E5DCD0',
+                color: '#241812',
+                padding: '8px 14px',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                boxShadow: '0 6px 20px rgba(36,24,18,0.08)',
+                transition: 'all 0.15s ease',
+                fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#EDE6DC'; e.currentTarget.style.borderColor = '#EB5E3D' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = '#E5DCD0' }}
+            >
+              <AdjustmentsHorizontalIcon className="w-4 h-4 text-[#EB5E3D]" />
+              <span>Inspector</span>
+            </button>
+          )}
+
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -868,33 +902,33 @@ export default function Home() {
             onConnect={onConnect}
             nodeTypes={nodeTypes}
             fitView
-            style={{ width: '100%', height: '100%' }}
-            connectionLineStyle={{ stroke: 'rgba(59,130,246,0.9)', strokeWidth: 1.5 }}
+            style={{ width: '100%', height: '100%', background: '#F6F1EA' }}
+            connectionLineStyle={{ stroke: '#EB5E3D', strokeWidth: 2 }}
             defaultEdgeOptions={{
-              style: { stroke: 'rgba(59,130,246,0.65)', strokeWidth: 1.5 },
+              style: { stroke: '#EB5E3D', strokeWidth: 2 },
               type: 'smoothstep',
               animated: false,
               markerEnd: {
                 type: 'arrowclosed',
-                color: 'rgba(59,130,246,0.65)',
+                color: '#EB5E3D',
                 width: 16,
                 height: 16,
               }
             }}
           >
             <Background
-              color="rgba(148,163,184,0.12)"
+              color="#E5DCD0"
               gap={24}
-              size={1}
+              size={1.5}
               variant="dots"
             />
             <Controls
               style={{
-                background: '#0e0e0e',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '10px',
+                background: '#FFFFFF',
+                border: '1px solid #E5DCD0',
+                borderRadius: '12px',
                 overflow: 'hidden',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                boxShadow: '0 8px 24px rgba(36,24,18,0.08)',
               }}
             />
           </ReactFlow>
@@ -902,7 +936,7 @@ export default function Home() {
           <div style={{
             position: 'absolute',
             left: '50%',
-            bottom: isMobile ? '98px' : '12px',
+            bottom: isMobile ? '98px' : '16px',
             transform: 'translateX(-50%)',
             width: isMobile ? 'calc(100% - 16px)' : 'min(760px, calc(100% - 24px))',
             zIndex: 20,
@@ -914,264 +948,302 @@ export default function Home() {
                 title="Expand workflow generator"
                 style={{
                   pointerEvents: 'auto',
-                  width: isMobile ? '36px' : '42px',
-                  height: isMobile ? '36px' : '42px',
+                  width: isMobile ? '36px' : '44px',
+                  height: isMobile ? '36px' : '44px',
                   borderRadius: '999px',
-                  border: `1px solid ${isLight ? '#cbd5e1' : '#334155'}`,
-                  background: isLight ? 'rgba(255,255,255,0.95)' : 'rgba(15,23,42,0.9)',
-                  color: isLight ? '#2563eb' : '#38bdf8',
+                  border: '1px solid #E5DCD0',
+                  background: '#FFFFFF',
+                  color: '#EB5E3D',
                   cursor: 'pointer',
                   fontSize: isMobile ? '16px' : '18px',
                   fontWeight: 700,
-                  display: 'block',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   margin: isMobile ? '0 0 0 auto' : '0 auto',
-                  boxShadow: isLight
-                    ? '0 6px 18px rgba(15,23,42,0.14)'
-                    : '0 8px 20px rgba(2,6,23,0.55)',
+                  boxShadow: '0 8px 24px rgba(36,24,18,0.12)',
                 }}
               >
-                ⚡
+                +
               </button>
             ) : (
-            <div style={{
-              pointerEvents: 'auto',
-              borderRadius: '12px',
-              border: `1px solid ${isLight ? '#e8e4de' : 'rgba(51,65,85,0.85)'}`,
-              background: isLight ? 'rgba(255,255,255,0.95)' : 'rgba(13, 21, 39, 0.9)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              boxShadow: isLight
-                ? '0 6px 24px rgba(0,0,0,0.04)'
-                : '0 10px 28px rgba(2,6,23,0.55)',
-              padding: '10px',
-            }}>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                <input
-                  placeholder="Describe your workflow..."
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      handleGenerate()
-                    }
-                  }}
-                  style={{
-                    flex: isMobile ? '1 1 100%' : 1,
-                    height: '40px',
-                    borderRadius: '9px',
-                    border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
-                    background: isLight ? '#f5f3ef' : '#0b1220',
-                    color: isLight ? '#111111' : '#e2e8f0',
-                    padding: '0 12px',
-                    fontSize: '13px',
-                    outline: 'none',
-                    fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
-                  }}
-                />
-                <button
-                  onClick={handleGenerate}
-                  disabled={isGenerating || !prompt.trim()}
-                  style={{
-                    height: '40px',
-                    minWidth: isMobile ? 'calc(50% - 4px)' : '150px',
-                    borderRadius: '9px',
-                    border: 'none',
-                    cursor: isGenerating || !prompt.trim() ? 'not-allowed' : 'pointer',
-                    background: isGenerating || !prompt.trim()
-                      ? (isLight ? '#e8e4de' : '#334155')
-                      : (isLight ? 'linear-gradient(135deg, #e35b1a 0%, #f97316 100%)' : 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)'),
-                    color: isGenerating || !prompt.trim()
-                      ? (isLight ? '#a1a1aa' : '#94a3b8')
-                      : '#ffffff',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    letterSpacing: '0.02em',
-                    transition: 'all 0.15s ease',
-                    boxShadow: isGenerating || !prompt.trim() ? 'none' : (isLight ? '0 6px 20px rgba(227,91,26,0.3)' : '0 6px 20px rgba(37,99,235,0.35)'),
-                    fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
-                  }}
-                >
-                  {isGenerating ? 'Generating...' : 'Generate Workflow'}
-                </button>
-                <button
-                  onClick={handleModify}
-                  disabled={isGenerating || !prompt.trim() || !nodes.length}
-                  title={nodes.length ? "Modify current workflow using this prompt" : "Add nodes first, then modify"}
-                  style={{
-                    height: '40px',
-                    minWidth: isMobile ? 'calc(50% - 4px)' : '88px',
-                    borderRadius: '9px',
-                    border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
-                    background: isGenerating || !prompt.trim() || !nodes.length
-                      ? (isLight ? '#e8e4de' : '#334155')
-                      : (isLight ? '#ffffff' : '#0b1220'),
-                    color: isGenerating || !prompt.trim() || !nodes.length
-                      ? (isLight ? '#a1a1aa' : '#94a3b8')
-                      : (isLight ? '#111111' : '#e2e8f0'),
-                    cursor: isGenerating || !prompt.trim() || !nodes.length ? 'not-allowed' : 'pointer',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
-                  }}
-                >
-                  Modify
-                </button>
-                <button
-                  onClick={handleRegenerate}
-                  disabled={isGenerating || !lastAction}
-                  title="Regenerate last AI result"
-                  style={{
-                    height: '40px',
-                    minWidth: isMobile ? 'calc(50% - 4px)' : '108px',
-                    borderRadius: '9px',
-                    border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
-                    background: isLight ? '#ffffff' : '#0b1220',
-                    color: isLight ? '#111111' : '#cbd5e1',
-                    cursor: isGenerating || !lastAction ? 'not-allowed' : 'pointer',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
-                  }}
-                >
-                  Regenerate
-                </button>
-                <button
-                  onClick={() => setDockCollapsed(true)}
-                  title="Collapse workflow generator"
-                  style={{
-                    height: '40px',
-                    minWidth: isMobile ? 'calc(50% - 4px)' : '40px',
-                    borderRadius: '9px',
-                    border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
-                    background: isLight ? '#ffffff' : '#0b1220',
-                    color: isLight ? '#52525b' : '#94a3b8',
-                    cursor: 'pointer',
-                    fontSize: '18px',
-                    lineHeight: 1,
-                    fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
-                  }}
-                >
-                  -
-                </button>
-              </div>
+              <div style={{
+                pointerEvents: 'auto',
+                border: '1px solid #E5DCD0',
+                borderRadius: '18px',
+                padding: '12px 14px',
+                background: 'rgba(255,255,255,0.96)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                boxShadow: '0 12px 36px rgba(36,24,18,0.1)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !isGenerating && prompt.trim()) {
+                        handleGenerate()
+                      }
+                    }}
+                    placeholder="Describe your workflow in plain English..."
+                    style={{
+                      flex: 1,
+                      height: '42px',
+                      borderRadius: '12px',
+                      border: '1px solid #E5DCD0',
+                      background: '#F6F1EA',
+                      color: '#241812',
+                      fontSize: '13px',
+                      padding: '0 14px',
+                      outline: 'none',
+                      fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+                      transition: 'border-color 0.15s ease',
+                    }}
+                    onFocus={e => e.currentTarget.style.borderColor = '#EB5E3D'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#E5DCD0'}
+                  />
+                  <button
+                    onClick={handleGenerate}
+                    disabled={isGenerating || !prompt.trim()}
+                    style={{
+                      height: '42px',
+                      padding: '0 18px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      cursor: isGenerating || !prompt.trim() ? 'not-allowed' : 'pointer',
+                      background: isGenerating || !prompt.trim()
+                        ? '#EDE6DC'
+                        : 'linear-gradient(135deg, #EB5E3D 0%, #D94F2F 100%)',
+                      color: isGenerating || !prompt.trim()
+                        ? '#736357'
+                        : '#FFFFFF',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      letterSpacing: '0.02em',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isGenerating || !prompt.trim() ? 'none' : '0 4px 14px rgba(235,94,61,0.3)',
+                      fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+                    }}
+                  >
+                    {isGenerating ? 'Generating...' : 'Generate Workflow'}
+                  </button>
+                  <button
+                    onClick={handleModify}
+                    disabled={isGenerating || !prompt.trim() || !nodes.length}
+                    title={nodes.length ? "Modify current workflow using this prompt" : "Add nodes first, then modify"}
+                    style={{
+                      height: '42px',
+                      minWidth: isMobile ? 'calc(50% - 4px)' : '88px',
+                      borderRadius: '12px',
+                      border: '1px solid #E5DCD0',
+                      background: '#EDE6DC',
+                      color: isGenerating || !prompt.trim() || !nodes.length ? '#736357' : '#241812',
+                      cursor: isGenerating || !prompt.trim() || !nodes.length ? 'not-allowed' : 'pointer',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={e => { if (!isGenerating && prompt.trim() && nodes.length) e.currentTarget.style.background = '#E5DCD0' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#EDE6DC' }}
+                  >
+                    Modify
+                  </button>
+                  <button
+                    onClick={handleRegenerate}
+                    disabled={isGenerating || !lastAction}
+                    title="Regenerate last AI result"
+                    style={{
+                      height: '42px',
+                      minWidth: isMobile ? 'calc(50% - 4px)' : '104px',
+                      borderRadius: '12px',
+                      border: '1px solid #E5DCD0',
+                      background: '#EDE6DC',
+                      color: isGenerating || !lastAction ? '#736357' : '#241812',
+                      cursor: isGenerating || !lastAction ? 'not-allowed' : 'pointer',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={e => { if (!isGenerating && lastAction) e.currentTarget.style.background = '#E5DCD0' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#EDE6DC' }}
+                  >
+                    Regenerate
+                  </button>
+                  <button
+                    onClick={() => setDockCollapsed(true)}
+                    title="Collapse workflow generator"
+                    style={{
+                      height: '42px',
+                      minWidth: isMobile ? 'calc(50% - 4px)' : '42px',
+                      borderRadius: '12px',
+                      border: '1px solid #E5DCD0',
+                      background: '#EDE6DC',
+                      color: '#241812',
+                      cursor: 'pointer',
+                      fontSize: '18px',
+                      lineHeight: 1,
+                      fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#E5DCD0'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#EDE6DC'}
+                  >
+                    -
+                  </button>
+                </div>
 
-              {pendingWorkflow && (
-                <div style={{
-                  marginTop: '8px',
-                  borderRadius: '9px',
-                  border: `1px solid ${isLight ? '#cbd5e1' : '#334155'}`,
-                  background: isLight ? '#ffffff' : '#0b1220',
-                  padding: '8px 10px',
-                  display: 'flex',
-                  alignItems: isMobile ? 'flex-start' : 'center',
-                  justifyContent: 'space-between',
-                  gap: '10px',
-                  flexDirection: isMobile ? 'column' : 'row',
-                }}>
+                {pendingWorkflow && (
                   <div style={{
-                    fontSize: '11px',
-                    color: isLight ? '#334155' : '#cbd5e1',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    marginTop: '8px',
+                    borderRadius: '10px',
+                    border: '1px solid #E5DCD0',
+                    background: '#FFFFFF',
+                    padding: '8px 12px',
+                    display: 'flex',
+                    alignItems: isMobile ? 'flex-start' : 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    flexDirection: isMobile ? 'column' : 'row',
                   }}>
-                    Generated workflow: {pendingSummary}
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#241812',
+                      fontWeight: 600,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      Generated workflow: {pendingSummary}
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                      <button
+                        onClick={handleConfirmPreview}
+                        style={{
+                          height: '32px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: '#2EA38D',
+                          color: '#fff',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '0 12px',
+                          cursor: 'pointer',
+                          fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+                        }}
+                      >
+                        Apply
+                      </button>
+                      <button
+                        onClick={handleDiscardPreview}
+                        style={{
+                          height: '32px',
+                          borderRadius: '8px',
+                          border: '1px solid #E5DCD0',
+                          background: '#EDE6DC',
+                          color: '#241812',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '0 12px',
+                          cursor: 'pointer',
+                          fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+                        }}
+                      >
+                        Discard
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                    <button
-                      onClick={handleConfirmPreview}
-                      style={{
-                        height: '30px',
-                        borderRadius: '7px',
-                        border: 'none',
-                        background: '#16a34a',
-                        color: '#fff',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        padding: '0 10px',
-                        cursor: 'pointer',
-                        fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
-                      }}
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      onClick={handleRegenerate}
-                      disabled={isGenerating}
-                      style={{
-                        height: '30px',
-                        borderRadius: '7px',
-                        border: `1px solid ${isLight ? '#cbd5e1' : '#334155'}`,
-                        background: isLight ? '#f8fafc' : '#1e293b',
-                        color: isLight ? '#334155' : '#e2e8f0',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        padding: '0 10px',
-                        cursor: isGenerating ? 'not-allowed' : 'pointer',
-                        fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
-                      }}
-                    >
-                      Regenerate
-                    </button>
+                )}
+                {generateError && (
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#EB5E3D',
+                    fontWeight: 600,
+                    padding: '4px 8px',
+                    background: 'rgba(235,94,61,0.08)',
+                    borderRadius: '8px',
+                  }}>
+                    {generateError}
                   </div>
-                </div>
-              )}
-
-              {(isGenerating || generateError) && (
-                <div style={{
-                  marginTop: '7px',
-                  fontSize: '11px',
-                  color: generateError
-                    ? (isLight ? '#b91c1c' : '#fda4af')
-                    : (isLight ? '#475569' : '#94a3b8'),
-                  paddingLeft: '2px',
-                }}>
-                  {isGenerating ? 'Generating workflow...' : generateError}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
             )}
           </div>
         </div>
 
         {/* Right Panel – model + stats */}
-        {!isMobile && (
+        {!isMobile && !rightPanelCollapsed && (
         <div style={{
-          width:'200px', minWidth:'200px',
-          borderLeft:`1px solid ${isLight ? '#e8e4de' : '#1e293b'}`,
-          background: isLight ? '#ffffff' : '#0d1527', display:'flex', flexDirection:'column',
-          flexShrink:0, padding:'14px 12px', gap:'16px', overflowY:'auto',
+          width:'216px', minWidth:'216px',
+          borderLeft: '1px solid #E5DCD0',
+          background: '#FFFFFF', display:'flex', flexDirection:'column',
+          flexShrink:0, padding:'14px 12px', gap:'14px', overflowY:'auto',
           fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)",
         }}>
+          {/* Header with Minimize Button */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#241812', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Inspector
+            </span>
+            <button
+              onClick={() => setRightPanelCollapsed(true)}
+              title="Minimize Inspector"
+              style={{
+                border: '1px solid #E5DCD0',
+                background: '#EDE6DC',
+                color: '#736357',
+                width: '24px',
+                height: '24px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#E5DCD0'; e.currentTarget.style.color = '#EB5E3D' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#EDE6DC'; e.currentTarget.style.color = '#736357' }}
+            >
+              <ChevronRightIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+            </button>
+          </div>
+
+          <div style={{height:'1px', background: '#E5DCD0'}} />
+
           {/* Section: AI Model */}
           <div>
-            <div style={{fontSize:'10px', fontWeight:'700', color: isLight ? '#94a3b8' : '#64748b', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'8px'}}>AI Model</div>
+            <div style={{fontSize:'10px', fontWeight:'800', color: '#736357', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'8px'}}>AI Model</div>
             <select
               value={model}
               onChange={e => setModel(e.target.value)}
               style={{
                 width:'100%', boxSizing:'border-box',
-                background: isLight ? '#ffffff' : '#1e293b',
-                border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
-                borderRadius:'7px', padding:'6px 8px',
-                color: isLight ? '#111111' : '#F1F5F9', fontSize:'12px',
+                background: '#F6F1EA',
+                border: '1px solid #E5DCD0',
+                borderRadius:'10px', padding:'8px 10px',
+                color: '#241812', fontSize:'12.5px', fontWeight:'600',
                 fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)", outline:'none',
                 cursor:'pointer',
               }}
             >
               {availableModels.map(m => (
-                <option key={m} value={m} style={{background: isLight ? '#ffffff' : '#1e293b'}}>{m}</option>
+                <option key={m} value={m} style={{background: '#FFFFFF', color: '#241812'}}>{m}</option>
               ))}
             </select>
           </div>
 
           {/* Divider */}
-          <div style={{height:'1px', background: isLight ? '#e8e4de' : '#1e293b'}} />
+          <div style={{height:'1px', background: '#E5DCD0'}} />
 
           {/* Section: Canvas Stats */}
           <div>
-            <div style={{fontSize:'10px', fontWeight:'700', color: isLight ? '#94a3b8' : '#64748b', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'8px'}}>Canvas</div>
+            <div style={{fontSize:'10px', fontWeight:'800', color: '#736357', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'8px'}}>Canvas</div>
             <div style={{display:'flex', flexDirection:'column', gap:'6px'}}>
               {[
                 { label:'Nodes', value: nodes.length },
@@ -1179,32 +1251,32 @@ export default function Home() {
               ].map(({label, value}) => (
                 <div key={label} style={{
                   display:'flex', justifyContent:'space-between', alignItems:'center',
-                  padding:'6px 10px', borderRadius:'7px',
-                  background: isLight ? '#f5f3ef' : 'rgba(30,41,59,0.5)',
-                  border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
+                  padding:'8px 12px', borderRadius:'10px',
+                  background: '#F6F1EA',
+                  border: '1px solid #E5DCD0',
                 }}>
-                  <span style={{fontSize:'12px', color:'#71717a'}}>{label}</span>
-                  <span style={{fontSize:'13px', fontWeight:'600', color: value > 0 ? (isLight ? '#e35b1a' : '#3b82f6') : (isLight ? '#e8e4de' : '#334155')}}>{value}</span>
+                  <span style={{fontSize:'12px', color:'#736357', fontWeight:'600'}}>{label}</span>
+                  <span style={{fontSize:'13px', fontWeight:'800', color: value > 0 ? '#EB5E3D' : '#736357'}}>{value}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Divider */}
-          <div style={{height:'1px', background: isLight ? '#e8e4de' : '#1e293b'}} />
+          <div style={{height:'1px', background: '#E5DCD0'}} />
 
           {/* Section: Tips */}
           <div>
-            <div style={{fontSize:'10px', fontWeight:'700', color: isLight ? '#94a3b8' : '#64748b', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'8px'}}>Tips</div>
-            <div style={{display:'flex', flexDirection:'column', gap:'5px'}}>
+            <div style={{fontSize:'10px', fontWeight:'800', color: '#736357', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'8px'}}>Tips</div>
+            <div style={{display:'flex', flexDirection:'column', gap:'6px'}}>
               {[
                 'Click a node chip to add it to canvas',
                 'Drag from a node handle to connect',
                 'Use toolbar to Save or Run',
               ].map((tip, i) => (
-                <div key={i} style={{display:'flex', gap:'7px', alignItems:'flex-start'}}>
-                  <div style={{width:'4px', height:'4px', borderRadius:'50%', background:'rgba(59,130,246,0.5)', flexShrink:0, marginTop:'5px'}} />
-                  <span style={{fontSize:'11px', color: isLight ? '#94a3b8' : '#475569', lineHeight:'1.5'}}>{tip}</span>
+                <div key={i} style={{display:'flex', gap:'8px', alignItems:'flex-start'}}>
+                  <div style={{width:'5px', height:'5px', borderRadius:'50%', background:'#EB5E3D', flexShrink:0, marginTop:'6px'}} />
+                  <span style={{fontSize:'11.5px', color: '#736357', lineHeight:'1.5', fontWeight:'500'}}>{tip}</span>
                 </div>
               ))}
             </div>

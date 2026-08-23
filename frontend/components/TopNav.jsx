@@ -11,18 +11,19 @@ import {
   PuzzlePieceIcon,
   Cog6ToothIcon,
   ArrowLeftOnRectangleIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline'
 
 const NAV_LINKS = [
-  { href: '/',             label: 'Flow',         icon: BoltIcon,             iconColor: '#F59E0B' },
-  { href: '/workflows',    label: 'Workflows',    icon: RectangleStackIcon,   iconColor: '#3B82F6' },
-  { href: '/templates',    label: 'Templates',    icon: DocumentDuplicateIcon,iconColor: '#8B5CF6' },
-  { href: '/runs',         label: 'Runs',         icon: PlayCircleIcon,        iconColor: '#22C55E' },
-  { href: '/integrations', label: 'Integrations', icon: PuzzlePieceIcon,       iconColor: '#EC4899' },
-  { href: '/settings',     label: 'Settings',     icon: Cog6ToothIcon,         iconColor: '#64748b' },
+  { href: '/',             label: 'Flow',         icon: BoltIcon,             iconColor: '#EB5E3D' },
+  { href: '/workflows',    label: 'Workflows',    icon: RectangleStackIcon,   iconColor: '#5B9EB5' },
+  { href: '/templates',    label: 'Templates',    icon: DocumentDuplicateIcon,iconColor: '#DDA449' },
+  { href: '/runs',         label: 'Runs',         icon: PlayCircleIcon,        iconColor: '#2EA38D' },
+  { href: '/integrations', label: 'Integrations', icon: PuzzlePieceIcon,       iconColor: '#9B5A53' },
+  { href: '/settings',     label: 'Settings',     icon: Cog6ToothIcon,         iconColor: '#736357' },
 ]
 
-function NavItem({ href, label, Icon, isActive, open, iconColor, isLight }) {
+function NavItem({ href, label, Icon, isActive, open, iconColor }) {
   return (
     <Link href={href} style={{ textDecoration: 'none', display: 'block' }}
     title={!open ? label : undefined}>
@@ -30,23 +31,24 @@ function NavItem({ href, label, Icon, isActive, open, iconColor, isLight }) {
         style={{
           display: 'flex', alignItems: 'center', gap: '12px',
           padding: open ? '10px 14px' : '10px',
-          borderRadius: '8px', cursor: 'pointer',
+          borderRadius: '12px', cursor: 'pointer',
           justifyContent: open ? 'flex-start' : 'center',
-          background: isActive ? (isLight ? '#f5f3ef' : '#1e293b') : 'transparent',
-          color: isActive ? (isLight ? '#111111' : '#F1F5F9') : (isLight ? '#71717a' : '#64748b'),
-          fontSize: '14.5px', fontWeight: isActive ? '500' : '400',
+          background: isActive ? '#EDE6DC' : 'transparent',
+          color: isActive ? '#241812' : '#736357',
+          border: isActive ? '1px solid #E5DCD0' : '1px solid transparent',
+          fontSize: '14px', fontWeight: isActive ? '700' : '500',
           whiteSpace: 'nowrap', overflow: 'hidden',
-          transition: 'background 0.12s ease, color 0.12s ease',
+          transition: 'all 0.15s ease',
         }}
         onMouseEnter={e => {
-          if (!isActive) { e.currentTarget.style.background = isLight ? '#f5f3ef' : '#1e293b'; e.currentTarget.style.color = isLight ? '#111111' : '#94a3b8' }
+          if (!isActive) { e.currentTarget.style.background = '#F6F1EA'; e.currentTarget.style.color = '#241812' }
         }}
         onMouseLeave={e => {
-          if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = isLight ? '#71717a' : '#64748b' }
+          if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#736357' }
         }}
       >
-        <Icon style={{ width: '20px', height: '20px', flexShrink: 0, color: iconColor }} />
-        {open && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: isActive ? (isLight ? '#111111' : '#F1F5F9') : (isLight ? '#71717a' : '#94a3b8') }}>{label}</span>}
+        <Icon style={{ width: '20px', height: '20px', flexShrink: 0, color: isActive ? '#EB5E3D' : iconColor }} />
+        {open && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: isActive ? '#241812' : '#736357' }}>{label}</span>}
       </div>
     </Link>
   )
@@ -56,28 +58,17 @@ export default function TopNav() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const { user, logout } = useAuthStore()
-  const [isLight, setIsLight] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return (localStorage.getItem('theme') || 'dark') === 'light'
-  })
-  useEffect(() => {
-    const update = () => setIsLight(document.documentElement.classList.contains('light'))
-    update()
-    const observer = new MutationObserver(update)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-    return () => observer.disconnect()
-  }, [])
 
   return (
     <nav
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       style={{
-        width: open ? '240px' : '64px',
-        minWidth: open ? '240px' : '64px',
+        width: open ? '230px' : '68px',
+        minWidth: open ? '230px' : '68px',
         height: '100%',
-        background: isLight ? '#ffffff' : '#0f172a',
-        borderRight: `1px solid ${isLight ? '#e8e4de' : '#1e293b'}`,
+        background: '#FFFFFF',
+        borderRight: '1px solid #E5DCD0',
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
@@ -86,99 +77,137 @@ export default function TopNav() {
         transition: 'width 0.22s cubic-bezier(0.4,0,0.2,1), min-width 0.22s cubic-bezier(0.4,0,0.2,1)',
       }}>
 
-      {/* Logo */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        padding: open ? '26px 20px 20px' : '26px 8px 20px',
-        flexShrink: 0,
-        overflow: 'hidden',
-      }}>
-        <img
-          src="/images/autoflow.png"
-          alt="AutoFlow"
-          style={{
-            height: '48px',
-            width: 'auto',
-            objectFit: 'contain',
-            flexShrink: 0,
-          }}
-        />
-        <span style={{
-          fontSize: '16px',
-          fontWeight: '700',
-          color: isLight ? '#111111' : '#F1F5F9',
-          letterSpacing: '-0.3px',
-          whiteSpace: 'nowrap',
-          opacity: open ? 1 : 0,
-          transition: 'opacity 0.18s ease',
-          pointerEvents: 'none',
-        }}>AutoFlow</span>
-      </div>
+      {/* Brand Robot Logo */}
+      <Link href="/homepage" style={{ textDecoration: 'none' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: open ? '20px 16px' : '20px 14px',
+          flexShrink: 0,
+          overflow: 'hidden',
+          cursor: 'pointer',
+        }}>
+          <div style={{ width: '36px', height: '36px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg viewBox="0 0 32 32" fill="none" style={{ width: '100%', height: '100%' }}>
+              <rect x="9" y="5" width="14" height="10" rx="2.5" fill="#241812" />
+              <circle cx="13.5" cy="10" r="1.3" fill="#F6F1EA" />
+              <circle cx="18.5" cy="10" r="1.3" fill="#F6F1EA" />
+              <rect x="14.5" y="1.5" width="3" height="3.5" rx="1" fill="#241812" />
+              <rect x="6" y="17" width="20" height="11" rx="3.5" fill="#241812" />
+              <rect x="2" y="18.5" width="3" height="7" rx="1.5" fill="#241812" />
+              <rect x="27" y="18.5" width="3" height="7" rx="1.5" fill="#241812" />
+              <circle cx="16" cy="22.5" r="1.5" fill="#EB5E3D" />
+            </svg>
+          </div>
+          <span style={{
+            fontSize: '18px',
+            fontWeight: '800',
+            color: '#241812',
+            letterSpacing: '-0.5px',
+            whiteSpace: 'nowrap',
+            opacity: open ? 1 : 0,
+            transition: 'opacity 0.18s ease',
+          }}>autoflow</span>
+        </div>
+      </Link>
 
       {/* Top divider */}
-      <div style={{ height: '1px', background: isLight ? '#e8e4de' : '#1e293b', margin: '0 10px 10px', flexShrink: 0 }} />
+      <div style={{ height: '1px', background: '#E5DCD0', margin: '0 12px 14px' }} />
 
-      {/* Nav links */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px', padding: '0 8px', overflowY: 'auto', overflowX: 'hidden' }}>
-        {NAV_LINKS.map(({ href, label, icon: Icon, iconColor }) => {
-          const isActive = href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/')
-          return <NavItem key={href} href={href} label={label} Icon={Icon} isActive={isActive} open={open} iconColor={iconColor} isLight={isLight} />
-        })}
+      {/* Main navigation list */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+        padding: '0 10px',
+        flex: 1,
+      }}>
+        {NAV_LINKS.map(link => (
+          <NavItem
+            key={link.href}
+            href={link.href}
+            label={link.label}
+            Icon={link.icon}
+            iconColor={link.iconColor}
+            isActive={pathname === link.href}
+            open={open}
+          />
+        ))}
       </div>
 
-      {/* Bottom section */}
-      <div style={{ padding: '8px', borderTop: `1px solid ${isLight ? '#e8e4de' : '#1e293b'}`, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-
-        {/* User row — only when expanded */}
-        {user && (
-          <Link href="/settings" style={{ textDecoration: 'none', display: open ? 'block' : 'none' }}>
-            <div
-              style={{
-                display: 'flex', alignItems: 'center', gap: '10px',
-                padding: '8px 12px', borderRadius: '8px', cursor: 'pointer',
-                overflow: 'hidden',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = isLight ? '#f5f3ef' : '#1e293b'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <div style={{
-                width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
-                background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '13px', fontWeight: '700', color: 'white',
-              }}>
-                {(user.name || 'U').charAt(0).toUpperCase()}
+      {/* Bottom section with User profile & Logout */}
+      <div style={{
+        padding: '12px 10px',
+        borderTop: '1px solid #E5DCD0',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+      }}>
+        {/* User profile snippet */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: open ? '8px 10px' : '8px',
+          borderRadius: '12px',
+          background: '#F6F1EA',
+          justifyContent: open ? 'flex-start' : 'center',
+        }}>
+          <div style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            background: '#241812',
+            color: '#F6F1EA',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '12px',
+            fontWeight: '700',
+            flexShrink: 0,
+          }}>
+            {user?.name ? user.name[0].toUpperCase() : 'U'}
+          </div>
+          {open && (
+            <div style={{ overflow: 'hidden', flex: 1 }}>
+              <div style={{ fontSize: '12px', fontWeight: '700', color: '#241812', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                {user?.name || 'Workspace User'}
               </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '14px', fontWeight: '500', color: isLight ? '#111111' : '#F1F5F9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
-                <div style={{ fontSize: '11.5px', color: isLight ? '#71717a' : '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</div>
+              <div style={{ fontSize: '10px', color: '#736357', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                {user?.email || 'user@autoflow.com'}
               </div>
             </div>
-          </Link>
-        )}
+          )}
+        </div>
 
-        {/* Logout */}
+        {/* Logout Button */}
         <button
           onClick={logout}
-          title={!open ? 'Logout' : undefined}
+          title="Sign out"
           style={{
-            display: 'flex', alignItems: 'center', gap: '10px',
-            padding: open ? '10px 14px' : '10px',
-            borderRadius: '8px', border: 'none', cursor: 'pointer',
-            background: 'transparent', color: '#64748b', fontSize: '14.5px',
-            width: '100%', justifyContent: open ? 'flex-start' : 'center',
-            fontFamily: "inherit",
-            transition: 'background 0.12s ease, color 0.12s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: open ? '8px 12px' : '8px',
+            borderRadius: '10px',
+            border: 'none',
+            background: 'transparent',
+            color: '#736357',
+            cursor: 'pointer',
+            justifyContent: open ? 'flex-start' : 'center',
+            fontSize: '12px',
+            fontWeight: '600',
+            transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#EF4444' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b' }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#EDE6DC'; e.currentTarget.style.color = '#EB5E3D' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#736357' }}
         >
-          <ArrowLeftOnRectangleIcon style={{ width: '20px', height: '20px', flexShrink: 0 }} />
-          {open && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>Logout</span>}
+          <ArrowLeftOnRectangleIcon style={{ width: '18px', height: '18px', flexShrink: 0 }} />
+          {open && <span>Sign Out</span>}
         </button>
       </div>
+
     </nav>
   )
 }

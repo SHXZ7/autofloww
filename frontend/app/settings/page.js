@@ -21,24 +21,12 @@ import {
 } from '@heroicons/react/24/outline'
 
 const GLOBAL_CSS = `
-    *, *::before, *::after { box-sizing: border-box; }
-  body { font-family: var(--font-space-grotesk, system-ui, sans-serif); background: #020617; margin: 0; -webkit-font-smoothing: antialiased; }
-  html.light body { background: #f5f3ef !important; }
-  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(51,65,85,0.8); border-radius: 8px; }
-  html.light ::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.8); }
-  .setting-row:hover { background: rgba(30,41,59,0.7) !important; }
-  html.light .setting-row:hover { background: rgba(232,228,222,0.7) !important; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { font-family: var(--font-space-grotesk, system-ui, sans-serif); background: #F6F1EA; margin: 0; -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #E5DCD0; border-radius: 8px; }
   .setting-row { transition: background 0.12s ease; }
-  html.light .settings-page-bg { background: #f5f3ef !important; }
-  html.light .settings-heading { color: #111111 !important; }
-  html.light .settings-acc-card { background: #ffffff !important; border-color: #e8e4de !important; }
-  html.light .acc-user-name { color: #111111 !important; }
-  html.light .settings-list-card { background: #ffffff !important; border-color: #e8e4de !important; }
-  html.light .setting-row { border-bottom-color: #e8e4de !important; }
-  html.light .setting-icon-box { background: #f5f3ef !important; border-color: #e8e4de !important; }
-  html.light .setting-row-title { color: #111111 !important; }
-  html.light .setting-badge { background: #e8e4de !important; color: #52525b !important; }
+  .setting-row:hover { background: #EDE6DC !important; }
 `
 
 const SETTINGS_SECTIONS = [
@@ -94,7 +82,6 @@ export default function SettingsPage() {
   const { isAuthenticated, loading, checkAuth, user } = useAuthStore()
   const [modalOpen, setModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('profile')
-  const [theme, setTheme] = useState('dark')
   const [connectNotice, setConnectNotice] = useState({ type: '', text: '' })
   const [isMobile, setIsMobile] = useState(false)
 
@@ -104,19 +91,6 @@ export default function SettingsPage() {
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
-
-  useEffect(() => {
-    const saved = localStorage.getItem('theme') ||
-      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-    setTheme(saved)
-  }, [])
-
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark'
-    setTheme(next)
-    localStorage.setItem('theme', next)
-    document.documentElement.classList.toggle('light', next === 'light')
-  }
 
   useEffect(() => { checkAuth() }, [checkAuth])
   useEffect(() => {
@@ -157,109 +131,71 @@ export default function SettingsPage() {
   if (loading || !isAuthenticated) return null
 
   return (
-    <div className="settings-page-bg" style={{ display: 'flex', flexDirection: 'row', height: isMobile ? '100dvh' : '100vh', background: '#020617', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'row', height: isMobile ? '100dvh' : '100vh', background: '#F6F1EA', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", overflow: 'hidden' }}>
       <style jsx global>{GLOBAL_CSS}</style>
       {!isMobile && <TopNav />}
 
-      <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '18px 12px 96px' : '32px 40px' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '18px 14px 96px' : '32px 40px' }}>
         {connectNotice.text && (
           <div style={{
             marginBottom: '16px',
-            borderRadius: '10px',
-            padding: '10px 12px',
-            fontSize: '12px',
-            border: connectNotice.type === 'success' ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(239,68,68,0.35)',
-            background: connectNotice.type === 'success' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
-            color: connectNotice.type === 'success' ? '#22c55e' : '#f87171',
+            borderRadius: '12px',
+            padding: '10px 14px',
+            fontSize: '12.5px',
+            fontWeight: '600',
+            border: connectNotice.type === 'success' ? '1px solid rgba(46,163,141,0.35)' : '1px solid rgba(224,82,82,0.35)',
+            background: connectNotice.type === 'success' ? 'rgba(46,163,141,0.12)' : 'rgba(224,82,82,0.12)',
+            color: connectNotice.type === 'success' ? '#2EA38D' : '#E05252',
           }}>
             {connectNotice.text}
           </div>
         )}
 
         {/* Header */}
-        <div style={{ marginBottom: isMobile ? '22px' : '36px' }}>
-          <h1 className="settings-heading" style={{ fontSize: '22px', fontWeight: '700', color: '#F1F5F9', margin: 0, letterSpacing: '-0.4px' }}>Settings</h1>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0' }}>
+        <div style={{ marginBottom: isMobile ? '22px' : '32px' }}>
+          <h1 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '800', color: '#241812', margin: 0, letterSpacing: '-0.02em' }}>Settings</h1>
+          <p style={{ fontSize: '13px', color: '#736357', margin: '4px 0 0', fontWeight: '500' }}>
             Manage your account, API keys, and workspace preferences
           </p>
         </div>
 
         {/* Account card */}
-        <div className="settings-acc-card" style={{
-          background: '#0f172a', border: '1px solid #1e293b',
-          borderRadius: '12px', padding: isMobile ? '16px' : '20px 24px', marginBottom: '28px',
+        <div style={{
+          background: '#FFFFFF', border: '1px solid #E5DCD0',
+          borderRadius: '16px', padding: isMobile ? '16px' : '20px 24px', marginBottom: '24px',
           display: 'flex', alignItems: 'center', gap: '16px', flexWrap: isMobile ? 'wrap' : 'nowrap',
+          boxShadow: '0 4px 16px rgba(36,24,18,0.04)',
         }}>
           <div style={{
-            width: '48px', height: '48px', flexShrink: 0, borderRadius: '50%',
-            background: '#3B82F6',
+            width: '48px', height: '48px', flexShrink: 0, borderRadius: '12px',
+            background: 'linear-gradient(135deg, #EB5E3D 0%, #D94F2F 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '18px', fontWeight: '700', color: 'white',
+            fontSize: '18px', fontWeight: '800', color: 'white',
+            boxShadow: '0 4px 14px rgba(235,94,61,0.25)',
           }}>
             {(user?.name || 'U').charAt(0).toUpperCase()}
           </div>
           <div style={{ flex: 1 }}>
-            <div className="acc-user-name" style={{ fontSize: '14px', fontWeight: '600', color: '#e2e8f0', marginBottom: '3px' }}>
+            <div style={{ fontSize: '15px', fontWeight: '700', color: '#241812', marginBottom: '2px' }}>
               {user?.name || 'AutoFlow User'}
             </div>
-            <div style={{ fontSize: '12.5px', color: '#64748b' }}>{user?.email || 'user@autoflow.com'}</div>
+            <div style={{ fontSize: '13px', color: '#736357', fontWeight: '500' }}>{user?.email || 'user@autoflow.com'}</div>
           </div>
           <span style={{
-            fontSize: '11px', fontWeight: '600', padding: '3px 10px', borderRadius: '20px',
-            background: 'rgba(59,130,246,0.1)', color: '#3B82F6',
-            border: '1px solid rgba(59,130,246,0.3)',
+            fontSize: '11.5px', fontWeight: '700', padding: '4px 12px', borderRadius: '20px',
+            background: '#EDE6DC', color: '#241812',
+            border: '1px solid #E5DCD0',
           }}>
             Free Plan
           </span>
         </div>
 
         {/* Settings sections */}
-        <div className="settings-list-card" style={{
-          background: '#0f172a', border: '1px solid #1e293b',
-          borderRadius: '12px', overflow: 'hidden',
+        <div style={{
+          background: '#FFFFFF', border: '1px solid #E5DCD0',
+          borderRadius: '16px', overflow: 'hidden',
+          boxShadow: '0 4px 16px rgba(36,24,18,0.04)',
         }}>
-          {/* Theme toggle row */}
-          <div
-            className="setting-row"
-            onClick={toggleTheme}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '16px',
-              padding: '18px 24px',
-              borderBottom: '1px solid #1e293b',
-              cursor: 'pointer',
-            }}
-          >
-            <div className="setting-icon-box" style={{
-              width: '36px', height: '36px', flexShrink: 0, borderRadius: '8px',
-              background: '#1e293b', border: '1px solid #1e293b',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              {theme === 'dark'
-                ? <MoonIcon style={{ width: '17px', height: '17px', color: '#64748b' }} />
-                : <SunIcon style={{ width: '17px', height: '17px', color: '#64748b' }} />
-              }
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <span className="setting-row-title" style={{ fontSize: '13.5px', fontWeight: '500', color: '#94a3b8' }}>Appearance</span>
-              <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>
-                Currently {theme === 'dark' ? 'Dark' : 'Light'} mode — click to switch
-              </div>
-            </div>
-            <div style={{
-              position: 'relative', width: '40px', height: '22px', borderRadius: '11px',
-              background: theme === 'light' ? '#3B82F6' : '#334155',
-              transition: 'background 0.2s',
-              flexShrink: 0,
-            }}>
-              <div style={{
-                position: 'absolute', top: '3px',
-                left: theme === 'light' ? '21px' : '3px',
-                width: '16px', height: '16px', borderRadius: '50%',
-                background: 'white',
-                transition: 'left 0.2s',
-              }} />
-            </div>
-          </div>
           {SETTINGS_SECTIONS.map((section, i) => {
             const Icon = section.icon
             const isLast = i === SETTINGS_SECTIONS.length - 1
@@ -271,34 +207,35 @@ export default function SettingsPage() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: '16px',
                   padding: isMobile ? '16px 14px' : '18px 24px',
-                  borderBottom: isLast ? 'none' : '1px solid #1e293b',
+                  borderBottom: isLast ? 'none' : '1px solid #E5DCD0',
                   cursor: section.tab === 'billing' ? 'default' : 'pointer',
-                  opacity: section.tab === 'billing' ? 0.45 : 1,
+                  opacity: section.tab === 'billing' ? 0.5 : 1,
                 }}
               >
-                <div className="setting-icon-box" style={{
-                  width: '36px', height: '36px', flexShrink: 0, borderRadius: '8px',
-                  background: '#1e293b', border: '1px solid #1e293b',
+                <div style={{
+                  width: '38px', height: '38px', flexShrink: 0, borderRadius: '10px',
+                  background: '#EDE6DC', border: '1px solid #E5DCD0',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Icon style={{ width: '17px', height: '17px', color: '#64748b' }} />
+                  <Icon style={{ width: '18px', height: '18px', color: '#EB5E3D' }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="setting-row-title" style={{ fontSize: '13.5px', fontWeight: '500', color: '#94a3b8' }}>{section.title}</span>
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: '#241812' }}>{section.title}</span>
                     {section.badge && (
-                      <span className="setting-badge" style={{
-                        fontSize: '10px', fontWeight: '600', padding: '2px 7px',
-                        borderRadius: '10px', background: '#1e293b', color: '#64748b',
+                      <span style={{
+                        fontSize: '10px', fontWeight: '700', padding: '2px 8px',
+                        borderRadius: '10px', background: '#EDE6DC', color: '#736357',
+                        border: '1px solid #E5DCD0',
                       }}>
                         {section.badge}
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>{section.desc}</div>
+                  <div style={{ fontSize: '12.5px', color: '#736357', marginTop: '2px', fontWeight: '500' }}>{section.desc}</div>
                 </div>
                 {section.tab !== 'billing' && (
-                  <span style={{ color: '#475569', fontSize: '18px', flexShrink: 0 }}>›</span>
+                  <span style={{ color: '#736357', fontSize: '20px', flexShrink: 0, fontWeight: '700' }}>›</span>
                 )}
               </div>
             )
@@ -310,7 +247,7 @@ export default function SettingsPage() {
             items={MOBILE_NAV_ITEMS}
             pathname={pathname}
             onNavigate={(href) => router.push(href)}
-            isLight={theme === 'light'}
+            isLight={true}
           />
         )}
       </div>

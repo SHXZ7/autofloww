@@ -427,199 +427,124 @@ export default function ProfileSettings({ isOpen, onClose, activeTab = "profile"
             animation: fadeIn 0.3s ease forwards;
           }
 
-          .ps-mobile h3 {
-            font-size: 0.92rem;
-            line-height: 1.2rem;
+          .ps-modal-container {
+            background-color: #FFFFFF !important;
+            border-color: #E5DCD0 !important;
+            color: #241812 !important;
+            box-shadow: 0 20px 50px rgba(36,24,18,0.15);
           }
-
-          .ps-mobile h4 {
-            font-size: 0.82rem;
-            line-height: 1.1rem;
+          .ps-header {
+            border-bottom-color: #E5DCD0 !important;
+            background-color: #FFFFFF !important;
           }
-
-          .ps-mobile label,
-          .ps-mobile p,
-          .ps-mobile li,
-          .ps-mobile span,
-          .ps-mobile div {
-            letter-spacing: 0;
+          .ps-header h2 {
+            color: #241812 !important;
+            font-weight: 800 !important;
           }
-
-          .ps-mobile input,
-          .ps-mobile select,
-          .ps-mobile textarea {
-            padding: 0.42rem 0.58rem;
-            font-size: 0.88rem;
+          .ps-close-btn {
+            color: #736357 !important;
           }
-
-          .ps-mobile .text-sm {
-            font-size: 0.78rem !important;
-            line-height: 1.05rem;
+          .ps-close-btn:hover {
+            background-color: #EDE6DC !important;
+            color: #241812 !important;
           }
-
-          .ps-mobile .text-xs {
-            font-size: 0.7rem !important;
-            line-height: 1rem;
+          .ps-sidebar {
+            border-right-color: #E5DCD0 !important;
+            background-color: #FFFFFF !important;
           }
-
-          .ps-mobile .space-y-6 > :not([hidden]) ~ :not([hidden]) {
-            margin-top: 0.9rem;
-          }
-
-          .ps-mobile .space-y-4 > :not([hidden]) ~ :not([hidden]) {
-            margin-top: 0.6rem;
-          }
-
-          .ps-mobile .mobile-tight {
-            padding-top: 0.75rem;
-            padding-bottom: 0.75rem;
-          }
-
-          .ps-mobile .mobile-small {
-            font-size: 0.78rem;
-          }
-
-          /* Light Mode Overrides */
-          html.light .ps-modal-container {
-            background-color: #ffffff !important;
-            border-color: #e8e4de !important;
-            color: #111111 !important;
-          }
-          html.light .ps-header {
-            border-bottom-color: #e8e4de !important;
-          }
-          html.light .ps-header h2 {
-            color: #111111 !important;
-          }
-          html.light .ps-close-btn {
-            color: #71717a !important;
-          }
-          html.light .ps-close-btn:hover {
-            background-color: #f5f3ef !important;
-          }
-          html.light .ps-sidebar {
-            border-right-color: #e8e4de !important;
-          }
-          html.light .ps-sidebar-btn {
-            color: #52525b !important;
+          .ps-sidebar-btn {
+            color: #736357 !important;
             background-color: transparent !important;
+            font-weight: 600 !important;
           }
-          html.light .ps-sidebar-btn:hover {
-            background-color: #f5f3ef !important;
-            color: #111111 !important;
+          .ps-sidebar-btn:hover {
+            background-color: #F6F1EA !important;
+            color: #241812 !important;
           }
-          html.light .ps-sidebar-btn-active {
-            background-color: #111111 !important;
-            color: #ffffff !important;
+          .ps-sidebar-btn-active {
+            background-color: #EDE6DC !important;
+            color: #EB5E3D !important;
+            font-weight: 700 !important;
           }
-          html.light h2,
-          html.light h3,
-          html.light h4,
-          html.light h5 {
-            color: #111111 !important;
+          .ps-modal-container h2,
+          .ps-modal-container h3,
+          .ps-modal-container h4,
+          .ps-modal-container h5 {
+            color: #241812 !important;
           }
-          html.light p,
-          html.light li,
-          html.light span:not(.ps-sidebar-btn-active span):not(.text-white):not(.text-yellow-400) {
-            color: #71717a !important;
+          .ps-modal-container p,
+          .ps-modal-container li,
+          .ps-modal-container span:not(.ps-sidebar-btn-active span):not(.text-white):not(.text-yellow-400):not(.text-emerald-400):not(.text-red-400) {
+            color: #736357 !important;
           }
-          html.light label {
-            color: #52525b !important;
+          .ps-modal-container label {
+            color: #241812 !important;
+            font-weight: 600 !important;
           }
-          html.light input,
-          html.light select,
-          html.light textarea {
-            background-color: #f5f3ef !important;
-            border-color: #e8e4de !important;
-            color: #111111 !important;
+          .ps-modal-container input,
+          .ps-modal-container select,
+          .ps-modal-container textarea {
+            background-color: #F6F1EA !important;
+            border-color: #E5DCD0 !important;
+            color: #241812 !important;
           }
-          html.light input::placeholder,
-          html.light textarea::placeholder {
-            color: #a1a1aa !important;
+          .ps-modal-container input:focus,
+          .ps-modal-container select:focus,
+          .ps-modal-container textarea:focus {
+            border-color: #EB5E3D !important;
+            outline: none !important;
           }
-          html.light select option {
-            background-color: #ffffff !important;
-            color: #111111 !important;
+          .ps-modal-container input::placeholder,
+          .ps-modal-container textarea::placeholder {
+            color: #A3968B !important;
+          }
+          .ps-modal-container select option {
+            background-color: #FFFFFF !important;
+            color: #241812 !important;
           }
           /* Card containers */
-          html.light .bg-\[\#1e293b\] {
-            background-color: #f5f3ef !important;
-            border-color: #e8e4de !important;
+          .ps-modal-container .bg-\[\#1e293b\],
+          .ps-modal-container .bg-\[\#0f172a\],
+          .ps-modal-container .bg-\[\#111827\] {
+            background-color: #F6F1EA !important;
+            border-color: #E5DCD0 !important;
           }
-          html.light .bg-\[\#0f172a\] {
-            background-color: #f5f3ef !important;
-            border-color: #e8e4de !important;
+          .ps-modal-container .border-\[\#334155\],
+          .ps-modal-container .border-\[\#1e293b\] {
+            border-color: #E5DCD0 !important;
           }
-          html.light .border-\[\#334155\] {
-            border-color: #e8e4de !important;
+          .ps-modal-container .border-t {
+            border-top-color: #E5DCD0 !important;
           }
-          html.light .border-\[\#1e293b\] {
-            border-color: #e8e4de !important;
+          .ps-modal-container .border-b {
+            border-bottom-color: #E5DCD0 !important;
           }
-          html.light .border-t {
-            border-top-color: #e8e4de !important;
+          .ps-modal-container .bg-\[\#334155\] {
+            background-color: #EDE6DC !important;
+            color: #241812 !important;
           }
-          html.light .border-b {
-            border-bottom-color: #e8e4de !important;
+          .ps-modal-container .bg-\[\#334155\]:hover {
+            background-color: #E5DCD0 !important;
+            color: #EB5E3D !important;
           }
-          /* Setup / blue warning banners */
-          html.light .bg-\[\#172554\] {
-            background-color: #eff6ff !important;
-            border-color: #bfdbfe !important;
+          .ps-modal-container .bg-\[\#3B82F6\],
+          .ps-modal-container button.bg-blue-600,
+          .ps-modal-container button.bg-blue-500 {
+            background-color: #EB5E3D !important;
+            color: #FFFFFF !important;
           }
-          html.light .text-\[\#bfdbfe\] {
-            color: #1e3a8a !important;
+          .ps-modal-container .bg-\[\#3B82F6\]:hover,
+          .ps-modal-container button.bg-blue-600:hover,
+          .ps-modal-container button.bg-blue-500:hover {
+            background-color: #D94F2F !important;
           }
-          html.light .text-\#bfdbfe {
-            color: #1e3a8a !important;
+          .ps-modal-container .text-\[\#3B82F6\] {
+            color: #EB5E3D !important;
           }
-          html.light .bg-\[\#1e3a8a\]\/40 {
-            background-color: #ffffff !important;
-            border-color: #bfdbfe !important;
-          }
-          html.light .text-\[\#dbeafe\] {
-            color: #1e3a8a !important;
-          }
-          html.light .bg-\[\#111827\] {
-            background-color: #f8fafc !important;
-            border-color: #e2e8f0 !important;
-          }
-          html.light .bg-\[\#111827\] .text-white {
-            color: #1e293b !important;
-          }
-          html.light .bg-\[\#111827\] .text-\[\#cbd5e1\] {
-            color: #475569 !important;
-          }
-          html.light .text-\[\#94a3b8\] {
-            color: #52525b !important;
-          }
-          html.light .text-\[\#cbd5e1\] {
-            color: #52525b !important;
-          }
-          html.light .bg-\[\#334155\] {
-            background-color: #e8e4de !important;
-            color: #52525b !important;
-          }
-          html.light .bg-\[\#334155\]:hover {
-            background-color: #d5cfc6 !important;
-            color: #111111 !important;
-          }
-          /* Billing & pricing plan box overrides */
-          html.light .from-\[\#3B82F6\]\/20 {
-            --tw-gradient-from: rgba(59, 130, 246, 0.08) !important;
-            --tw-gradient-to: rgba(139, 92, 246, 0.08) !important;
-            --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
-            border-color: rgba(59, 130, 246, 0.2) !important;
-          }
-          html.light .border-\[\#3B82F6\]\/20 {
-            border-color: rgba(59, 130, 246, 0.2) !important;
-          }
-          html.light .text-emerald-300,
-          html.light .text-emerald-400 {
-            color: #047857 !important;
-          }
-          html.light .border-emerald-500\/30 {
-            border-color: rgba(16, 185, 129, 0.3) !important;
+          .ps-modal-container .text-\[\#94a3b8\],
+          .ps-modal-container .text-\[\#cbd5e1\],
+          .ps-modal-container .text-\[\#64748b\] {
+            color: #736357 !important;
           }
         `}</style>
 

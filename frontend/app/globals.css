@@ -152,7 +152,7 @@ html.light .rf-canvas-bg {
 .react-flow__node {
   background: transparent !important;
   border: none !important;
-  color: white !important;
+  color: #241812 !important;
   font-family: inherit !important;
 }
 
@@ -160,12 +160,12 @@ html.light .rf-canvas-bg {
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
-  color: white !important;
+  color: #241812 !important;
 }
 
 .react-flow__node>div {
   background: transparent !important;
-  color: white !important;
+  color: #241812 !important;
 }
 
 .react-flow__handle {
@@ -271,11 +271,6 @@ html.light .rf-canvas-bg {
 /* Remove any default white backgrounds */
 * {
   box-sizing: border-box;
-}
-
-/* Ensure text is visible in dark theme */
-.react-flow__node * {
-  color: inherit !important;
 }
 
 /* Custom scrollbar for the entire app */

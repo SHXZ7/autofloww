@@ -19,17 +19,15 @@ import {
 } from '@heroicons/react/24/outline'
 
 const GLOBAL_CSS = `
-    *, *::before, *::after { box-sizing: border-box; }
-  body { font-family: var(--font-space-grotesk, system-ui, sans-serif); background: #020617; margin: 0; -webkit-font-smoothing: antialiased; }
-  html.light body { background: #f5f3ef !important; }
-  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(51,65,85,0.8); border-radius: 8px; }
-  .wf-card:hover { background: #1e293b !important; border-color: #334155 !important; }
-  html.light .wf-card:hover { background: #f5f3ef !important; border-color: #d5cfc6 !important; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { font-family: var(--font-space-grotesk, system-ui, sans-serif); background: #F6F1EA; margin: 0; -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #E5DCD0; border-radius: 8px; }
+  .wf-card { transition: all 0.15s ease; }
+  .wf-card:hover { background: #EDE6DC !important; border-color: #EB5E3D !important; transform: translateY(-2px); }
   .wf-card:hover .wf-card-edit { opacity: 1 !important; }
   .wf-card-edit { opacity: 0; transition: opacity 0.15s ease; }
-  .wf-del:hover { background: rgba(255,107,53,0.2) !important; color: #FF6B35 !important; }
-  .gradient-text { background: linear-gradient(135deg, #00D4FF, #FF6B35); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .wf-del:hover { background: rgba(235,94,61,0.15) !important; color: #EB5E3D !important; }
 `
 
 const MOBILE_NAV_ITEMS = [
@@ -48,24 +46,12 @@ export default function WorkflowsPage() {
   const [search, setSearch] = useState('')
   const [deleting, setDeleting] = useState(null)
   const [isMobile, setIsMobile] = useState(false)
-  const [isLight, setIsLight] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return (localStorage.getItem('theme') || 'dark') === 'light'
-  })
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 900)
     onResize()
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
-  }, [])
-
-  useEffect(() => {
-    const update = () => setIsLight(document.documentElement.classList.contains('light'))
-    update()
-    const observer = new MutationObserver(update)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-    return () => observer.disconnect()
   }, [])
 
   useEffect(() => { checkAuth() }, [checkAuth])
@@ -103,37 +89,41 @@ export default function WorkflowsPage() {
   if (loading || !isAuthenticated) return null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', height: isMobile ? '100dvh' : '100vh', background: isLight ? '#f5f3ef' : '#020617', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'row', height: isMobile ? '100dvh' : '100vh', background: '#F6F1EA', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)", overflow: 'hidden' }}>
       <style jsx global>{GLOBAL_CSS}</style>
       {!isMobile && <TopNav />}
 
-      <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '18px 12px 96px' : '32px 40px' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '18px 14px 96px' : '32px 40px' }}>
         {/* Header row */}
         <div style={{
           display: 'flex',
           alignItems: isMobile ? 'flex-start' : 'center',
           justifyContent: 'space-between',
-          gap: '10px',
+          gap: '12px',
           flexDirection: isMobile ? 'column' : 'row',
-          marginBottom: isMobile ? '16px' : '28px',
+          marginBottom: isMobile ? '18px' : '28px',
         }}>
           <div>
-            <h1 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: '700', color: isLight ? '#111111' : '#F1F5F9', margin: 0, letterSpacing: '-0.4px' }}>Workflows</h1>
-            <p style={{ fontSize: '13px', color: isLight ? '#71717a' : '#64748b', margin: '4px 0 0' }}>
-              {savedWorkflows.length} workflow{savedWorkflows.length !== 1 ? 's' : ''}
+            <h1 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '800', color: '#241812', margin: 0, letterSpacing: '-0.02em' }}>Workflows</h1>
+            <p style={{ fontSize: '13px', color: '#736357', margin: '4px 0 0', fontWeight: '500' }}>
+              {savedWorkflows.length} saved workflow{savedWorkflows.length !== 1 ? 's' : ''}
             </p>
           </div>
           <button
             onClick={handleNew}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
-              padding: isMobile ? '9px 12px' : '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-              background: '#3B82F6',
-              color: 'white', fontSize: isMobile ? '12px' : '13px', fontWeight: '600',
-              boxShadow: '0 0 20px rgba(59,130,246,0.25)',
+              padding: isMobile ? '10px 14px' : '9px 18px', borderRadius: '12px', border: 'none', cursor: 'pointer',
+              background: '#EB5E3D',
+              color: 'white', fontSize: isMobile ? '12.5px' : '13.5px', fontWeight: '700',
+              boxShadow: '0 4px 14px rgba(235,94,61,0.25)',
+              transition: 'all 0.15s ease',
+              fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
             }}
+            onMouseEnter={e => e.currentTarget.style.background = '#D94F2F'}
+            onMouseLeave={e => e.currentTarget.style.background = '#EB5E3D'}
           >
-            <PlusIcon style={{ width: '15px', height: '15px' }} />
+            <PlusIcon style={{ width: '16px', height: '16px', strokeWidth: 2.5 }} />
             New Workflow
           </button>
         </div>
@@ -141,82 +131,91 @@ export default function WorkflowsPage() {
         {/* Search */}
         <input
           type="text"
-          placeholder="Search workflows..."
+          placeholder="Search workflows…"
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{
             width: '100%', maxWidth: isMobile ? '100%' : '380px',
-            background: isLight ? '#ffffff' : '#1e293b',
-            border: `1px solid ${isLight ? '#e8e4de' : '#1e293b'}`,
-            borderRadius: '8px', padding: '8px 14px',
-            color: isLight ? '#111111' : '#ccc', fontSize: '13px', outline: 'none',
-            marginBottom: isMobile ? '14px' : '24px', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+            background: '#FFFFFF',
+            border: '1px solid #E5DCD0',
+            borderRadius: '12px', padding: '10px 14px',
+            color: '#241812', fontSize: '13px', outline: 'none',
+            marginBottom: isMobile ? '16px' : '24px', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+            boxShadow: '0 2px 8px rgba(36,24,18,0.03)',
+            transition: 'border-color 0.15s ease',
           }}
+          onFocus={e => e.currentTarget.style.borderColor = '#EB5E3D'}
+          onBlur={e => e.currentTarget.style.borderColor = '#E5DCD0'}
         />
 
         {/* Grid */}
         {filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: isMobile ? '42px 0' : '80px 0' }}>
-            <div style={{ fontSize: '40px', marginBottom: '16px' }}>⚡</div>
-            <div style={{ color: isLight ? '#71717a' : '#475569', fontSize: '15px', fontWeight: '500', marginBottom: '8px' }}>
+          <div style={{ textAlign: 'center', padding: isMobile ? '48px 16px' : '80px 24px', background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E5DCD0', maxWidth: '600px', margin: '0 auto' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#EDE6DC', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#EB5E3D', fontSize: '20px' }}>⚡</div>
+            <div style={{ color: '#241812', fontSize: '16px', fontWeight: '700', marginBottom: '6px' }}>
               {search ? 'No workflows match your search' : 'No workflows yet'}
             </div>
-            <div style={{ color: isLight ? '#71717a' : '#475569', fontSize: '13px', marginBottom: '24px' }}>
-              {search ? 'Try a different search term' : 'Create your first automation workflow'}
+            <div style={{ color: '#736357', fontSize: '13px', marginBottom: '20px' }}>
+              {search ? 'Try a different search keyword' : 'Create your first automation workflow to get started'}
             </div>
             {!search && (
               <button onClick={handleNew} style={{
-                padding: '9px 20px', borderRadius: '8px', border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
-                background: isLight ? '#ffffff' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', fontSize: '13px', cursor: 'pointer',
-              }}>
+                padding: '9px 20px', borderRadius: '10px', border: '1px solid #E5DCD0',
+                background: '#EDE6DC', color: '#241812', fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#E5DCD0'; e.currentTarget.style.color = '#EB5E3D' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#EDE6DC'; e.currentTarget.style.color = '#241812' }}
+              >
                 + Create workflow
               </button>
             )}
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(290px, 1fr))', gap: '16px' }}>
             {filtered.map(w => (
               <div
                 key={w._id}
                 className="wf-card"
                 onClick={() => handleOpen(w._id)}
                 style={{
-                  background: isLight ? '#ffffff' : '#0f172a',
-                  border: `1px solid ${isLight ? '#e8e4de' : '#1e293b'}`,
-                  borderRadius: '12px', padding: isMobile ? '16px' : '20px',
-                  cursor: 'pointer', transition: 'background 0.15s ease, border-color 0.15s ease',
+                  background: '#FFFFFF',
+                  border: '1px solid #E5DCD0',
+                  borderRadius: '16px', padding: isMobile ? '16px' : '20px',
+                  cursor: 'pointer',
                   position: 'relative',
+                  boxShadow: '0 4px 16px rgba(36,24,18,0.04)',
                 }}
               >
                 {/* Icon */}
                 <div style={{
-                  width: '36px', height: '36px', borderRadius: '9px', marginBottom: '14px',
-                  background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(255,107,53,0.15) 100%)',
+                  width: '38px', height: '38px', borderRadius: '10px', marginBottom: '14px',
+                  background: '#EDE6DC',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <CircleStackIcon style={{ width: '18px', height: '18px', color: '#3B82F6' }} />
+                  <CircleStackIcon style={{ width: '20px', height: '20px', color: '#EB5E3D' }} />
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: isLight ? '#111111' : '#e2e8f0', marginBottom: '6px', paddingRight: '28px' }}>
+                <div style={{ fontSize: '15px', fontWeight: '700', color: '#241812', marginBottom: '8px', paddingRight: '32px' }}>
                   {w.name}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '12px', color: isLight ? '#71717a' : '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <CircleStackIcon style={{ width: '11px', height: '11px' }} />
+                  <span style={{ fontSize: '12px', color: '#736357', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: '500' }}>
+                    <CircleStackIcon style={{ width: '12px', height: '12px', color: '#EB5E3D' }} />
                     {w.nodes?.length || 0} node{w.nodes?.length !== 1 ? 's' : ''}
                   </span>
-                  <span style={{ fontSize: '12px', color: isLight ? '#71717a' : '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <ClockIcon style={{ width: '11px', height: '11px' }} />
+                  <span style={{ fontSize: '12px', color: '#736357', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: '500' }}>
+                    <ClockIcon style={{ width: '12px', height: '12px', color: '#736357' }} />
                     {new Date(w.updated_at).toLocaleDateString()}
                   </span>
                 </div>
                 {/* Action buttons */}
-                <div style={{ position: 'absolute', top: '16px', right: '14px', display: 'flex', gap: '4px' }}>
+                <div style={{ position: 'absolute', top: '16px', right: '14px', display: 'flex', gap: '6px' }}>
                   <button
                     className="wf-card-edit"
                     onClick={e => { e.stopPropagation(); handleOpen(w._id) }}
                     style={{
-                      padding: '4px 6px', borderRadius: '5px', border: 'none', cursor: 'pointer',
-                      background: 'rgba(59,130,246,0.1)', color: '#3B82F6',
+                      padding: '5px 7px', borderRadius: '6px', border: '1px solid #E5DCD0', cursor: 'pointer',
+                      background: '#EDE6DC', color: '#241812',
                     }}
                     title="Edit"
                   >
@@ -227,9 +226,9 @@ export default function WorkflowsPage() {
                     onClick={e => handleDelete(e, w._id)}
                     disabled={deleting === w._id}
                     style={{
-                      padding: '4px 6px', borderRadius: '5px', border: 'none', cursor: 'pointer',
-                      background: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#64748b',
-                      transition: 'background 0.12s ease, color 0.12s ease',
+                      padding: '5px 7px', borderRadius: '6px', border: '1px solid #E5DCD0', cursor: 'pointer',
+                      background: '#EDE6DC', color: '#736357',
+                      transition: 'all 0.12s ease',
                     }}
                     title="Delete"
                   >
@@ -246,7 +245,7 @@ export default function WorkflowsPage() {
             items={MOBILE_NAV_ITEMS}
             pathname={pathname}
             onNavigate={(href) => router.push(href)}
-            isLight={isLight}
+            isLight={true}
           />
         )}
       </div>

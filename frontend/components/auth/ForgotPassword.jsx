@@ -52,29 +52,28 @@ export default function ForgotPassword({ onBack }) {
     return (
       <div className="w-full text-center">
         <div className="mb-6">
-          <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircleIcon className="w-8 h-8 text-green-500" />
+          <div className="w-14 h-14 bg-[#2EA38D]/15 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#2EA38D]/30">
+            <CheckCircleIcon className="w-7 h-7 text-[#2EA38D]" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Check Your Email</h2>
-          <p className="text-gray-400">
-            We've sent a password reset link to <span className="text-white font-medium">{email}</span>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#241812] tracking-tight mb-2">Check Your Email</h2>
+          <p className="text-sm text-[#736357]">
+            We've sent a password reset link to <span className="font-semibold text-[#241812]">{email}</span>
           </p>
         </div>
 
-        <div className="bg-[#1a1a1a] border border-[#444] rounded-xl p-4 mb-6">
-          <h3 className="text-white font-medium mb-2">What's next?</h3>
-          <ul className="text-sm text-gray-300 space-y-1 text-left">
-            <li>1. Check your email inbox</li>
-            <li>2. Click the reset link (valid for 1 hour)</li>
-            <li>3. Enter your new password</li>
-            <li>4. Sign in with your new password</li>
+        <div className="bg-[#EDE6DC] border border-[#E5DCD0] rounded-2xl p-5 mb-6 text-left shadow-2xs">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#241812] mb-3">Next Steps</h3>
+          <ul className="text-xs text-[#736357] space-y-2">
+            <li>1. Check your email inbox (and spam folder)</li>
+            <li>2. Click the secure reset link (valid for 1 hour)</li>
+            <li>3. Enter your new password and sign in</li>
           </ul>
         </div>
 
         <div className="space-y-3">
           <button
             onClick={onBack}
-            className="w-full bg-[#333333] hover:bg-[#444444] text-white font-medium py-3 px-4 rounded-xl transition-all duration-200"
+            className="w-full py-3.5 px-6 rounded-full bg-[#241812] hover:bg-[#3A2C24] text-white font-bold text-sm tracking-wide transition-all shadow-md cursor-pointer"
           >
             Back to Sign In
           </button>
@@ -84,9 +83,9 @@ export default function ForgotPassword({ onBack }) {
               setSuccess(false)
               setEmail("")
             }}
-            className="w-full text-[#00D4FF] hover:text-white text-sm transition-colors"
+            className="w-full text-xs font-semibold text-[#EB5E3D] hover:text-[#D94F2F] transition-colors py-1"
           >
-            Send another email
+            Send another reset email
           </button>
         </div>
       </div>
@@ -99,66 +98,60 @@ export default function ForgotPassword({ onBack }) {
       <div className="mb-8">
         <button
           onClick={onBack}
-          className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors mb-4"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EDE6DC] hover:bg-[#E5DCD0] text-xs font-semibold text-[#736357] hover:text-[#241812] transition-colors mb-6 border border-[#E5DCD0]/60 shadow-2xs"
         >
-          <ArrowLeftIcon className="w-5 h-5" />
+          <ArrowLeftIcon className="w-3.5 h-3.5" />
           <span>Back to Sign In</span>
         </button>
         
-        <h2 className="text-2xl font-bold text-white mb-2">Reset Your Password</h2>
-        <p className="text-gray-400">
-          Enter your email address and we'll send you a link to reset your password.
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#241812] tracking-tight mb-2">Reset Password</h2>
+        <p className="text-sm text-[#736357]">
+          Enter your email address and we'll send you a password recovery link.
         </p>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-[#e74c3c]/10 border border-[#e74c3c]/20 rounded-xl">
-          <p className="text-[#e74c3c] text-sm">{error}</p>
+        <div className="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-xs font-medium flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+          {error}
         </div>
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-bold text-[#241812] tracking-wide">
             Email Address
           </label>
           <div className="relative">
-            <EnvelopeIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-[#444] rounded-xl pl-11 pr-4 py-3 text-white placeholder-[#999999] focus:outline-none focus:ring-2 focus:ring-[#00D4FF] focus:border-transparent transition-all duration-200"
-              placeholder="Enter your email address"
+              className="w-full rounded-2xl px-4 py-3 text-sm bg-white border border-[#E5DCD0] text-[#241812] placeholder-[#A89C94] outline-none transition-all focus:border-[#EB5E3D] focus:ring-2 focus:ring-[#EB5E3D]/15 shadow-2xs"
+              placeholder="name@company.com"
               required
             />
+            <EnvelopeIcon className="w-4 h-4 text-[#A89C94] absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-[#00D4FF] to-[#FF6B35] hover:opacity-90 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          className="mt-2 w-full py-3.5 px-6 rounded-full bg-[#EB5E3D] hover:bg-[#D94F2F] active:scale-[0.99] text-white font-bold text-sm tracking-wide shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
           {loading ? (
-            <div className="flex items-center justify-center space-x-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Sending...</span>
-            </div>
+            <span className="inline-flex items-center gap-2">
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Sending link...
+            </span>
           ) : (
-            "Send Reset Link"
+            "Send Reset Link →"
           )}
         </button>
       </form>
-
-      {/* Help Text */}
-      <div className="mt-6 p-4 bg-[#1a1a1a] rounded-xl">
-        <p className="text-gray-400 text-sm">
-          <span className="font-medium text-white">Having trouble?</span> Make sure you're using the email address associated with your AutoFlow account.
-        </p>
-      </div>
     </div>
   )
 }

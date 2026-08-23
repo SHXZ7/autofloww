@@ -4,7 +4,6 @@ export default function MobileBottomNav({
   items,
   pathname,
   onNavigate,
-  isLight = false,
 }) {
   return (
     <div
@@ -15,15 +14,15 @@ export default function MobileBottomNav({
         bottom: '10px',
         zIndex: 60,
         borderRadius: '16px',
-        border: `1px solid ${isLight ? '#cbd5e1' : '#334155'}`,
-        background: isLight ? 'rgba(255,255,255,0.96)' : 'rgba(15,23,42,0.95)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        boxShadow: isLight ? '0 10px 24px rgba(15,23,42,0.15)' : '0 12px 26px rgba(2,6,23,0.55)',
+        border: '1px solid #E5DCD0',
+        background: 'rgba(255,255,255,0.96)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: '0 10px 25px rgba(36,24,18,0.12)',
         padding: '8px 6px',
         display: 'grid',
         gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
-        gap: '2px',
+        gap: '4px',
       }}
     >
       {items.map((item) => {
@@ -37,23 +36,24 @@ export default function MobileBottomNav({
             key={item.href}
             onClick={() => onNavigate(item.href)}
             style={{
-              border: 'none',
-              borderRadius: '10px',
-              background: active ? (isLight ? '#dbeafe' : 'rgba(37,99,235,0.18)') : 'transparent',
-              color: active ? '#3B82F6' : (isLight ? '#64748b' : '#94a3b8'),
+              border: active ? '1px solid #E5DCD0' : '1px solid transparent',
+              borderRadius: '12px',
+              background: active ? '#EDE6DC' : 'transparent',
+              color: active ? '#EB5E3D' : '#736357',
               padding: '7px 2px 6px',
-              minHeight: '58px',
+              minHeight: '56px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '3px',
+              gap: '4px',
               cursor: 'pointer',
               fontFamily: 'var(--font-space-grotesk, system-ui, sans-serif)',
+              transition: 'all 0.15s ease',
             }}
           >
-            <Icon style={{ width: '18px', height: '18px' }} />
-            <span style={{ fontSize: '9.5px', fontWeight: active ? 700 : 500, lineHeight: 1.1 }}>
+            <Icon style={{ width: '19px', height: '19px', strokeWidth: active ? 2.5 : 2 }} />
+            <span style={{ fontSize: '10px', fontWeight: active ? 800 : 600, lineHeight: 1.1 }}>
               {item.label}
             </span>
           </button>
@@ -62,3 +62,4 @@ export default function MobileBottomNav({
     </div>
   )
 }
+

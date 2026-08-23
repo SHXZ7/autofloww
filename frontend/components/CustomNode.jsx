@@ -25,12 +25,12 @@ export default function CustomNode({ data, id }) {
 
   
   const CATEGORY_COLORS = {
-    AI:            { accent: "#8B5CF6", bg: "rgba(139,92,246,0.12)",  bgLight: "rgba(220,216,210,0.9)",  border: "rgba(139,92,246,0.3)"  },
-    Integration:   { accent: "#3B82F6", bg: "rgba(59,130,246,0.12)",  bgLight: "rgba(220,216,210,0.9)",  border: "rgba(59,130,246,0.3)"  },
-    Communication: { accent: "#22C55E", bg: "rgba(34,197,94,0.12)",   bgLight: "rgba(220,216,210,0.9)",  border: "rgba(34,197,94,0.3)"   },
-    Automation:    { accent: "#F59E0B", bg: "rgba(245,158,11,0.12)",  bgLight: "rgba(220,216,210,0.9)",  border: "rgba(245,158,11,0.3)"  },
-    Data:          { accent: "#06B6D4", bg: "rgba(6,182,212,0.12)",   bgLight: "rgba(220,216,210,0.9)",  border: "rgba(6,182,212,0.3)"   },
-    Unknown:       { accent: "#64748b", bg: "rgba(100,116,139,0.12)", bgLight: "rgba(220,216,210,0.9)",  border: "rgba(100,116,139,0.3)" },
+    AI:            { accent: "#DDA449", bg: "rgba(221,164,73,0.12)",  bgLight: "#FFFFFF",  border: "#E5DCD0" },
+    Integration:   { accent: "#5B9EB5", bg: "rgba(91,158,181,0.12)",  bgLight: "#FFFFFF",  border: "#E5DCD0" },
+    Communication: { accent: "#319D84", bg: "rgba(49,157,132,0.12)",  bgLight: "#FFFFFF",  border: "#E5DCD0" },
+    Automation:    { accent: "#EB5E3D", bg: "rgba(235,94,61,0.12)",   bgLight: "#FFFFFF",  border: "#E5DCD0" },
+    Data:          { accent: "#9B5A53", bg: "rgba(155,90,83,0.12)",   bgLight: "#FFFFFF",  border: "#E5DCD0" },
+    Unknown:       { accent: "#736357", bg: "rgba(115,99,87,0.12)",   bgLight: "#FFFFFF",  border: "#E5DCD0" },
   }
 
   const handleSave = () => {
@@ -101,21 +101,21 @@ export default function CustomNode({ data, id }) {
       return (
         <div className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Prompt</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Prompt</label>
             <textarea
               value={formData.prompt || formData.label || ""}
               onChange={(e) => setFormData({ ...formData, prompt: e.target.value, label: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200 resize-none"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] placeholder-[#736357] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 resize-none text-xs"
               rows={3}
               placeholder="Enter your prompt..."
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Model</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Model</label>
             <select
               value={formData.model || ""}
               onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 text-xs font-medium"
             >
               <option value="openai/gpt-4o">GPT-4o</option>
               <option value="meta-llama/llama-3-8b-instruct">Llama 3 8B</option>
@@ -125,17 +125,32 @@ export default function CustomNode({ data, id }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Temperature</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-bold text-[#241812]">Temperature</label>
+              <span className="text-[11px] font-bold text-[#EB5E3D] bg-[#EDE6DC] px-2 py-0.5 rounded-md border border-[#E5DCD0]">
+                {formData.temperature !== undefined ? formData.temperature : 0.7}
+              </span>
+            </div>
             <input
               type="range"
               min="0"
               max="1"
               step="0.1"
-              value={formData.temperature || 0.7}
+              value={formData.temperature !== undefined ? formData.temperature : 0.7}
               onChange={(e) => setFormData({ ...formData, temperature: parseFloat(e.target.value) })}
-              className="w-full h-2 bg-[#334155] rounded-lg appearance-none cursor-pointer"
+              className="w-full cursor-pointer accent-[#EB5E3D]"
+              style={{
+                height: '8px',
+                borderRadius: '6px',
+                background: `linear-gradient(to right, #EB5E3D ${((formData.temperature !== undefined ? formData.temperature : 0.7) * 100)}%, #EDE6DC ${((formData.temperature !== undefined ? formData.temperature : 0.7) * 100)}%)`,
+                border: '1px solid #E5DCD0',
+                outline: 'none',
+              }}
             />
-            <div className="text-xs text-[#64748b] text-center mt-1">Temperature: {formData.temperature || 0.7}</div>
+            <div className="flex justify-between text-[10px] text-[#736357] font-semibold mt-1">
+              <span>0.0 (Precise)</span>
+              <span>1.0 (Creative)</span>
+            </div>
           </div>
         </div>
       )
@@ -144,21 +159,21 @@ export default function CustomNode({ data, id }) {
       return (
         <div className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Description</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Description</label>
             <input
               type="text"
               value={formData.description || ""}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] placeholder-[#736357] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 text-xs"
               placeholder="Webhook description"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Method</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Method</label>
             <select
               value={formData.method || "POST"}
               onChange={(e) => setFormData({ ...formData, method: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 text-xs font-medium"
             >
               <option value="POST">POST</option>
               <option value="GET">GET</option>
@@ -167,24 +182,24 @@ export default function CustomNode({ data, id }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Webhook URL</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Webhook URL</label>
             <input
               type="text"
               value={formData.webhook_url || ""}
               onChange={(e) => setFormData({ ...formData, webhook_url: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] placeholder-[#736357] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 text-xs"
               placeholder={`${API_BASE_URL}/webhook/trigger/${id}`}
             />
-            <div className="text-xs text-[#64748b] mt-1">
+            <div className="text-[11px] text-[#736357] mt-1">
               Webhook URL will be auto-registered when workflow runs
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Request Body (JSON)</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Request Body (JSON)</label>
             <textarea
               value={formData.body || ""}
               onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200 resize-none font-mono"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] placeholder-[#736357] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 resize-none font-mono text-xs"
               rows={3}
               placeholder='{"key": "value"}'
             />
@@ -196,32 +211,32 @@ export default function CustomNode({ data, id }) {
       return (
         <div className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Webhook URL</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Webhook URL</label>
             <input
               type="text"
               value={formData.webhook_url || ""}
               onChange={(e) => setFormData({ ...formData, webhook_url: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] placeholder-[#736357] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 text-xs"
               placeholder="https://discord.com/api/webhooks/..."
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Message</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Message</label>
             <textarea
               value={formData.message || ""}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200 resize-none"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] placeholder-[#736357] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 resize-none text-xs"
               rows={3}
               placeholder="Message to send to Discord..."
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Bot Username</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Bot Username</label>
             <input
               type="text"
               value={formData.username || "AutoFlow Bot"}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] placeholder-[#736357] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 text-xs"
               placeholder="AutoFlow Bot"
             />
           </div>
@@ -278,21 +293,21 @@ export default function CustomNode({ data, id }) {
       return (
         <div className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Prompt</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Prompt</label>
             <textarea
               value={formData.prompt || ""}
               onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200 resize-none"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] placeholder-[#736357] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 resize-none text-xs"
               rows={3}
               placeholder="A beautiful sunset over mountains..."
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Provider</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Provider</label>
             <select
               value={formData.provider || "openai"}
               onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 text-xs font-medium"
             >
               <option value="openai">OpenAI DALL-E</option>
               <option value="stability">Stability AI</option>
@@ -300,11 +315,11 @@ export default function CustomNode({ data, id }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Size</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Size</label>
             <select
               value={formData.size || "1024x1024"}
               onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 text-xs font-medium"
             >
               <option value="1024x1024">1024x1024</option>
               <option value="1792x1024">1792x1024</option>
@@ -312,11 +327,11 @@ export default function CustomNode({ data, id }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Quality</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Quality</label>
             <select
               value={formData.quality || "standard"}
               onChange={(e) => setFormData({ ...formData, quality: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 text-xs font-medium"
             >
               <option value="standard">Standard</option>
               <option value="hd">HD</option>
@@ -329,21 +344,21 @@ export default function CustomNode({ data, id }) {
       return (
         <div className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Phone Number</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Phone Number</label>
             <input
               type="text"
               value={formData.to || ""}
               onChange={(e) => setFormData({ ...formData, to: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] placeholder-[#736357] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 text-xs"
               placeholder="+919876543210"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Message</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Message</label>
             <textarea
               value={formData.message || ""}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200 resize-none"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] placeholder-[#736357] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 resize-none text-xs"
               rows={3}
               placeholder="Type your message..."
             />
@@ -355,31 +370,31 @@ export default function CustomNode({ data, id }) {
       return (
         <div className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Spreadsheet ID</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Spreadsheet ID</label>
             <input
               type="text"
               value={formData.spreadsheet_id || ""}
               onChange={(e) => setFormData({ ...formData, spreadsheet_id: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
-              placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] placeholder-[#736357] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 text-xs"
+              placeholder="Google Sheets ID"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Range</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Range</label>
             <input
               type="text"
-              value={formData.range || ""}
+              value={formData.range || "Sheet1!A1"}
               onChange={(e) => setFormData({ ...formData, range: e.target.value })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] placeholder-[#736357] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 text-xs"
               placeholder="Sheet1!A1:C10"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Values (comma-separated)</label>
+            <label className="block text-xs font-bold text-[#241812] mb-1.5">Values (comma-separated)</label>
             <textarea
               value={formData.values ? (Array.isArray(formData.values) ? formData.values.join(", ") : formData.values) : ""}
               onChange={(e) => setFormData({ ...formData, values: e.target.value.split(",").map(v => v.trim()) })}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2 text-[#F1F5F9] placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent transition-all duration-200 resize-none"
+              className="w-full bg-[#F6F1EA] border border-[#E5DCD0] rounded-xl px-3 py-2 text-[#241812] placeholder-[#736357] focus:outline-none focus:ring-1 focus:ring-[#EB5E3D] focus:border-[#EB5E3D] transition-all duration-200 resize-none text-xs"
               rows={2}
               placeholder="Value1, Value2, Value3"
             />
@@ -925,47 +940,48 @@ export default function CustomNode({ data, id }) {
         />
 
         {/* Header */}
-        <div className="p-4 border-b rounded-t-xl" style={{ backgroundColor: isLight ? catColors.bgLight : catColors.bg, borderColor: catColors.border }}>
+        <div className="px-4 py-3.5 border-b rounded-t-xl" style={{ backgroundColor: '#EDE6DC', borderColor: '#E5DCD0' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm shadow-lg font-medium" style={{ backgroundColor: catColors.accent }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm shadow-md font-bold shrink-0" style={{ backgroundColor: catColors.accent }}
               >
-                {nodeInfo.icon.startsWith('/') ? (
+                {nodeInfo.icon && nodeInfo.icon.startsWith('/') ? (
                   <img src={nodeInfo.icon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-                ) : nodeInfo.icon}
+                ) : (nodeInfo.icon || '⚡')}
               </div>
-              <div>
-                <h3 className="font-semibold" style={{ color: isLight ? '#111111' : 'white' }}>{data.label}</h3>
-                <p className="text-xs" style={{ color: isLight ? '#71717a' : '#64748b' }}>{nodeInfo.category}</p>
+              <div className="overflow-hidden">
+                <h3 className="font-extrabold text-sm tracking-tight leading-snug truncate" style={{ color: '#241812' }}>{data.label || data.name || nodeInfo.category + ' Node'}</h3>
+                <p className="text-[10px] font-bold uppercase tracking-wider leading-none" style={{ color: '#736357' }}>{nodeInfo.category}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Form Content */}
-        <div className="max-h-96 overflow-y-auto">{renderEditForm()}</div>
+        <div className="max-h-96 overflow-y-auto bg-white">{renderEditForm()}</div>
 
         {/* Actions */}
-        <div className="p-4 border-t rounded-b-xl flex gap-3" style={{ backgroundColor: isLight ? '#f5f3ef' : '#0f172a', borderColor: isLight ? '#e8e4de' : catColors.border }}>
+        <div className="p-4 border-t rounded-b-xl flex gap-3" style={{ backgroundColor: '#F6F1EA', borderColor: '#E5DCD0' }}>
           <button
             onClick={handleSave}
-            className="flex-1 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-lg hover:opacity-90" style={{ backgroundColor: catColors.accent }}
+            className="flex-1 text-white font-bold text-xs py-2.5 rounded-lg transition-all shadow-md hover:opacity-90 cursor-pointer" style={{ backgroundColor: '#EB5E3D' }}
           >
             Save Changes
           </button>
           <button
             onClick={() => setIsEditing(false)}
             style={{
-              flex: 1, fontWeight: '500', padding: '8px 16px', borderRadius: '8px',
-              transition: 'all 0.2s',
-              backgroundColor: isLight ? '#e8e4de' : '#1e293b',
-              color: isLight ? '#52525b' : '#94a3b8',
-              border: `1px solid ${isLight ? '#d5cfc6' : '#334155'}`,
+              flex: 1, fontWeight: '600', padding: '8px 16px', borderRadius: '8px',
+              transition: 'all 0.15s ease',
+              backgroundColor: '#EDE6DC',
+              color: '#241812',
+              border: '1px solid #E5DCD0',
               cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: '12px',
             }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = isLight ? '#d5cfc6' : '#334155'; e.currentTarget.style.color = isLight ? '#111111' : '#F1F5F9' }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = isLight ? '#e8e4de' : '#1e293b'; e.currentTarget.style.color = isLight ? '#52525b' : '#94a3b8' }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#E5DCD0'; e.currentTarget.style.color = '#EB5E3D' }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#EDE6DC'; e.currentTarget.style.color = '#241812' }}
           >
             Cancel
           </button>
@@ -987,16 +1003,16 @@ export default function CustomNode({ data, id }) {
 
   return (
     <div
-      className="rounded-xl min-w-48 cursor-pointer transition-all duration-200 backdrop-blur-sm"
+      className="rounded-xl min-w-48 cursor-pointer transition-all duration-200"
       onDoubleClick={() => setIsEditing(true)}
       style={{
-        backgroundColor: isLight ? '#e8e4de' : '#1e293b',
-        border: isLight ? `1px solid ${catColors.border}` : '1px solid #334155',
-        borderLeft: '3px solid ' + catColors.accent,
-        borderRadius: '12px',
-        minWidth: '192px',
-        color: isLight ? '#111111' : 'white',
-        boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.1)' : '0 4px 24px rgba(0,0,0,0.3)'
+        backgroundColor: '#FFFFFF',
+        border: '1px solid #E5DCD0',
+        borderLeft: '4px solid ' + catColors.accent,
+        borderRadius: '14px',
+        minWidth: '210px',
+        color: '#241812',
+        boxShadow: '0 4px 20px rgba(36,24,18,0.06)'
       }}
     >
       <Handle
@@ -1012,30 +1028,33 @@ export default function CustomNode({ data, id }) {
 
       {/* Header */}
       <div 
-        className="p-3 border-b rounded-t-xl" style={{ backgroundColor: isLight ? catColors.bgLight : catColors.bg, borderColor: catColors.border, borderTopLeftRadius: '10px', borderTopRightRadius: '10px' }}
+        className="px-3.5 py-3 border-b rounded-t-xl" style={{ backgroundColor: '#EDE6DC', borderColor: '#E5DCD0', borderTopLeftRadius: '12px', borderTopRightRadius: '12px' }}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2.5">
             <div
-              className="w-6 h-6 rounded-lg flex items-center justify-center shadow-lg" style={{ backgroundColor: catColors.accent }}
+              className="w-7 h-7 rounded-lg flex items-center justify-center shadow-xs shrink-0" style={{ backgroundColor: catColors.accent }}
             >
-              <img src={nodeInfo.icon} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+              {nodeInfo.icon && nodeInfo.icon.startsWith('/') ? (
+                <img src={nodeInfo.icon} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+              ) : (
+                <span className="text-xs text-white">{nodeInfo.icon || '⚡'}</span>
+              )}
             </div>
-            <div>
-              <h3 className="font-medium text-sm" style={{ color: isLight ? '#111111' : 'white' }}>{data.label}</h3>
-              <p className="text-xs" style={{ color: isLight ? '#71717a' : '#64748b' }}>{nodeInfo.category}</p>
+            <div className="overflow-hidden">
+              <h3 className="font-extrabold text-sm tracking-tight leading-snug truncate" style={{ color: '#241812' }}>{data.label || data.name || nodeInfo.category + ' Node'}</h3>
+              <p className="text-[10px] font-bold uppercase tracking-wider leading-none" style={{ color: '#736357' }}>{nodeInfo.category}</p>
             </div>
           </div>
-          <CogIcon className="w-4 h-4 text-[#64748b] hover:text-[#F1F5F9] transition-colors" />
+          <CogIcon className="w-4 h-4 text-[#736357] hover:text-[#EB5E3D] transition-colors shrink-0" />
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-3 space-y-2" style={{ backgroundColor: 'transparent' }}>
+      <div className="p-3 space-y-2 bg-white rounded-b-xl">
         {data.model && (
           <div 
-            className="text-xs text-[#94a3b8] bg-[#1e293b] px-2 py-1 rounded"
-            style={{ backgroundColor: isLight ? '#f5f3ef' : '#1e293b', color: isLight ? '#52525b' : '#94a3b8', border: isLight ? '1px solid #e8e4de' : 'none' }}
+            className="text-xs font-semibold text-[#241812] bg-[#F6F1EA] px-2.5 py-1 rounded-md border border-[#E5DCD0]"
           >
             Model: {data.model.split("/").pop()}
           </div>

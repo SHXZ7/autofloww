@@ -15,7 +15,7 @@ gsap.registerPlugin(ScrollTrigger)
  *       <videoBox>  GSAP scrubs scale 0.62 → 0.9, borderRadius 20 → 10
  */
 export default function VideoRevealSection({
-  src = "/videos/A_clean_second_product_dem.mp4",
+  src = "/videos/Product_demo_workflow_animation_1080p_202608231731.mp4",
   isLight: propIsLight,
 }) {
   const outerRef = useRef(null)

@@ -1,10 +1,10 @@
 "use client"
 import { useState } from "react"
 import { useAuthStore } from "../../stores/authStore"
-import { EyeIcon, EyeSlashIcon, ArrowLeftIcon } from "@heroicons/react/24/outline"
+import { EyeIcon, EyeSlashIcon, ArrowLeftIcon, UserIcon, EnvelopeIcon } from "@heroicons/react/24/outline"
 import { useRouter } from 'next/navigation'
 
-export default function SignupForm({ onSwitchToLogin, isLight = false }) {
+export default function SignupForm({ onSwitchToLogin }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -13,202 +13,202 @@ export default function SignupForm({ onSwitchToLogin, isLight = false }) {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [formError, setFormError] = useState("")
   const { signup, loading, error, clearError } = useAuthStore()
   const router = useRouter()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     clearError()
-    if (!formData.name || !formData.email || !formData.password) return
-    if (formData.password !== formData.confirmPassword) return
-    if (formData.password.length < 6) return
+    setFormError("")
+    if (!formData.name || !formData.email || !formData.password) {
+      setFormError("Please fill in all fields")
+      return
+    }
+    if (formData.password.length < 6) {
+      setFormError("Password must be at least 6 characters")
+      return
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setFormError("Passwords do not match")
+      return
+    }
     const result = await signup(formData.name, formData.email, formData.password)
-    if (!result.success) console.error("Signup failed:", result.error)
+    if (result.success) {
+      router.push("/")
+    } else {
+      setFormError(result.error || "Signup failed. Please try again.")
+    }
   }
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const passwordsMatch = formData.password === formData.confirmPassword
-  const passwordValid = formData.password.length >= 6
-
-  // Theme design matching the homepage
-  const accentColor = isLight ? "#111111" : "#2563eb"
-  const accentHover = isLight ? "#27272a" : "#1d4ed8"
-  const labelColor = isLight ? "#52525b" : "#9ca3af"
-  const inputBg = isLight ? "#ffffff" : "#0d1527"
-  const inputBorder = isLight ? "#e8e4de" : "#1e293b"
-  const inputColor = isLight ? "#111111" : "#ffffff"
-  const textColor = isLight ? "#111111" : "#ffffff"
-  const secondaryText = isLight ? "#52525b" : "#9ca3af"
+  const passwordsMatch = formData.confirmPassword ? formData.password === formData.confirmPassword : true
+  const passwordValid = formData.password ? formData.password.length >= 6 : true
 
   return (
-    <div className="w-full max-w-sm mx-auto">
-      {/* Back to Site link at the top (reduced spacing) */}
+    <div className="w-full max-w-sm sm:max-w-md mx-auto">
+      {/* Back to Homepage pill link */}
       <button
         onClick={() => router.push("/homepage")}
-        className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider transition-colors mb-8"
-        style={{ color: secondaryText }}
+        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EDE6DC] hover:bg-[#E5DCD0] text-xs font-semibold text-[#736357] hover:text-[#241812] transition-colors mb-3 border border-[#E5DCD0]/60 shadow-2xs cursor-pointer"
       >
         <ArrowLeftIcon className="w-3.5 h-3.5" />
-        Back to Site
+        Back to AutoFlow
       </button>
 
       {/* Header */}
-      <div className="flex flex-col items-start mb-6">
-        <h2
-          className="text-4xl font-bold mb-1.5 tracking-tight transition-colors"
-          style={{
-            fontFamily: "Georgia, 'Times New Roman', serif",
-            color: textColor,
-          }}
-        >
-          Sign up
+      <div className="mb-3 sm:mb-4">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-6 h-6 rounded-lg bg-[#241812] flex items-center justify-center text-white">
+            <svg viewBox="0 0 32 32" fill="none" className="w-3.5 h-3.5">
+              <rect x="9" y="5" width="14" height="10" rx="2" fill="#F6F1EA" />
+              <circle cx="13.5" cy="10" r="1.3" fill="#241812" />
+              <circle cx="18.5" cy="10" r="1.3" fill="#241812" />
+              <rect x="6" y="17" width="20" height="11" rx="3" fill="#F6F1EA" />
+              <circle cx="16" cy="22.5" r="1.5" fill="#EB5E3D" />
+            </svg>
+          </div>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-[#EB5E3D]">Get Started Free</span>
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#241812] tracking-tight mb-0.5">
+          Create your account
         </h2>
-        <p className="text-xs font-medium transition-colors" style={{ color: secondaryText }}>
-          Create an account to start building workflows.
+        <p className="text-xs text-[#736357]">
+          Join thousands of developers and teams automating workflows with AI.
         </p>
       </div>
 
-      {/* Error banner (reduced spacing) */}
-      {error && (
-        <div className="mb-4 p-2.5 rounded-xl border border-red-500/20" style={{
-          background: "rgba(239,68,68,0.06)",
-        }}>
-          <p className="text-xs font-semibold" style={{ color: "#ef4444" }}>{error}</p>
+      {/* Error banner */}
+      {(error || formError) && (
+        <div className="mb-3 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+          {error || formError}
         </div>
       )}
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-        {/* Name */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: labelColor }}>Full Name</label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="Enter your name"
-            required
-            className="w-full rounded-xl px-4 py-2.5 text-sm transition-all focus:ring-1 outline-none"
-            style={{
-              background: inputBg,
-              border: `1px solid ${inputBorder}`,
-              color: inputColor,
-            }}
-            onFocus={e => (e.target.style.borderColor = isLight ? "#111" : "#2563eb")}
-            onBlur={e => (e.target.style.borderColor = inputBorder)}
-          />
+      {/* Signup Form */}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2.5" noValidate>
+        {/* Full Name */}
+        <div className="flex flex-col gap-0.5">
+          <label className="text-[11px] font-bold text-[#241812] tracking-wide">
+            Full Name
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Jane Doe"
+              required
+              className="w-full rounded-xl px-3.5 py-2 text-xs sm:text-sm bg-white border border-[#E5DCD0] text-[#241812] placeholder-[#A89C94] outline-none transition-all focus:border-[#EB5E3D] focus:ring-2 focus:ring-[#EB5E3D]/15 shadow-2xs"
+            />
+            <UserIcon className="w-4 h-4 text-[#A89C94] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
         </div>
 
-        {/* Email */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: labelColor }}>Email</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="you@email.com"
-            required
-            className="w-full rounded-xl px-4 py-2.5 text-sm transition-all focus:ring-1 outline-none"
-            style={{
-              background: inputBg,
-              border: `1px solid ${inputBorder}`,
-              color: inputColor,
-            }}
-            onFocus={e => (e.target.style.borderColor = isLight ? "#111" : "#2563eb")}
-            onBlur={e => (e.target.style.borderColor = inputBorder)}
-          />
+        {/* Email Address */}
+        <div className="flex flex-col gap-0.5">
+          <label className="text-[11px] font-bold text-[#241812] tracking-wide">
+            Email Address
+          </label>
+          <div className="relative">
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="name@company.com"
+              required
+              className="w-full rounded-xl px-3.5 py-2 text-xs sm:text-sm bg-white border border-[#E5DCD0] text-[#241812] placeholder-[#A89C94] outline-none transition-all focus:border-[#EB5E3D] focus:ring-2 focus:ring-[#EB5E3D]/15 shadow-2xs"
+            />
+            <EnvelopeIcon className="w-4 h-4 text-[#A89C94] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
         </div>
 
         {/* Password */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: labelColor }}>Password</label>
+        <div className="flex flex-col gap-0.5">
+          <label className="text-[11px] font-bold text-[#241812] tracking-wide">
+            Password
+          </label>
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="••••••••"
+              placeholder="At least 6 characters"
               required
-              className="w-full rounded-xl px-4 py-2.5 text-sm transition-all focus:ring-1 outline-none pr-10"
-              style={{
-                background: inputBg,
-                border: `1px solid ${formData.password && !passwordValid ? "#ef4444" : inputBorder}`,
-                color: inputColor,
-              }}
-              onFocus={e => (e.target.style.borderColor = formData.password && !passwordValid ? "#ef4444" : isLight ? "#111" : "#2563eb")}
-              onBlur={e => (e.target.style.borderColor = formData.password && !passwordValid ? "#ef4444" : inputBorder)}
+              className="w-full rounded-xl px-3.5 py-2 text-xs sm:text-sm bg-white border border-[#E5DCD0] text-[#241812] placeholder-[#A89C94] outline-none transition-all focus:border-[#EB5E3D] focus:ring-2 focus:ring-[#EB5E3D]/15 shadow-2xs pr-10"
             />
-            <button type="button" onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A89C94] hover:text-[#241812] transition-colors p-1 cursor-pointer"
+            >
               {showPassword ? <EyeSlashIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
             </button>
           </div>
-          {formData.password && !passwordValid && (
-            <p className="text-[9px] mt-0.5" style={{ color: "#ef4444" }}>Password must be at least 6 characters</p>
-          )}
         </div>
 
         {/* Confirm Password */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: labelColor }}>Confirm Password</label>
+        <div className="flex flex-col gap-0.5">
+          <label className="text-[11px] font-bold text-[#241812] tracking-wide">
+            Confirm Password
+          </label>
           <div className="relative">
             <input
               type={showConfirmPassword ? "text" : "password"}
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              placeholder="••••••••"
+              placeholder="Re-enter your password"
               required
-              className="w-full rounded-xl px-4 py-2.5 text-sm transition-all focus:ring-1 outline-none pr-10"
-              style={{
-                background: inputBg,
-                border: `1px solid ${formData.confirmPassword && !passwordsMatch ? "#ef4444" : inputBorder}`,
-                color: inputColor,
-              }}
-              onFocus={e => (e.target.style.borderColor = formData.confirmPassword && !passwordsMatch ? "#ef4444" : isLight ? "#111" : "#2563eb")}
-              onBlur={e => (e.target.style.borderColor = formData.confirmPassword && !passwordsMatch ? "#ef4444" : inputBorder)}
+              className="w-full rounded-xl px-3.5 py-2 text-xs sm:text-sm bg-white border border-[#E5DCD0] text-[#241812] placeholder-[#A89C94] outline-none transition-all focus:border-[#EB5E3D] focus:ring-2 focus:ring-[#EB5E3D]/15 shadow-2xs pr-10"
             />
-            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A89C94] hover:text-[#241812] transition-colors p-1 cursor-pointer"
+            >
               {showConfirmPassword ? <EyeSlashIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
             </button>
           </div>
-          {formData.confirmPassword && !passwordsMatch && (
-            <p className="text-[9px] mt-0.5" style={{ color: "#ef4444" }}>Passwords do not match</p>
-          )}
         </div>
 
-        {/* Submit */}
+        {/* Submit Button */}
         <button
           type="submit"
-          disabled={loading || !passwordValid || !passwordsMatch}
-          className="w-full text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-3 active:scale-[0.98]"
-          style={{ background: accentColor, fontSize: "13px" }}
-          onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = accentHover)}
-          onMouseLeave={e => (e.currentTarget.style.background = accentColor)}
+          disabled={loading}
+          className="mt-1 w-full py-2.5 sm:py-3 px-5 rounded-full bg-[#EB5E3D] hover:bg-[#D94F2F] active:scale-[0.99] text-white font-bold text-xs sm:text-sm tracking-wide shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
-          {loading ? "Creating account..." : "Create account"}
+          {loading ? (
+            <span className="inline-flex items-center gap-2">
+              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Creating account...
+            </span>
+          ) : (
+            "Create Free Account →"
+          )}
         </button>
+      </form>
 
-        {/* Switch to login */}
-        <div className="text-center text-xs mt-4" style={{ color: secondaryText }}>
-          Already have an account?{" "}
+      {/* Switch to Sign In */}
+      <div className="mt-3 sm:mt-4 text-center pt-2.5 sm:pt-3 border-t border-[#E5DCD0]">
+        <p className="text-xs text-[#736357]">
+          Already have an AutoFlow account?{" "}
           <button
             type="button"
             onClick={onSwitchToLogin}
-            className="font-bold underline transition-colors"
-            style={{ color: isLight ? "#111" : "#ffffff" }}
+            className="font-bold text-[#EB5E3D] hover:text-[#D94F2F] underline underline-offset-4 transition-colors cursor-pointer"
           >
-            login
+            Sign in
           </button>
-        </div>
-      </form>
+        </p>
+      </div>
     </div>
   )
 }

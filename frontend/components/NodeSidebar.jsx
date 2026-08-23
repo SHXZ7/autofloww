@@ -395,7 +395,7 @@ export default function NodeSidebar() {
       `}</style>
 
       {/* Search */}
-      <div style={{padding:'14px 12px 10px', borderBottom:`1px solid ${isLight ? '#e8e4de' : '#1e293b'}`, flexShrink:0}}>
+      <div style={{padding:'14px 12px 10px', borderBottom:'1px solid #E5DCD0', flexShrink:0}}>
         <input
           type="text"
           placeholder="Search nodes…"
@@ -403,13 +403,16 @@ export default function NodeSidebar() {
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
             width:'100%', boxSizing:'border-box',
-            background: isLight ? '#f5f3ef' : '#1e293b',
-            border: `1px solid ${isLight ? '#e8e4de' : '#334155'}`,
-            borderRadius:'8px', padding:'8px 12px',
-            color: isLight ? '#111111' : '#F1F5F9', fontSize:'13px',
+            background: '#F6F1EA',
+            border: '1px solid #E5DCD0',
+            borderRadius:'10px', padding:'8px 12px',
+            color: '#241812', fontSize:'13px',
             fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)",
             outline:'none',
+            transition: 'border-color 0.15s ease',
           }}
+          onFocus={e => e.currentTarget.style.borderColor = '#EB5E3D'}
+          onBlur={e => e.currentTarget.style.borderColor = '#E5DCD0'}
         />
       </div>
 
@@ -422,23 +425,21 @@ export default function NodeSidebar() {
               onClick={() => toggleSection(key)}
               style={{
                 width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
-                padding:'9px 10px', borderRadius:'8px', border:'none',
-                background: expandedSections[key]
-                  ? (isLight ? 'rgba(232,228,222,0.8)' : 'rgba(30,41,59,0.8)')
-                  : 'transparent',
-                cursor:'pointer', transition:'background 0.12s',
+                padding:'9px 12px', borderRadius:'10px', border:'none',
+                background: expandedSections[key] ? '#EDE6DC' : 'transparent',
+                cursor:'pointer', transition:'all 0.15s ease',
               }}
-              onMouseEnter={e => { if (!expandedSections[key]) e.currentTarget.style.background = isLight ? 'rgba(232,228,222,0.5)' : 'rgba(30,41,59,0.5)' }}
+              onMouseEnter={e => { if (!expandedSections[key]) e.currentTarget.style.background = '#F6F1EA' }}
               onMouseLeave={e => { if (!expandedSections[key]) e.currentTarget.style.background = 'transparent' }}
             >
-              <div style={{display:'flex', alignItems:'center', gap:'7px'}}>
+              <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
                 {category.icon.startsWith('/') ? <img src={category.icon} alt="" style={{width:'20px', height:'20px', objectFit:'contain', flexShrink:0}} /> : <span style={{fontSize:'16px'}}>{category.icon}</span>}
-                <span style={{fontSize:'13.5px', fontWeight:'600', color: expandedSections[key] ? (isLight ? '#111111' : '#F1F5F9') : (isLight ? '#52525b' : '#64748b'), fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}>{category.title}</span>
-                <span style={{fontSize:'12px', color: isLight ? '#a1a1aa' : '#475569', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}>({category.nodes.length})</span>
+                <span style={{fontSize:'13.5px', fontWeight:'700', color: '#241812', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}>{category.title}</span>
+                <span style={{fontSize:'11px', color: '#736357', fontWeight:'600', background:'#E5DCD0', padding:'1px 6px', borderRadius:'8px', fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)"}}>{category.nodes.length}</span>
               </div>
               {expandedSections[key]
-                ? <ChevronDownIcon style={{width:'15px', height:'15px', color: isLight ? '#52525b' : '#64748b'}} />
-                : <ChevronRightIcon style={{width:'15px', height:'15px', color: isLight ? '#a1a1aa' : '#475569'}} />
+                ? <ChevronDownIcon style={{width:'15px', height:'15px', color: '#241812'}} />
+                : <ChevronRightIcon style={{width:'15px', height:'15px', color: '#736357'}} />
               }
             </button>
 
@@ -446,7 +447,7 @@ export default function NodeSidebar() {
             {expandedSections[key] && (
               <div style={{display:'flex', flexWrap:'wrap', gap:'6px', padding:'6px 4px 8px'}}>
                 {category.nodes.map((node) => {
-                  const accent = category.accent || '#64748b'
+                  const accent = category.accent || '#EB5E3D'
                   return (
                   <button
                     key={node.type}
@@ -456,25 +457,27 @@ export default function NodeSidebar() {
                     style={{
                       display:'flex', alignItems:'center', gap:'6px',
                       padding:'7px 12px',
-                      borderRadius:'6px',
-                      border:`1px solid ${accent}33`,
-                      background:`${accent}14`,
-                      color: isAdding ? '#334155' : accent,
-                      fontSize:'13.5px', fontWeight:'500',
+                      borderRadius:'8px',
+                      border: '1px solid #E5DCD0',
+                      background: '#F6F1EA',
+                      color: isAdding ? '#736357' : '#241812',
+                      fontSize:'13px', fontWeight:'600',
                       fontFamily:"var(--font-space-grotesk, system-ui, sans-serif)",
                       cursor: isAdding ? 'not-allowed' : 'pointer',
-                      transition:'background 0.12s, color 0.12s, border-color 0.12s',
+                      transition:'all 0.15s ease',
                       whiteSpace:'nowrap',
                     }}
                     onMouseEnter={e => {
                       if (!isAdding) {
-                        e.currentTarget.style.background = `${accent}28`
-                        e.currentTarget.style.borderColor = `${accent}66`
+                        e.currentTarget.style.background = '#EDE6DC'
+                        e.currentTarget.style.borderColor = '#EB5E3D'
+                        e.currentTarget.style.color = '#EB5E3D'
                       }
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.background = `${accent}14`
-                      e.currentTarget.style.borderColor = `${accent}33`
+                      e.currentTarget.style.background = '#F6F1EA'
+                      e.currentTarget.style.borderColor = '#E5DCD0'
+                      e.currentTarget.style.color = '#241812'
                     }}
                   >
                     {node.icon.startsWith('/')
@@ -490,7 +493,6 @@ export default function NodeSidebar() {
           </div>
         ))}
       </div>
-
 
     </div>
   )

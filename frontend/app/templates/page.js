@@ -13,15 +13,13 @@ import {
 } from '@heroicons/react/24/outline'
 
 const GLOBAL_CSS = `
-    *, *::before, *::after { box-sizing: border-box; }
-  body { font-family: var(--font-space-grotesk, system-ui, sans-serif); background: #020617; margin: 0; -webkit-font-smoothing: antialiased; }
-  html.light body { background: #f8fafc !important; }
-  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(51,65,85,0.8); border-radius: 8px; }
-  .tpl-card:hover { background: #1e293b !important; border-color: #334155 !important; transform: translateY(-2px); }
-  html.light .tpl-card:hover { background: #e2e8f0 !important; border-color: #cbd5e1 !important; }
-  .tpl-card { transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease; }
-  .pill-active { background: rgba(59,130,246,0.15) !important; color: #3B82F6 !important; border-color: rgba(59,130,246,0.3) !important; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { font-family: var(--font-space-grotesk, system-ui, sans-serif); background: #F6F1EA; margin: 0; -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #E5DCD0; border-radius: 8px; }
+  .tpl-card { transition: all 0.15s ease; }
+  .tpl-card:hover { background: #EDE6DC !important; border-color: #EB5E3D !important; transform: translateY(-2px); }
+  .pill-active { background: #EB5E3D !important; color: #FFFFFF !important; border-color: #EB5E3D !important; }
 `
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://autoflow-f6hga9djg0a5b4fj.uaenorth-01.azurewebsites.net'
@@ -322,43 +320,24 @@ export default function TemplatesPage() {
     return categoryMatch && levelMatch && searchMatch
   })
 
-  const colors = isLight
-    ? {
-        pageBg: '#f5f3ef',
-        heading: '#111111',
-        muted: '#71717a',
-        panelBg: '#ffffff',
-        panelBorder: '#e8e4de',
-        inputBg: '#ffffff',
-        inputBorder: '#e8e4de',
-        inputText: '#111111',
-        pillBg: '#f5f3ef',
-        pillText: '#52525b',
-        cardBg: '#ffffff',
-        cardBorder: '#e8e4de',
-        cardTitle: '#111111',
-        cardDesc: '#52525b',
-        metaText: '#71717a',
-        buttonBg: 'rgba(59,130,246,0.12)',
-      }
-    : {
-        pageBg: '#020617',
-        heading: '#F1F5F9',
-        muted: '#64748b',
-        panelBg: '#0f172a',
-        panelBorder: '#1e293b',
-        inputBg: '#0f172a',
-        inputBorder: '#1e293b',
-        inputText: '#e2e8f0',
-        pillBg: '#1e293b',
-        pillText: '#64748b',
-        cardBg: '#0f172a',
-        cardBorder: '#1e293b',
-        cardTitle: '#e2e8f0',
-        cardDesc: '#64748b',
-        metaText: '#475569',
-        buttonBg: 'rgba(59,130,246,0.1)',
-      }
+  const colors = {
+    pageBg: '#F6F1EA',
+    heading: '#241812',
+    muted: '#736357',
+    panelBg: '#FFFFFF',
+    panelBorder: '#E5DCD0',
+    inputBg: '#FFFFFF',
+    inputBorder: '#E5DCD0',
+    inputText: '#241812',
+    pillBg: '#EDE6DC',
+    pillText: '#241812',
+    cardBg: '#FFFFFF',
+    cardBorder: '#E5DCD0',
+    cardTitle: '#241812',
+    cardDesc: '#736357',
+    metaText: '#736357',
+    buttonBg: '#EDE6DC',
+  }
 
   const handleUse = (template) => {
     try {
@@ -377,32 +356,36 @@ export default function TemplatesPage() {
       <style jsx global>{GLOBAL_CSS}</style>
       {!isMobile && <TopNav />}
 
-      <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '18px 12px 96px' : '32px 40px' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '18px 14px 96px' : '32px 40px' }}>
         {/* Header */}
         <div style={{ marginBottom: isMobile ? '18px' : '28px' }}>
-          <h1 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: '700', color: colors.heading, margin: 0, letterSpacing: '-0.4px' }}>Templates</h1>
-          <p style={{ fontSize: isMobile ? '12px' : '13px', color: colors.muted, margin: '4px 0 0' }}>
+          <h1 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '800', color: colors.heading, margin: 0, letterSpacing: '-0.02em' }}>Templates</h1>
+          <p style={{ fontSize: isMobile ? '12.5px' : '13.5px', color: colors.muted, margin: '4px 0 0', fontWeight: '500' }}>
             Start with production-ready automations — from quick wins to advanced multi-step pipelines
           </p>
         </div>
 
         {/* Search */}
-        <div style={{ marginBottom: '16px' }}>
+        <div style={{ marginBottom: '18px' }}>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search templates by use-case, tags, or title..."
+            placeholder="Search templates by use-case, tags, or title…"
             style={{
               width: '100%', maxWidth: isMobile ? '100%' : '520px',
-              padding: '10px 12px',
-              borderRadius: '10px',
+              padding: '10px 14px',
+              borderRadius: '12px',
               border: `1px solid ${colors.inputBorder}`,
               outline: 'none',
               background: colors.inputBg,
               color: colors.inputText,
               fontSize: '13px',
               fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+              boxShadow: '0 2px 8px rgba(36,24,18,0.03)',
+              transition: 'border-color 0.15s ease',
             }}
+            onFocus={e => e.currentTarget.style.borderColor = '#EB5E3D'}
+            onBlur={e => e.currentTarget.style.borderColor = colors.inputBorder}
           />
         </div>
 
@@ -414,10 +397,12 @@ export default function TemplatesPage() {
               className={active === cat ? 'pill-active' : ''}
               onClick={() => setActive(cat)}
               style={{
-                padding: '5px 14px', borderRadius: '20px', border: `1px solid ${colors.panelBorder}`,
-                background: colors.pillBg, color: colors.pillText, fontSize: '12.5px',
-                fontWeight: '500', cursor: 'pointer', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
-                transition: 'all 0.12s ease',
+                padding: '6px 16px', borderRadius: '20px', border: `1px solid ${colors.panelBorder}`,
+                background: active === cat ? '#EB5E3D' : colors.pillBg,
+                color: active === cat ? '#FFFFFF' : colors.pillText,
+                fontSize: '12.5px',
+                fontWeight: '700', cursor: 'pointer', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+                transition: 'all 0.15s ease',
               }}
             >
               {cat}
@@ -434,9 +419,11 @@ export default function TemplatesPage() {
               onClick={() => setLevel(lvl)}
               style={{
                 padding: '5px 14px', borderRadius: '20px', border: `1px solid ${colors.panelBorder}`,
-                background: colors.pillBg, color: colors.pillText, fontSize: '12.5px',
-                fontWeight: '500', cursor: 'pointer', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
-                transition: 'all 0.12s ease',
+                background: level === lvl ? '#EB5E3D' : colors.pillBg,
+                color: level === lvl ? '#FFFFFF' : colors.pillText,
+                fontSize: '12px',
+                fontWeight: '700', cursor: 'pointer', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+                transition: 'all 0.15s ease',
               }}
             >
               {lvl}
@@ -445,24 +432,26 @@ export default function TemplatesPage() {
         </div>
 
         {/* Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(290px, 1fr))', gap: '16px' }}>
           {filtered.map(t => (
             <div
               key={t.id}
               className="tpl-card"
               style={{
                 background: colors.cardBg, border: `1px solid ${colors.cardBorder}`,
-                borderRadius: '12px', padding: isMobile ? '16px' : '20px',
+                borderRadius: '16px', padding: isMobile ? '16px' : '22px',
+                boxShadow: '0 4px 16px rgba(36,24,18,0.04)',
               }}
             >
-              <div style={{ fontSize: '26px', marginBottom: '12px' }}>{t.icon}</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '7px' }}>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: colors.cardTitle }}>{t.title}</div>
+              <div style={{ fontSize: '28px', marginBottom: '12px' }}>{t.icon}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '8px' }}>
+                <div style={{ fontSize: '15px', fontWeight: '700', color: colors.cardTitle }}>{t.title}</div>
                 <span style={{
                   fontSize: '10.5px',
-                  fontWeight: '600',
-                  color: t.level === 'Advanced' ? '#fb923c' : t.level === 'Intermediate' ? '#a78bfa' : '#60a5fa',
-                  border: `1px solid ${t.level === 'Advanced' ? '#fb923c55' : t.level === 'Intermediate' ? '#a78bfa55' : '#60a5fa55'}`,
+                  fontWeight: '700',
+                  color: t.level === 'Advanced' ? '#EB5E3D' : t.level === 'Intermediate' ? '#DDA449' : '#319D84',
+                  background: t.level === 'Advanced' ? 'rgba(235,94,61,0.1)' : t.level === 'Intermediate' ? 'rgba(221,164,73,0.12)' : 'rgba(49,157,132,0.12)',
+                  border: `1px solid ${t.level === 'Advanced' ? '#EB5E3D40' : t.level === 'Intermediate' ? '#DDA44940' : '#319D8440'}`,
                   borderRadius: '999px',
                   padding: '2px 8px',
                   whiteSpace: 'nowrap',
@@ -470,30 +459,31 @@ export default function TemplatesPage() {
               </div>
               <div style={{ fontSize: '12.5px', color: colors.cardDesc, lineHeight: '1.55', marginBottom: '14px' }}>{t.desc}</div>
               <div style={{ fontSize: '11.5px', color: colors.metaText, marginBottom: '12px' }}>
-                <strong style={{ color: colors.muted, fontWeight: 600 }}>Best for:</strong> {t.useCase}
+                <strong style={{ color: '#241812', fontWeight: 700 }}>Best for:</strong> {t.useCase}
               </div>
               {/* Tags */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '16px' }}>
                 {t.tags.map(tag => (
                   <span key={tag} style={{
-                    fontSize: '11px', fontWeight: '500', padding: '2px 8px', borderRadius: '10px',
-                    background: `rgba(${TAG_COLORS[tag] ? '0,212,255' : '255,255,255'},0.07)`,
-                    color: TAG_COLORS[tag] || colors.pillText, border: `1px solid ${TAG_COLORS[tag] ? TAG_COLORS[tag] + '30' : colors.panelBorder}`,
-
+                    fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px',
+                    background: '#EDE6DC',
+                    color: '#241812', border: '1px solid #E5DCD0',
                   }}>{tag}</span>
                 ))}
               </div>
               {/* Footer */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11.5px', color: colors.metaText }}>{t.nodes.length} nodes · {t.category}</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #E5DCD0', paddingTop: '12px' }}>
+                <span style={{ fontSize: '11.5px', color: colors.metaText, fontWeight: '600' }}>{t.nodes.length} nodes · {t.category}</span>
                 <button
                   onClick={() => handleUse(t)}
                   style={{
-                    padding: '5px 13px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-                    background: colors.buttonBg, color: '#3B82F6',
-                    fontSize: '12px', fontWeight: '500', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
-                    transition: 'background 0.12s ease',
+                    padding: '6px 14px', borderRadius: '8px', border: '1px solid #E5DCD0', cursor: 'pointer',
+                    background: '#EDE6DC', color: '#241812',
+                    fontSize: '12px', fontWeight: '700', fontFamily: "var(--font-space-grotesk, system-ui, sans-serif)",
+                    transition: 'all 0.15s ease',
                   }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#EB5E3D'; e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = '#EB5E3D' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#EDE6DC'; e.currentTarget.style.color = '#241812'; e.currentTarget.style.borderColor = '#E5DCD0' }}
                 >
                   Use template →
                 </button>
@@ -507,7 +497,7 @@ export default function TemplatesPage() {
             items={MOBILE_NAV_ITEMS}
             pathname={pathname}
             onNavigate={(href) => router.push(href)}
-            isLight={isLight}
+            isLight={true}
           />
         )}
       </div>

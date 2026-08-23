@@ -1,198 +1,242 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
-import Image from "next/image"
+import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 
-const STEPS = [
+const USE_CASES = [
   {
-    number: "01",
-    title: "Connect your tools and triggers",
+    id: "data_integrations",
+    title: "Data & integrations",
+    subtitle: "Webhooks, Sheets & Drive sync",
     description:
-      "Link Google Sheets, Discord, Email, Webhooks, and 20+ integrations. Set triggers that kick off your workflows automatically.",
-    image: "/images/firstrep.png",
-    imageAlt: "Connect integrations and triggers",
-    badgePosition: "top",
+      "Capture inbound webhooks, ingest files from Google Drive, and append structured data rows directly into Google Sheets in real time.",
+    bgColor: "#5B9EB5", // Cerulean Blue
+    textColor: "#FFFFFF",
+    shapeType: "rect", // Square / Rectangle
+    accentTop: null,
+    accentBottom: {
+      type: "arch",
+      color: "#EB5E3D",
+    },
   },
   {
-    number: "02",
-    title: "Build workflows visually with AI nodes",
+    id: "ai_agents",
+    title: "AI agents & workflows",
+    subtitle: "GPT-4, Claude & Gemini intelligence",
     description:
-      "Drag and drop nodes on the canvas — connect GPT-4, Claude, Gemini, and more. No code, no guesswork, just powerful automation.",
-    image: "/images/second.png",
-    imageAlt: "Visual workflow builder with AI nodes",
-    badgePosition: "middle",
+      "Deploy AI nodes powered by GPT-4, Claude 3.5, and Gemini to read, reason, summarize content, and extract structured data automatically.",
+    bgColor: "#DDA449", // Mustard Ochre
+    textColor: "#FFFFFF",
+    shapeType: "circle", // Circle
+    accentTop: {
+      type: "dot",
+      color: "#7E755F",
+    },
+    accentBottom: null,
   },
   {
-    number: "03",
-    title: "Run, monitor, and scale from day one",
+    id: "scheduling_triggers",
+    title: "Scheduling & triggers",
+    subtitle: "Cron jobs & Gmail listeners",
     description:
-      "Execute workflows in real time with live analytics, execution history, and performance insights — see results immediately.",
-    image: "/images/thirdog.png",
-    imageAlt: "Monitor workflow runs and analytics",
-    badgePosition: "top",
+      "Trigger automations on inbound Gmail messages, configure time-based cron schedules, and coordinate timed execution delays.",
+    bgColor: "#9B5A53", // Terracotta Rust
+    textColor: "#FFFFFF",
+    shapeType: "u_arch", // U-curve / Rounded bottom
+    accentTop: {
+      type: "cross",
+      color: "#D4A5CE",
+    },
+    accentBottom: {
+      type: "diamond",
+      color: "#5B9EB5",
+    },
+  },
+  {
+    id: "comms_alerts",
+    title: "Communication & alerts",
+    subtitle: "Discord, WhatsApp & Email dispatch",
+    description:
+      "Dispatch automated Discord channel notifications, broadcast WhatsApp messages, and send transactional emails effortlessly.",
+    bgColor: "#319D84", // Jade Emerald Teal
+    textColor: "#FFFFFF",
+    shapeType: "quadrant", // Rounded Top Right
+    accentTop: null,
+    accentBottom: {
+      type: "square_dot",
+      color: "#DDA449",
+    },
   },
 ]
 
-function StepBadge({ number, isLight }) {
-  return (
-    <span
-      className={`inline-flex h-9 w-11 items-center justify-center rounded-lg border font-mono text-sm font-medium transition-colors ${
-        isLight
-          ? "border-[#d4cfc7] bg-white/60 text-[#71717a]"
-          : "border-[#1e293b] bg-[#0d1527]/60 text-[#9ca3af]"
-      }`}
-    >
-      {number}
-    </span>
-  )
-}
-
 export default function HowItWorksSection() {
-  const [isLight, setIsLight] = useState(true)
-
-  useEffect(() => {
-    const update = () => setIsLight(document.documentElement.classList.contains('light'))
-    update()
-    const observer = new MutationObserver(update)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-    return () => observer.disconnect()
-  }, [])
-
-  const bgColor = isLight ? "#f5f3ef" : "#030712"
-  const borderColor = isLight ? "#e8e4de" : "#1e293b"
-  const titleColor = isLight ? "#111" : "#ffffff"
-  const descColor = isLight ? "#71717a" : "#9ca3af"
-  const imageBg = isLight ? "#ebe7e1" : "#0b1329"
+  const [activeId, setActiveId] = useState("ai_agents")
 
   return (
     <section
       id="features"
-      style={{
-        borderTop: `1px solid ${borderColor}`,
-        background: bgColor,
-        transition: "background-color 0.3s ease, border-color 0.3s ease",
-      }}
+      className="py-20 sm:py-28 bg-[#F6F1EA] overflow-hidden"
+      style={{ backgroundColor: "#F6F1EA" }}
     >
-      <div className="mx-auto max-w-7xl px-4 md:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="py-14 text-center md:py-18"
-        >
-          <h2
-            className="text-3xl font-bold tracking-tight md:text-5xl transition-colors"
-            style={{ color: titleColor }}
-          >
-            How AutoFlow works
+      <div className="max-w-[1560px] mx-auto px-4 sm:px-8 md:px-12">
+        
+        {/* Section Header */}
+        <div className="text-center max-w-3xl mx-auto mb-14 sm:mb-20">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#EDE6DC] border border-[#E5DCD0] text-xs font-semibold text-[#EB5E3D] mb-4 shadow-2xs">
+            BUILT FOR EVERY USE CASE
+          </div>
+          <h2 className="text-3xl sm:text-5xl md:text-[3.5rem] font-bold text-[#241812] tracking-tight leading-[1.08] mb-4">
+            Transform any process into a workflow
           </h2>
-          <p
-            className="mx-auto mt-4 max-w-2xl text-base md:text-lg transition-colors"
-            style={{ color: descColor }}
-          >
-            From trigger to result in three simple steps — automate your workflows without writing a single line of code.
+          <p className="text-sm sm:text-base text-[#736357] leading-relaxed max-w-2xl mx-auto">
+            Hover or tap each category below to explore how teams use AutoFlow across departments and platforms.
           </p>
-        </motion.div>
+        </div>
 
-        <div
-          className={`grid md:grid-cols-3 md:divide-x transition-colors`}
-          style={{ borderColor: borderColor }}
-        >
-          {STEPS.map((step, index) => (
-            <motion.article
-              key={step.number}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.12, duration: 0.55 }}
-              className="flex flex-col px-0 py-10 md:px-8 md:py-14 lg:px-10"
-            >
-              {index === 1 ? (
-                <>
-                  {/* Image at top */}
-                  <div
-                    className="relative mb-8 aspect-[4/3] overflow-hidden rounded-2xl transition-colors"
-                    style={{ backgroundColor: imageBg }}
-                  >
-                    <Image
-                      src={step.image}
-                      alt={step.imageAlt}
-                      fill
-                      className="object-cover object-center"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                    />
-                  </div>
+        {/* ── INTERLOCKING GEOMETRIC SHAPES ROW (FAUNA STYLE) ── */}
+        <div className="relative w-full min-h-[540px] sm:min-h-[580px] flex items-center justify-center py-10">
+          <div className="w-full flex flex-col lg:flex-row items-center justify-center gap-5 lg:gap-0">
+            {USE_CASES.map((item, index) => {
+              const isActive = activeId === item.id
 
-                  {/* Description (content) */}
-                  <p
-                    className="text-sm leading-relaxed md:text-[15px] transition-colors"
-                    style={{ color: descColor }}
-                  >
-                    {step.description}
-                  </p>
+              // Shape styling depending on geometric type
+              let shapeClasses = ""
+              if (item.shapeType === "rect") {
+                shapeClasses = "rounded-[28px] lg:rounded-none"
+              } else if (item.shapeType === "circle") {
+                shapeClasses = "rounded-[36px] lg:rounded-full"
+              } else if (item.shapeType === "u_arch") {
+                shapeClasses = "rounded-[28px] lg:rounded-t-none lg:rounded-b-[240px]"
+              } else if (item.shapeType === "quadrant") {
+                shapeClasses = "rounded-[28px] lg:rounded-none lg:rounded-tr-[280px]"
+              }
 
-                  {/* Title */}
-                  <h3
-                    className="mt-6 text-xl font-bold leading-snug md:text-[1.65rem] md:leading-tight transition-colors"
-                    style={{ color: titleColor }}
-                  >
-                    {step.title}
-                  </h3>
-
-                  {/* Badge 02 at bottom */}
-                  <div className="mt-auto pt-8">
-                    <StepBadge number={step.number} isLight={isLight} />
-                  </div>
-                </>
-              ) : (
-                <>
-                  {step.badgePosition === "top" && (
-                    <div className="mb-8">
-                      <StepBadge number={step.number} isLight={isLight} />
-                    </div>
+              return (
+                <div
+                  key={item.id}
+                  className="relative flex flex-col items-center justify-center w-full lg:w-auto"
+                >
+                  {/* Top Floating Accent Icon */}
+                  {item.accentTop && (
+                    <motion.div
+                      animate={{
+                        y: isActive ? [0, -8, 0] : 0,
+                        rotate: isActive ? [0, 12, -12, 0] : 0,
+                        scale: isActive ? 1.1 : 1,
+                      }}
+                      transition={{ duration: 2.4, repeat: isActive ? Infinity : 0, ease: [0.45, 0, 0.55, 1] }}
+                      className="absolute -top-9 sm:-top-11 z-20 pointer-events-none hidden lg:block"
+                    >
+                      {item.accentTop.type === "dot" && (
+                        <div
+                          className="w-13 h-13 rounded-full shadow-md"
+                          style={{ backgroundColor: item.accentTop.color }}
+                        />
+                      )}
+                      {item.accentTop.type === "cross" && (
+                        <div className="relative w-12 h-12 flex items-center justify-center">
+                          <div className="absolute w-11 h-3 rounded-full rotate-45" style={{ backgroundColor: item.accentTop.color }} />
+                          <div className="absolute w-11 h-3 rounded-full -rotate-45" style={{ backgroundColor: item.accentTop.color }} />
+                        </div>
+                      )}
+                    </motion.div>
                   )}
 
-                  <h3
-                    className="text-xl font-bold leading-snug md:text-[1.65rem] md:leading-tight transition-colors"
-                    style={{ color: titleColor }}
+                  {/* Main Interlocking Geometric Card */}
+                  <motion.button
+                    layout
+                    onClick={() => setActiveId(item.id)}
+                    onMouseEnter={() => setActiveId(item.id)}
+                    onFocus={() => setActiveId(item.id)}
+                    animate={{
+                      scale: isActive ? 1.02 : 0.98,
+                      zIndex: isActive ? 30 : 10 + index,
+                    }}
+                    whileHover={{ scale: isActive ? 1.03 : 1.005 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{
+                      layout: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+                      scale: { duration: 0.35, ease: "easeOut" },
+                    }}
+                    style={{
+                      backgroundColor: item.bgColor,
+                    }}
+                    className={`relative p-9 sm:p-12 flex flex-col items-center justify-center text-center cursor-pointer select-none transition-shadow ${
+                      shapeClasses
+                    } ${
+                      isActive
+                        ? "shadow-[0_24px_60px_rgba(36,24,18,0.18)] ring-4 ring-white/20"
+                        : "shadow-[0_8px_28px_rgba(36,24,18,0.06)] hover:brightness-105"
+                    } ${
+                      // Scaled up dynamic width and height on desktop
+                      isActive
+                        ? "lg:w-[500px] lg:h-[480px] w-full min-h-[380px]"
+                        : "lg:w-[320px] lg:h-[480px] w-full min-h-[260px]"
+                    } -my-2 lg:-my-0 lg:-mx-5`}
                   >
-                    {step.title}
-                  </h3>
+                    {/* Title */}
+                    <h3 className="text-3xl sm:text-4xl md:text-[2.5rem] font-extrabold text-white tracking-tight leading-[1.12] max-w-[320px]">
+                      {item.title}
+                    </h3>
 
-                  {step.badgePosition === "middle" ? (
-                    <div className="my-10 flex flex-1 items-center md:my-14">
-                      <StepBadge number={step.number} isLight={isLight} />
-                    </div>
-                  ) : null}
+                    {/* Subtitle / Description (Smooth Expand On Active) */}
+                    <AnimatePresence mode="wait">
+                      {isActive && (
+                        <motion.div
+                          key="active-desc"
+                          initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+                          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                          exit={{ opacity: 0, y: -6, filter: "blur(3px)" }}
+                          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                          className="mt-4 flex flex-col items-center"
+                        >
+                          <p className="text-sm sm:text-base md:text-[16px] text-white/95 font-medium leading-relaxed max-w-[380px]">
+                            {item.description}
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
 
-                  <p
-                    className={`text-sm leading-relaxed md:text-[15px] transition-colors ${
-                      step.badgePosition === "middle" ? "" : "mt-4"
-                    }`}
-                    style={{ color: descColor }}
-                  >
-                    {step.description}
-                  </p>
-
-                  <div
-                    className="relative mt-8 aspect-[4/3] overflow-hidden rounded-2xl md:mt-auto md:pt-10 transition-colors"
-                    style={{ backgroundColor: imageBg }}
-                  >
-                    <Image
-                      src={step.image}
-                      alt={step.imageAlt}
-                      fill
-                      className="object-cover object-center"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                    />
-                  </div>
-                </>
-              )}
-            </motion.article>
-          ))}
+                  {/* Bottom Floating Accent Icon */}
+                  {item.accentBottom && (
+                    <motion.div
+                      animate={{
+                        y: isActive ? [0, 8, 0] : 0,
+                        rotate: isActive ? [0, -10, 10, 0] : 0,
+                        scale: isActive ? 1.1 : 1,
+                      }}
+                      transition={{ duration: 2.4, repeat: isActive ? Infinity : 0, ease: [0.45, 0, 0.55, 1] }}
+                      className="absolute -bottom-10 sm:-bottom-12 z-20 pointer-events-none hidden lg:block"
+                    >
+                      {item.accentBottom.type === "arch" && (
+                        <div
+                          className="w-16 h-9 rounded-t-full shadow-md"
+                          style={{ backgroundColor: item.accentBottom.color }}
+                        />
+                      )}
+                      {item.accentBottom.type === "diamond" && (
+                        <div
+                          className="w-10 h-10 rotate-45 rounded-md shadow-md"
+                          style={{ backgroundColor: item.accentBottom.color }}
+                        />
+                      )}
+                      {item.accentBottom.type === "square_dot" && (
+                        <div
+                          className="w-13 h-13 rounded-2xl flex items-center justify-center shadow-md"
+                          style={{ backgroundColor: item.accentBottom.color }}
+                        >
+                          <div className="w-4 h-4 rounded-full bg-white" />
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
+
       </div>
     </section>
   )

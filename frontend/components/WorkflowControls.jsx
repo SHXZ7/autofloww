@@ -10,7 +10,7 @@ import {
   CheckIcon,
   PencilIcon,
   PlusIcon,
-  StopCircleIcon,   
+  StopCircleIcon   
 } from "@heroicons/react/24/outline"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://autoflow-f6hga9djg0a5b4fj.uaenorth-01.azurewebsites.net'
